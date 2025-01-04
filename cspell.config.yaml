@@ -1,0 +1,31 @@
+version: '0.2'
+ignorePaths: []
+dictionaryDefinitions: []
+dictionaries: []
+words:
+  - antfu
+  - bumpp
+  - defu
+  - execa
+  - Infobar
+  - KHTML
+  - logg
+  - mdast
+  - neuri
+  - noancestors
+  - ofetch
+  - openai
+  - prismarine
+  - reactjs
+  - serpapi
+  - shiki
+  - shikijs
+  - Streamable
+  - testdata
+  - typeschema
+  - valibot
+  - vitepress
+  - vuejs
+  - xsai
+ignoreWords: []
+import: []
