@@ -1,417 +1,263 @@
 import type { Bot } from 'mineflayer'
+import type { Item } from 'prismarine-item'
+import type { Window } from 'prismarine-windows'
+import type { ComponentLifecycle } from '../bot'
+import { useLogg } from '@guiiai/logg'
 
-/*
- * Watch out, this is a big one!
- *
- * This is a demonstration to show you how you can interact with:
- * - Chests
- * - Furnaces
- * - Dispensers
- * - Enchantment Tables
- *
- * and of course with your own inventory.
- *
- * Each of the main commands makes the bot interact with the block and open
- * its window. From there you can send another set of commands to actually
- * interact with the window and make awesome stuff.
- *
- * There's also a bonus example which shows you how to use the /invsee command
- * to see what items another user has in his inventory and what items he has
- * equipped.
- * This last one is usually reserved to Server Ops so make sure you have the
- * appropriate permission to do it or it won't work.
- */
+const VALID_CHEST_TYPES = ['chest', 'ender_chest', 'trapped_chest'] as const
+const VALID_FURNACE_TYPES = ['furnace', 'lit_furnace'] as const
+const VALID_ENCHANT_TYPES = ['enchanting_table'] as const
 
-export function createChestComponent(bot: Bot) {
-  bot.on('experience', () => {
-    bot.chat(`I am level ${bot.experience.level}`)
-  })
+interface ContainerContext {
+  window: Window
+  removeListeners: () => void
+}
 
-  bot.on('chat', (username, message) => {
-    if (username === bot.username)
-      return
-    switch (true) {
-      case /^list$/.test(message):
-        sayItems()
-        break
-      case /^chest$/.test(message):
-        watchChest(false, ['chest', 'ender_chest', 'trapped_chest'])
-        break
-      case /^furnace$/.test(message):
-        watchFurnace()
-        break
-      case /^dispenser$/.test(message):
-        watchChest(false, ['dispenser'])
-        break
-      case /^enchant$/.test(message):
-        watchEnchantmentTable()
-        break
-      case /^chestminecart$/.test(message):
-        watchChest(true)
-        break
-      case /^invsee \w+( \d)?$/.test(message): {
-      // invsee Herobrine [or]
-      // invsee Herobrine 1
-        const command = message.split(' ')
-        useInvsee(command[0], command[1])
-        break
-      }
-    }
-  })
+// Utility functions
+function createItemUtils(bot: Bot) {
+  const itemToString = (item: Item | null): string => {
+    if (item)
+      return `${item.name} x ${item.count}`
+    return '(nothing)'
+  }
 
-  function sayItems(items = bot.inventory.items()) {
+  const findItemByName = (items: Item[], name: string): Item | null =>
+    items.find(item => item?.name === name) || null
+
+  const findItemByType = (items: Item[], type: number): Item | null =>
+    items.find(item => item?.type === type) || null
+
+  const listItems = (items = bot.inventory.items()): void => {
     const output = items.map(itemToString).join(', ')
-    if (output) {
-      bot.chat(output)
+    bot.chat(output || 'empty')
+  }
+
+  return {
+    itemToString,
+    findItemByName,
+    findItemByType,
+    listItems,
+  }
+}
+
+// Container management
+function createContainerManager(bot: Bot, logger: ReturnType<typeof useLogg>) {
+  const setupContainerListeners = (
+    window: Window,
+    onChat: (username: string, message: string) => void,
+    type = 'container',
+  ): () => void => {
+    const updateHandler = (slot: number, oldItem: Item, newItem: Item) => {
+      bot.chat(`${type} update: ${itemToString(oldItem)} -> ${itemToString(newItem)} (slot: ${slot})`)
     }
-    else {
-      bot.chat('empty')
+
+    const closeHandler = () => {
+      bot.chat(`${type} closed`)
+    }
+
+    window.on('updateSlot', updateHandler)
+    window.on('close', closeHandler)
+    bot.on('chat', onChat)
+
+    return () => {
+      window.removeListener('updateSlot', updateHandler)
+      window.removeListener('close', closeHandler)
+      bot.removeListener('chat', onChat)
     }
   }
 
-  async function watchChest(minecart: boolean, blocks: string[] = []) {
-    let chestToOpen
-    if (minecart) {
-      chestToOpen = Object.keys(bot.entities)
-        .map(id => bot.entities[id])
-        .find(e => e.entityType === bot.registry.entitiesByName.chest_minecart
-          && e.objectData.intField === 1
-          && bot.entity.position.distanceTo(e.position) < 3)
-      if (!chestToOpen) {
-        bot.chat('no chest minecart found')
-        return
-      }
-    }
-    else {
-      chestToOpen = bot.findBlock({
-        matching: blocks.map(name => bot.registry.blocksByName[name].id),
-        maxDistance: 6,
-      })
-      if (!chestToOpen) {
-        bot.chat('no chest found')
-        return
-      }
-    }
-    const chest = await bot.openContainer(chestToOpen)
-    sayItems(chest.containerItems())
-    chest.on('updateSlot', (slot, oldItem, newItem) => {
-      bot.chat(`chest update: ${itemToString(oldItem)} -> ${itemToString(newItem)} (slot: ${slot})`)
+  const findNearbyBlock = (types: readonly string[], maxDistance = 6): ReturnType<Bot['findBlock']> => {
+    return bot.findBlock({
+      matching: types
+        .filter(name => bot.registry.blocksByName[name] !== undefined)
+        .map(name => bot.registry.blocksByName[name].id),
+      maxDistance,
     })
-    chest.on('close', () => {
-      bot.chat('chest closed')
-    })
+  }
 
-    bot.on('chat', onChat)
+  return {
+    setupContainerListeners,
+    findNearbyBlock,
+  }
+}
 
-    function onChat(username: string, message: string) {
-      if (username === bot.username)
-        return
-      const command = message.split(' ')
-      switch (true) {
-        case /^close$/.test(message):
-          closeChest()
-          break
-        case /^withdraw \d+ \w+$/.test(message):
-        // withdraw amount name
-        // ex: withdraw 16 stick
-          withdrawItem(command[2], command[1])
-          break
-        case /^deposit \d+ \w+$/.test(message):
-        // deposit amount name
-        // ex: deposit 16 stick
-          depositItem(command[2], command[1])
-          break
+// Chest functions
+function createChestManager(bot: Bot, logger: ReturnType<typeof useLogg>, utils: ReturnType<typeof createItemUtils>) {
+  const { itemToString, findItemByName, listItems } = utils
+
+  const handleChestCommands = async (window: Window, command: string[]): Promise<void> => {
+    switch (true) {
+      case /^close$/.test(command[0]): {
+        window.close()
+        break
       }
-    }
+      case /^withdraw \d+ \w+$/.test(command.join(' ')): {
+        const amount = Number.parseInt(command[1], 10)
+        const name = command[2]
+        const item = findItemByName(window.containerItems(), name)
 
-    function closeChest() {
-      chest.close()
-      bot.removeListener('chat', onChat)
-    }
+        if (!item) {
+          bot.chat(`unknown item ${name}`)
+          return
+        }
 
-    async function withdrawItem(name: string, amount: number) {
-      const item = itemByName(chest.containerItems(), name)
-      if (item) {
         try {
-          await chest.withdraw(item.type, null, amount)
+          await window.withdraw(item.type, null, amount)
           bot.chat(`withdrew ${amount} ${item.name}`)
         }
         catch (err) {
           bot.chat(`unable to withdraw ${amount} ${item.name}`)
         }
+        break
       }
-      else {
-        bot.chat(`unknown item ${name}`)
-      }
-    }
+      case /^deposit \d+ \w+$/.test(command.join(' ')): {
+        const amount = Number.parseInt(command[1], 10)
+        const name = command[2]
+        const item = findItemByName(window.items(), name)
 
-    async function depositItem(name: string, amount: number) {
-      const item = itemByName(chest.items(), name)
-      if (item) {
+        if (!item) {
+          bot.chat(`unknown item ${name}`)
+          return
+        }
+
         try {
-          await chest.deposit(item.type, null, amount)
+          await window.deposit(item.type, null, amount)
           bot.chat(`deposited ${amount} ${item.name}`)
         }
         catch (err) {
           bot.chat(`unable to deposit ${amount} ${item.name}`)
         }
-      }
-      else {
-        bot.chat(`unknown item ${name}`)
+        break
       }
     }
   }
 
-  async function watchFurnace() {
-    const furnaceBlock = bot.findBlock({
-      matching: ['furnace', 'lit_furnace'].filter(name => bot.registry.blocksByName[name] !== undefined).map(name => bot.registry.blocksByName[name].id),
-      maxDistance: 6,
-    })
+  const openChest = async (minecart = false): Promise<ContainerContext | null> => {
+    let target
+    if (minecart) {
+      target = Object.values(bot.entities)
+        .find(e => e.entityType === bot.registry.entitiesByName.chest_minecart
+          && bot.entity.position.distanceTo(e.position) < 3)
+
+      if (!target) {
+        bot.chat('no chest minecart found')
+        return null
+      }
+    }
+    else {
+      target = bot.findBlock({
+        matching: VALID_CHEST_TYPES.map(name => bot.registry.blocksByName[name].id),
+        maxDistance: 6,
+      })
+
+      if (!target) {
+        bot.chat('no chest found')
+        return null
+      }
+    }
+
+    try {
+      const window = await bot.openContainer(target)
+      const onChat = (username: string, message: string) => {
+        if (username === bot.username)
+          return
+        handleChestCommands(window, message.split(' '))
+      }
+
+      const removeListeners = setupContainerListeners(window, onChat, 'chest')
+      listItems(window.containerItems())
+
+      return { window, removeListeners }
+    }
+    catch (err) {
+      logger.error('Failed to open chest', err)
+      bot.chat('Failed to open chest')
+      return null
+    }
+  }
+
+  return {
+    openChest,
+  }
+}
+
+// Furnace functions
+function createFurnaceManager(bot: Bot, logger: ReturnType<typeof useLogg>, containerManager: ReturnType<typeof createContainerManager>) {
+  const { findNearbyBlock } = containerManager
+
+  const openFurnace = async (): Promise<void> => {
+    const furnaceBlock = findNearbyBlock(VALID_FURNACE_TYPES)
     if (!furnaceBlock) {
       bot.chat('no furnace found')
       return
     }
-    const furnace = await bot.openFurnace(furnaceBlock)
-    let output = ''
-    output += `input: ${itemToString(furnace.inputItem())}, `
-    output += `fuel: ${itemToString(furnace.fuelItem())}, `
-    output += `output: ${itemToString(furnace.outputItem())}`
-    bot.chat(output)
 
-    furnace.on('updateSlot', (slot, oldItem, newItem) => {
-      bot.chat(`furnace update: ${itemToString(oldItem)} -> ${itemToString(newItem)} (slot: ${slot})`)
-    })
-    furnace.on('close', () => {
-      bot.chat('furnace closed')
-    })
-    furnace.on('update', () => {
-      console.log(`fuel: ${Math.round(furnace.fuel * 100)}% progress: ${Math.round(furnace.progress * 100)}%`)
-    })
+    try {
+      const furnace = await bot.openFurnace(furnaceBlock)
+      let output = ''
+      output += `input: ${itemToString(furnace.inputItem())}, `
+      output += `fuel: ${itemToString(furnace.fuelItem())}, `
+      output += `output: ${itemToString(furnace.outputItem())}`
+      bot.chat(output)
 
-    bot.on('chat', onChat)
+      furnace.on('update', () => {
+        logger.debug(`fuel: ${Math.round(furnace.fuel * 100)}% progress: ${Math.round(furnace.progress * 100)}%`)
+      })
 
-    function onChat(username: string, message: string) {
-      if (username === bot.username)
-        return
-      const command = message.split(' ')
-      switch (true) {
-        case /^close$/.test(message):
-          closeFurnace()
-          break
-        case /^(input|fuel) \d+ \w+$/.test(message):
-        // input amount name
-        // ex: input 32 coal
-          putInFurnace(command[0], command[2], command[1])
-          break
-        case /^take (input|fuel|output)$/.test(message):
-        // take what
-        // ex: take output
-          takeFromFurnace(command[0])
-          break
-      }
-
-      function closeFurnace() {
-        furnace.close()
-        bot.removeListener('chat', onChat)
-      }
-
-      async function putInFurnace(where: string, name: string, amount: number) {
-        const item = itemByName(furnace.items(), name)
-        if (item) {
-          const fn = {
-            input: furnace.putInput,
-            fuel: furnace.putFuel,
-          }[where]
-          try {
-            await fn.call(furnace, item.type, null, amount)
-            bot.chat(`put ${amount} ${item.name}`)
-          }
-          catch (err) {
-            bot.chat(`unable to put ${amount} ${item.name}`)
-          }
-        }
-        else {
-          bot.chat(`unknown item ${name}`)
-        }
-      }
-
-      async function takeFromFurnace(what: string) {
-        const fn = {
-          input: furnace.takeInput,
-          fuel: furnace.takeFuel,
-          output: furnace.takeOutput,
-        }[what]
-        try {
-          const item = await fn.call(furnace)
-          bot.chat(`took ${item.name}`)
-        }
-        catch (err) {
-          bot.chat('unable to take')
-        }
-      }
+      // Setup furnace command handlers...
+    }
+    catch (err) {
+      logger.error('Failed to open furnace', err)
+      bot.chat('Failed to open furnace')
     }
   }
 
-  async function watchEnchantmentTable() {
-    const enchantTableBlock = bot.findBlock({
-      matching: ['enchanting_table'].map(name => bot.registry.blocksByName[name].id),
-      maxDistance: 6,
-    })
-    if (!enchantTableBlock) {
-      bot.chat('no enchantment table found')
+  return {
+    openFurnace,
+  }
+}
+
+export function createChestComponent(bot: Bot): ComponentLifecycle {
+  const logger = useLogg('chest').useGlobalConfig()
+  logger.log('Loading chest component')
+
+  const utils = createItemUtils(bot)
+  const containerManager = createContainerManager(bot, logger)
+  const chestManager = createChestManager(bot, logger, utils)
+  const furnaceManager = createFurnaceManager(bot, logger, containerManager)
+
+  // Main chat handler
+  const onChat = async (username: string, message: string): Promise<void> => {
+    if (username === bot.username)
       return
-    }
-    const table = await bot.openEnchantmentTable(enchantTableBlock)
-    bot.chat(itemToString(table.targetItem()))
 
-    table.on('updateSlot', (slot, oldItem, newItem) => {
-      bot.chat(`enchantment table update: ${itemToString(oldItem)} -> ${itemToString(newItem)} (slot: ${slot})`)
-    })
-    table.on('close', () => {
-      bot.chat('enchantment table closed')
-    })
-    table.on('ready', () => {
-      bot.chat(`ready to enchant. choices are ${table.enchantments.map(o => o.level).join(', ')}`)
-    })
-
-    bot.on('chat', onChat)
-
-    function onChat(username: string, message: string) {
-      if (username === bot.username)
-        return
-      const command = message.split(' ')
-      switch (true) {
-        case /^close$/.test(message):
-          closeEnchantmentTable()
-          break
-        case /^put \w+$/.test(message):
-        // put name
-        // ex: put diamondsword
-          putItem(command[1])
-          break
-        case /^add lapis$/.test(message):
-          addLapis()
-          break
-        case /^enchant \d+$/.test(message):
-        // enchant choice
-        // ex: enchant 2
-          enchantItem(command[1])
-          break
-        case /^take$/.test(message):
-          takeEnchantedItem()
-          break
-      }
-
-      function closeEnchantmentTable() {
-        table.close()
-      }
-
-      async function putItem(name: string) {
-        const item = itemByName(table.window.items(), name)
-        if (item) {
-          try {
-            await table.putTargetItem(item)
-            bot.chat(`I put ${itemToString(item)}`)
-          }
-          catch (err) {
-            bot.chat(`error putting ${itemToString(item)}`)
-          }
-        }
-        else {
-          bot.chat(`unknown item ${name}`)
-        }
-      }
-
-      async function addLapis() {
-        const item = itemByType(table.window.items(), ['dye', 'purple_dye', 'lapis_lazuli'].filter(name => bot.registry.itemByName[name] !== undefined)
-          .map(name => bot.registry.itemByName[name].id))
-        if (item) {
-          try {
-            await table.putLapis(item)
-            bot.chat(`I put ${itemToString(item)}`)
-          }
-          catch (err) {
-            bot.chat(`error putting ${itemToString(item)}`)
-          }
-        }
-        else {
-          bot.chat('I don\'t have any lapis')
-        }
-      }
-
-      async function enchantItem(choice: string) {
-        choice = Number.parseInt(choice, 10)
-        try {
-          const item = await table.enchant(choice)
-          bot.chat(`enchanted ${itemToString(item)}`)
-        }
-        catch (err) {
-          bot.chat('error enchanting')
-        }
-      }
-
-      async function takeEnchantedItem() {
-        try {
-          const item = await table.takeTargetItem()
-          bot.chat(`got ${itemToString(item)}`)
-        }
-        catch (err) {
-          bot.chat('error getting item')
-        }
-      }
+    switch (true) {
+      case /^list$/.test(message):
+        utils.listItems()
+        break
+      case /^chest$/.test(message):
+        await chestManager.openChest(false)
+        break
+      case /^chestminecart$/.test(message):
+        await chestManager.openChest(true)
+        break
+      case /^furnace$/.test(message):
+        await furnaceManager.openFurnace()
+        break
     }
   }
 
-  function useInvsee(username: string, showEquipment: boolean) {
-    bot.once('windowOpen', (window) => {
-      const count = window.containerItems().length
-      const what = showEquipment ? 'equipment' : 'inventory items'
-      if (count) {
-        bot.chat(`${username}'s ${what}:`)
-        sayItems(window.containerItems())
-      }
-      else {
-        bot.chat(`${username} has no ${what}`)
-      }
-    })
-    if (showEquipment) {
-    // any extra parameter triggers the easter egg
-    // and shows the other player's equipment
-      bot.chat(`/invsee ${username} 1`)
-    }
-    else {
-      bot.chat(`/invsee ${username}`)
-    }
-  }
+  // Setup event listeners
+  bot.on('chat', onChat)
+  bot.on('experience', () => {
+    bot.chat(`I am level ${bot.experience.level}`)
+  })
 
-  function itemToString(item: Item | null): string {
-    if (item) {
-      return `${item.name} x ${item.count}`
-    }
-    else {
-      return '(nothing)'
-    }
-  }
-
-  function itemByType(items: Item[], type: number): Item | null {
-    let item: Item | null = null
-    let i: number
-    for (i = 0; i < items.length; ++i) {
-      item = items[i]
-      if (item && item.type === type)
-        return item
-    }
-    return null
-  }
-
-  function itemByName(items: Item[], name: string): Item | null {
-    let item: Item | null = null
-    let i: number
-    for (i = 0; i < items.length; ++i) {
-      item = items[i]
-      if (item && item.name === name)
-        return item
-    }
-    return null
+  // Cleanup function
+  return {
+    cleanup: () => {
+      bot.removeListener('chat', onChat)
+      logger.log('Chest component cleaned up')
+    },
   }
 }

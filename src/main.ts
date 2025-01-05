@@ -1,7 +1,10 @@
 import process from 'node:process'
 import { Format, LogLevel, setGlobalFormat, setGlobalLogLevel, useLogg } from '@guiiai/logg'
-import { useBot } from './bot'
+
+import { createBot, useBot } from './bot'
+import { createChestComponent } from './components/chest'
 import { createEchoComponent } from './components/echo'
+import { createFollowComponent } from './components/follow'
 import { createPathFinderComponent } from './components/patchfinder'
 import { defaultConfig } from './config'
 
@@ -12,11 +15,13 @@ async function main() {
   setGlobalLogLevel(LogLevel.Debug)
   setGlobalFormat(Format.Pretty)
 
+  createBot(defaultConfig)
   const bot = useBot()
-  bot.createBot(defaultConfig)
 
   bot.registerComponent('echo', createEchoComponent)
   bot.registerComponent('pathfinder', createPathFinderComponent)
+  bot.registerComponent('chest', createChestComponent)
+  bot.registerComponent('follow', createFollowComponent)
 
   process.on('SIGINT', () => {
     bot.cleanup()

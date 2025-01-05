@@ -1,11 +1,11 @@
 // This is an example that uses mineflayer-pathfinder to showcase how simple it is to walk to goals
 
 import type { Bot } from 'mineflayer'
-import type { ComponentContext } from '../bot'
+import type { ComponentLifecycle } from '../bot'
 import { useLogg } from '@guiiai/logg'
 import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
 
-export function createPathFinderComponent(botInstance: Bot): ComponentContext {
+export function createPathFinderComponent(botInstance: Bot): ComponentLifecycle {
   const RANGE_GOAL = 1 // get within this radius of the player
 
   const logger = useLogg('pathfinder').useGlobalConfig()
