@@ -2,7 +2,6 @@ import process from 'node:process'
 import { Format, LogLevel, setGlobalFormat, setGlobalLogLevel, useLogg } from '@guiiai/logg'
 
 import { createBot, useBot } from './bot'
-import { createChestComponent } from './components/chest'
 import { createEchoComponent } from './components/echo'
 import { createFollowComponent } from './components/follow'
 import { createPathFinderComponent } from './components/patchfinder'
@@ -22,7 +21,7 @@ async function main() {
 
   registerComponent('echo', createEchoComponent)
   registerComponent('pathfinder', createPathFinderComponent)
-  registerComponent('chest', createChestComponent)
+  // registerComponent('chest', createChestComponent)
   registerComponent('follow', createFollowComponent)
 
   process.on('SIGINT', () => {

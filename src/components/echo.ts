@@ -1,23 +1,22 @@
-import type { Bot } from 'mineflayer'
-import type { ComponentLifecycle } from '../bot'
+import type { ComponentLifecycle, Context } from '../bot'
 import { useLogg } from '@guiiai/logg'
 
 const logger = useLogg('echo').useGlobalConfig()
 
-export function createEchoComponent(bot: Bot): ComponentLifecycle {
+export function createEchoComponent(ctx: Context): ComponentLifecycle {
   const onChat = (username: string, message: string) => {
-    if (username === bot.username)
+    if (username === ctx.bot.username)
       return
 
     logger.withFields({ username, message }).log('Chat message received')
-    bot.chat(message)
+    ctx.bot.chat(message)
   }
 
-  bot.on('chat', onChat)
+  ctx.bot.on('chat', onChat)
 
   return {
     cleanup: () => {
-      bot.removeListener('chat', onChat)
+      ctx.bot.removeListener('chat', onChat)
     },
   }
 }

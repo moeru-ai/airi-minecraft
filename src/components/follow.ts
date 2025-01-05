@@ -1,15 +1,14 @@
-import type { Bot } from 'mineflayer'
-import type { ComponentLifecycle } from '../bot'
+import type { ComponentLifecycle, Context } from '../ctx.bot'
 import { useLogg } from '@guiiai/logg'
 import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
 
-export function createFollowComponent(bot: Bot): ComponentLifecycle {
+export function createFollowComponent(ctx: Context): ComponentLifecycle {
   const RANGE_GOAL = 2 // get within this radius of the player
 
   const logger = useLogg('follow').useGlobalConfig()
   logger.log('Loading follow plugin')
 
-  bot.loadPlugin(pathfinder)
+  ctx.bot.loadPlugin(pathfinder)
 
   let defaultMove: Movements
   let following: string | null = null
@@ -18,21 +17,21 @@ export function createFollowComponent(bot: Bot): ComponentLifecycle {
     if (!following)
       return
 
-    const target = bot.players[following]?.entity
+    const target = ctx.bot.players[following]?.entity
     if (!target) {
-      bot.chat('I lost sight of you!')
+      ctx.bot.chat('I lost sight of you!')
       following = null
       return
     }
 
     const { x: playerX, y: playerY, z: playerZ } = target.position
 
-    bot.pathfinder.setMovements(defaultMove)
-    bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
+    ctx.bot.pathfinder.setMovements(defaultMove)
+    ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
   }
 
   const onChat = (username: string, message: string) => {
-    if (username === bot.username)
+    if (username === ctx.bot.username)
       return
 
     if (message === 'follow') {
@@ -43,13 +42,13 @@ export function createFollowComponent(bot: Bot): ComponentLifecycle {
     else if (message === 'stop') {
       following = null
       logger.log('Stopping follow')
-      bot.pathfinder.stop()
+      ctx.bot.pathfinder.stop()
     }
   }
 
-  bot.once('spawn', () => {
-    defaultMove = new Movements(bot)
-    bot.on('chat', onChat)
+  ctx.bot.once('spawn', () => {
+    defaultMove = new Movements(ctx.bot)
+    ctx.bot.on('chat', onChat)
 
     // Continuously update path to follow player
     const followInterval = setInterval(() => {
@@ -57,14 +56,14 @@ export function createFollowComponent(bot: Bot): ComponentLifecycle {
         followPlayer()
     }, 1000)
 
-    bot.once('end', () => {
+    ctx.bot.once('end', () => {
       clearInterval(followInterval)
     })
   })
 
   return {
     cleanup: () => {
-      bot.removeListener('chat', onChat)
+      ctx.bot.removeListener('chat', onChat)
     },
   }
 }
