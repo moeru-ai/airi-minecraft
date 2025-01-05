@@ -15,8 +15,10 @@
   },
   "dependencies": {
     "@guiiai/logg": "^1.0.6",
+    "dotenv": "^16.4.7",
     "mineflayer": "^4.23.0",
     "mineflayer-pathfinder": "^2.4.5",
+    "prismarine-entity": "^2.4.0",
     "prismarine-viewer": "^1.29.0"
   },
   "devDependencies": {

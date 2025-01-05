@@ -6,7 +6,7 @@ import { createChestComponent } from './components/chest'
 import { createEchoComponent } from './components/echo'
 import { createFollowComponent } from './components/follow'
 import { createPathFinderComponent } from './components/patchfinder'
-import { defaultConfig } from './config'
+import { botConfig, initEnv } from './config'
 
 const logger = useLogg('main').useGlobalConfig()
 
@@ -15,16 +15,18 @@ async function main() {
   setGlobalLogLevel(LogLevel.Debug)
   setGlobalFormat(Format.Pretty)
 
-  createBot(defaultConfig)
-  const bot = useBot()
+  initEnv()
 
-  bot.registerComponent('echo', createEchoComponent)
-  bot.registerComponent('pathfinder', createPathFinderComponent)
-  bot.registerComponent('chest', createChestComponent)
-  bot.registerComponent('follow', createFollowComponent)
+  createBot(botConfig)
+  const { cleanup, registerComponent } = useBot()
+
+  registerComponent('echo', createEchoComponent)
+  registerComponent('pathfinder', createPathFinderComponent)
+  registerComponent('chest', createChestComponent)
+  registerComponent('follow', createFollowComponent)
 
   process.on('SIGINT', () => {
-    bot.cleanup()
+    cleanup()
     process.exit(0)
   })
 }
