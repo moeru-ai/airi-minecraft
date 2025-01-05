@@ -1,12 +1,14 @@
-version: '0.2'
+version: "0.2"
 ignorePaths: []
 dictionaryDefinitions: []
 dictionaries: []
 words:
+  - airi
   - antfu
   - bumpp
   - defu
   - execa
+  - guiiai
   - Infobar
   - KHTML
   - logg
