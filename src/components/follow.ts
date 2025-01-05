@@ -3,29 +3,13 @@ import type { ComponentLifecycle } from '../bot'
 import { useLogg } from '@guiiai/logg'
 import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
 
-interface Context {
-  fromUsername?: string
-  fromEntity?: any
-  fromMessage?: string
-
-  isBot: () => boolean
-  isCommand: () => boolean
-}
-
-function newContext(botInstance: Bot, message: string, sender: string, entity: any): Context {
-  return {
-    isBot: () => sender === botInstance.username,
-    isCommand: () => message.startsWith('#'),
-  }
-}
-
-export function createFollowComponent(botInstance: Bot): ComponentLifecycle {
+export function createFollowComponent(bot: Bot): ComponentLifecycle {
   const RANGE_GOAL = 2 // get within this radius of the player
 
   const logger = useLogg('follow').useGlobalConfig()
   logger.log('Loading follow plugin')
 
-  botInstance.loadPlugin(pathfinder)
+  bot.loadPlugin(pathfinder)
 
   let defaultMove: Movements
   let following: string | null = null
@@ -34,21 +18,21 @@ export function createFollowComponent(botInstance: Bot): ComponentLifecycle {
     if (!following)
       return
 
-    const target = botInstance.players[following]?.entity
+    const target = bot.players[following]?.entity
     if (!target) {
-      botInstance.chat('I lost sight of you!')
+      bot.chat('I lost sight of you!')
       following = null
       return
     }
 
     const { x: playerX, y: playerY, z: playerZ } = target.position
 
-    botInstance.pathfinder.setMovements(defaultMove)
-    botInstance.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
+    bot.pathfinder.setMovements(defaultMove)
+    bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
   }
 
   const onChat = (username: string, message: string) => {
-    if (username === botInstance.username)
+    if (username === bot.username)
       return
 
     if (message === 'follow') {
@@ -59,14 +43,13 @@ export function createFollowComponent(botInstance: Bot): ComponentLifecycle {
     else if (message === 'stop') {
       following = null
       logger.log('Stopping follow')
-      botInstance.pathfinder.stop()
+      bot.pathfinder.stop()
     }
   }
 
-  botInstance.once('spawn', () => {
-    logger.log('Spawning bot')
-    defaultMove = new Movements(botInstance)
-    botInstance.on('chat', onChat)
+  bot.once('spawn', () => {
+    defaultMove = new Movements(bot)
+    bot.on('chat', onChat)
 
     // Continuously update path to follow player
     const followInterval = setInterval(() => {
@@ -74,14 +57,14 @@ export function createFollowComponent(botInstance: Bot): ComponentLifecycle {
         followPlayer()
     }, 1000)
 
-    botInstance.once('end', () => {
+    bot.once('end', () => {
       clearInterval(followInterval)
     })
   })
 
   return {
     cleanup: () => {
-      botInstance.removeListener('chat', onChat)
+      bot.removeListener('chat', onChat)
     },
   }
 }

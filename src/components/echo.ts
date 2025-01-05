@@ -4,20 +4,20 @@ import { useLogg } from '@guiiai/logg'
 
 const logger = useLogg('echo').useGlobalConfig()
 
-export function createEchoComponent(botInstance: Bot): ComponentLifecycle {
+export function createEchoComponent(bot: Bot): ComponentLifecycle {
   const onChat = (username: string, message: string) => {
-    if (username === botInstance.username)
+    if (username === bot.username)
       return
 
     logger.withFields({ username, message }).log('Chat message received')
-    botInstance.chat(message)
+    bot.chat(message)
   }
 
-  botInstance.on('chat', onChat)
+  bot.on('chat', onChat)
 
   return {
     cleanup: () => {
-      botInstance.removeListener('chat', onChat)
+      bot.removeListener('chat', onChat)
     },
   }
 }
