@@ -2,6 +2,7 @@ import process from 'node:process'
 
 import { Format, LogLevel, setGlobalFormat, setGlobalLogLevel, useLogg } from '@guiiai/logg'
 
+import { initAgent } from './agents/openai'
 import { createCommandComponent } from './components/command'
 import { createFollowComponent } from './components/follow'
 import { createPathFinderComponent } from './components/pathfinder'
@@ -28,7 +29,7 @@ async function main() {
     registerComponent('command', createCommandComponent)
   })
 
-  // initAgent(ctx)
+  // initAgent()
 
   process.on('SIGINT', () => {
     cleanup()
