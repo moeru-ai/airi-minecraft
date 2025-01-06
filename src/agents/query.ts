@@ -1,5 +1,7 @@
 import type { Bot } from 'mineflayer'
+import type { BotContext } from '../composables/bot'
 import { z } from 'zod'
+import { getStatus } from '../components/status'
 
 // Core types
 type QueryResult = string | Promise<string>
@@ -25,37 +27,11 @@ interface QueryBotContext {
   }
 }
 
-interface QueryAgentBotContext {
-  bot: Bot
-  name: string
-  actions: {
-    currentActionLabel: string
-  }
-  isIdle: () => boolean
-  memory_bank: {
-    getKeys: () => string[]
-  }
-}
-
-export function createQueryAgentBotContext(bot: Bot): QueryAgentBotContext {
-  return {
-    bot,
-    name: bot.username,
-    actions: {
-      currentActionLabel: bot.actions.currentActionLabel,
-    },
-    isIdle: () => bot.actions.isIdle(),
-    memory_bank: {
-      getKeys: () => bot.memory_bank.getKeys(),
-    },
-  }
-}
-
 interface Query {
   readonly name: string
   readonly description: string
   readonly schema: z.ZodObject<any>
-  readonly perform: (agent: QueryAgentBotContext) => () => QueryResult
+  readonly perform: (ctx: BotContext) => () => QueryResult
 }
 
 // Utils
@@ -75,32 +51,8 @@ function createStatsQuery(): Query {
     name: 'stats',
     description: 'Get your bot\'s location, health, hunger, and time of day.',
     schema: z.object({}),
-    perform: (agent: QueryAgentBotContext) => (): string => {
-      const { bot } = agent
-      const pos = bot.entity.position
-      const weather = bot.rainState > 0 ? 'Rain' : bot.thunderState > 0 ? 'Thunderstorm' : 'Clear'
-      const timeOfDay = bot.time.timeOfDay < 6000
-        ? 'Morning'
-        : bot.time.timeOfDay < 12000 ? 'Afternoon' : 'Night'
-      const action = agent.isIdle() ? 'Idle' : agent.actions.currentActionLabel
-
-      const players = ctx.world.getNearbyPlayerNames(bot)
-        .filter(p => !ctx.convoManager.getInGameAgents().includes(p))
-      const bots = ctx.convoManager.getInGameAgents()
-        .filter(b => b !== agent.name)
-
-      return pad(`STATS
-- Position: x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)}
-- Gamemode: ${bot.game.gameMode}
-- Health: ${Math.round(bot.health)} / 20
-- Hunger: ${Math.round(bot.food)} / 20
-- Biome: ${ctx.world.getBiomeName(bot)}
-- Weather: ${weather}
-- Time: ${timeOfDay}
-- Current Action: ${action}
-- Nearby Human Players: ${players.length > 0 ? players.join(', ') : 'None.'}
-- Nearby Bot Players: ${bots.length > 0 ? bots.join(', ') : 'None.'}
-${bot.modes.getMiniDocs()}`)
+    perform: (ctx: BotContext) => (): string => {
+      return Array.from(getStatus(ctx).entries()).map(([key, value]) => `${key}: ${value}`).join('\n')
     },
   }
 }

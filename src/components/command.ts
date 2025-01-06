@@ -1,8 +1,8 @@
-import type { BotContext, ComponentLifecycle } from '@/composables/bot'
-import { commands } from '@/composables/command'
-import { formBotChat } from '@/middlewares/chat'
-import { parseCommand } from '@/middlewares/command'
+import type { BotContext, ComponentLifecycle } from '../composables/bot'
 import { useLogg } from '@guiiai/logg'
+import { commands } from '../composables/command'
+import { formBotChat } from '../middlewares/chat'
+import { parseCommand } from '../middlewares/command'
 
 const logger = useLogg('command').useGlobalConfig()
 

@@ -16,6 +16,7 @@ export interface BotContext {
   memory: {
     getSummary: () => string
   }
+  status: Map<string, string>
 }
 
 export interface Component {
@@ -43,6 +44,7 @@ export function createBot(options: BotOptions): Bot {
     memory: {
       getSummary: () => '',
     },
+    status: new Map(),
   }
 
   ctx.bot.on('error', (err: Error) => {

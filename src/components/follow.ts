@@ -1,8 +1,8 @@
-import type { BotContext, ComponentLifecycle } from '@/composables/bot'
-import type { CommandContext } from '@/middlewares/command'
-import { registerCommand } from '@/composables/command'
+import type { BotContext, ComponentLifecycle } from '../composables/bot'
+import type { CommandContext } from '../middlewares/command'
 import { useLogg } from '@guiiai/logg'
 import pathfinderModel from 'mineflayer-pathfinder'
+import { registerCommand } from '../composables/command'
 
 const { goals, Movements, pathfinder } = pathfinderModel
 

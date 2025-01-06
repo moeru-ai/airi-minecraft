@@ -1,5 +1,5 @@
-import type { BotContext } from '@/composables/bot'
 import type { Entity } from 'prismarine-entity'
+import type { BotContext } from '../composables/bot'
 
 // TODO: need to be refactored
 interface ChatBotContext {

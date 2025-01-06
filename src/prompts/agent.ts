@@ -1,4 +1,4 @@
-import type { BotContext } from '@/composables/bot'
+import type { BotContext } from '../composables/bot'
 
 export function basicSystemPrompt(botName: string): string {
   return `You are a playful Minecraft bot named ${botName} that can converse with players, see, move,
@@ -33,44 +33,20 @@ Conversation Begin:
 `
 }
 
-export function genQueryAgentPrompt(tools: string[], status: Map<string, string>): string {
-  const BotContextFields: readonly string[] = [
-    'Biome',
-    'Time',
-    'Nearby blocks',
-    'Other blocks that are recently seen',
-    'Nearby entities (nearest to farthest)',
-    'Health',
-    'Hunger',
-    'Position',
-    'Equipment',
-    'Inventory (xx/36)',
-    'Chests',
-    'Completed tasks so far',
-    'Failed tasks that are too hard',
-  ] as const
-
-  const formatBotContextFields = (fields: readonly string[]): string =>
-    fields.map((field) => {
-      const value = status.get(field) || '...'
-      return `${field}: ${value}`
-    }).join('\n')
-
-  const formatTools = (toolList: string[]): string =>
-    toolList.join('\n')
-
+export function genQueryAgentPrompt(ctx: BotContext): string {
   const prompt = `
 You are a helpful assistant that asks questions to help me decide the next immediate
 task to do in Minecraft. My ultimate goal is to discover as many things as possible,
 accomplish as many tasks as possible and become the best Minecraft player in the world.
 
 I will give you the following information:
-${formatBotContextFields(BotContextFields)}
-
-And I will give you some tools to use:
-${formatTools(tools)}
+${Array.from(ctx.status.entries()).map(([key, value]) => `${key}: ${value}`).join('\n')}
 
 Then you can choose some of the tools to use. Use the valid JS call function to call the tool.
+
+## For example:
+### Get the stats
+stats()
 `
 
   return prompt

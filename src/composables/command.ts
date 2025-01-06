@@ -1,4 +1,4 @@
-import type { CommandContext } from '@/middlewares/command'
+import type { CommandContext } from '../middlewares/command'
 
 export const commands = new Map<string, (ctx: CommandContext) => void>()
 
