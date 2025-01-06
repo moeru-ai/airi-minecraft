@@ -1,5 +1,5 @@
 import type { Bot } from 'mineflayer'
-
+import type { BotContext } from 'src/composables/bot'
 /**
  * Context for skill execution
  */
@@ -18,10 +18,10 @@ export interface SkillContext {
 /**
  * Create a new skill context
  */
-export function createContext(bot: Bot): SkillContext {
+export function createSkillContext(ctx: BotContext): SkillContext {
   return {
-    bot,
-    isCreative: bot.game.gameMode === 'creative',
+    bot: ctx.bot,
+    isCreative: ctx.bot.game?.gameMode === 'creative',
     allowCheats: false,
     shouldInterrupt: false,
     output: [],
@@ -32,7 +32,8 @@ export function createContext(bot: Bot): SkillContext {
  * Log a message to the context's output buffer
  */
 export function log(ctx: SkillContext, message: string): void {
-  ctx.output.push(message)
+  ctx.output.push(message) // TODO: remove this
+  ctx.bot.chat(message)
 }
 
 /**

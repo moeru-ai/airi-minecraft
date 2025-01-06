@@ -1,4 +1,5 @@
 import type { BotContext } from 'src/composables/bot'
+import type { SkillContext } from '../skills'
 import { z } from 'zod'
 import * as skills from '../skills'
 
@@ -8,7 +9,7 @@ interface Action {
   readonly name: string
   readonly description: string
   readonly schema: z.ZodObject<any>
-  readonly perform: (ctx: BotContext) => (...args: any[]) => ActionResult
+  readonly perform: (ctx: SkillContext) => (...args: any[]) => ActionResult
 }
 
 export const actionsList: Action[] = [
@@ -88,8 +89,8 @@ export const actionsList: Action[] = [
       player_name: z.string().describe('The name of the player to go to.'),
       closeness: z.number().describe('How close to get to the player.').min(0),
     }),
-    perform: (ctx: BotContext) => async (player_name: string, closeness: number) => {
-      await skills.goToPlayer(ctx.bot, player_name, closeness)
+    perform: (ctx: SkillContext) => async (player_name: string, closeness: number) => {
+      await skills.goToPlayer(ctx, player_name, closeness)
       return 'Moving to player...'
     },
   },
@@ -101,8 +102,8 @@ export const actionsList: Action[] = [
       player_name: z.string().describe('name of the player to follow.'),
       follow_dist: z.number().describe('The distance to follow from.').min(0),
     }),
-    perform: (ctx: BotContext) => async (player_name: string, follow_dist: number) => {
-      await skills.followPlayer(ctx.bot, player_name, follow_dist)
+    perform: (ctx: SkillContext) => async (player_name: string, follow_dist: number) => {
+      await skills.followPlayer(ctx, player_name, follow_dist)
       return 'Following player...'
     },
   },
@@ -116,8 +117,8 @@ export const actionsList: Action[] = [
       z: z.number().describe('The z coordinate.'),
       closeness: z.number().describe('How close to get to the location.').min(0),
     }),
-    perform: (ctx: BotContext) => async (x: number, y: number, z: number, closeness: number) => {
-      await skills.goToPosition(ctx.bot, x, y, z, closeness)
+    perform: (ctx: SkillContext) => async (x: number, y: number, z: number, closeness: number) => {
+      await skills.goToPosition(ctx, x, y, z, closeness)
       return 'Moving to coordinates...'
     },
   },
@@ -129,8 +130,8 @@ export const actionsList: Action[] = [
       type: z.string().describe('The block type to go to.'),
       search_range: z.number().describe('The range to search for the block.').min(32).max(512),
     }),
-    perform: (ctx: BotContext) => async (block_type: string, range: number) => {
-      await skills.goToNearestBlock(ctx.bot, block_type, 4, range)
+    perform: (ctx: SkillContext) => async (block_type: string, range: number) => {
+      await skills.goToNearestBlock(ctx, block_type, 4, range)
       return 'Searching for block...'
     },
   },
@@ -142,8 +143,8 @@ export const actionsList: Action[] = [
       type: z.string().describe('The type of entity to go to.'),
       search_range: z.number().describe('The range to search for the entity.').min(32).max(512),
     }),
-    perform: (ctx: BotContext) => async (entity_type: string, range: number) => {
-      await skills.goToNearestEntity(ctx.bot, entity_type, 4, range)
+    perform: (ctx: SkillContext) => async (entity_type: string, range: number) => {
+      await skills.goToNearestEntity(ctx, entity_type, 4, range)
       return 'Searching for entity...'
     },
   },
@@ -154,8 +155,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       distance: z.number().describe('The distance to move away.').min(0),
     }),
-    perform: (ctx: BotContext) => async (distance: number) => {
-      await skills.moveAway(ctx.bot, distance)
+    perform: (ctx: SkillContext) => async (distance: number) => {
+      await skills.moveAway(ctx, distance)
       return 'Moving away...'
     },
   },
@@ -168,8 +169,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to give.'),
       num: z.number().int().describe('The number of items to give.').min(1),
     }),
-    perform: (ctx: BotContext) => async (player_name: string, item_name: string, num: number) => {
-      await skills.giveToPlayer(ctx.bot, item_name, player_name, num)
+    perform: (ctx: SkillContext) => async (player_name: string, item_name: string, num: number) => {
+      await skills.giveToPlayer(ctx, item_name, player_name, num)
       return 'Giving items to player...'
     },
   },
@@ -180,8 +181,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       item_name: z.string().describe('The name of the item to consume.'),
     }),
-    perform: (ctx: BotContext) => async (item_name: string) => {
-      await skills.consume(ctx.bot, item_name)
+    perform: (ctx: SkillContext) => async (item_name: string) => {
+      await skills.consume(ctx, item_name)
       return 'Consuming item...'
     },
   },
@@ -192,8 +193,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       item_name: z.string().describe('The name of the item to equip.'),
     }),
-    perform: (ctx: BotContext) => async (item_name: string) => {
-      await skills.equip(ctx.bot, item_name)
+    perform: (ctx: SkillContext) => async (item_name: string) => {
+      await skills.equip(ctx, item_name)
       return 'Equipping item...'
     },
   },
@@ -205,8 +206,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to put in the chest.'),
       num: z.number().int().describe('The number of items to put in the chest.').min(1),
     }),
-    perform: (ctx: BotContext) => async (item_name: string, num: number) => {
-      await skills.putInChest(ctx.bot, item_name, num)
+    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
+      await skills.putInChest(ctx, item_name, num)
       return 'Putting items in chest...'
     },
   },
@@ -218,8 +219,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to take.'),
       num: z.number().int().describe('The number of items to take.').min(1),
     }),
-    perform: (ctx: BotContext) => async (item_name: string, num: number) => {
-      await skills.takeFromChest(ctx.bot, item_name, num)
+    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
+      await skills.takeFromChest(ctx, item_name, num)
       return 'Taking items from chest...'
     },
   },
@@ -228,8 +229,8 @@ export const actionsList: Action[] = [
     name: 'viewChest',
     description: 'View the items/counts of the nearest chest.',
     schema: z.object({}),
-    perform: (ctx: BotContext) => async () => {
-      await skills.viewChest(ctx.bot)
+    perform: (ctx: SkillContext) => async () => {
+      await skills.viewChest(ctx)
       return 'Viewing chest contents...'
     },
   },
@@ -241,11 +242,11 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to discard.'),
       num: z.number().int().describe('The number of items to discard.').min(1),
     }),
-    perform: (ctx: BotContext) => async (item_name: string, num: number) => {
+    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
       const start_loc = ctx.bot.entity.position
-      await skills.moveAway(ctx.bot, 5)
-      await skills.discard(ctx.bot, item_name, num)
-      await skills.goToPosition(ctx.bot, start_loc.x, start_loc.y, start_loc.z, 0)
+      await skills.moveAway(ctx, 5)
+      await skills.discard(ctx, item_name, num)
+      await skills.goToPosition(ctx, start_loc.x, start_loc.y, start_loc.z, 0)
       return 'Discarding items...'
     },
   },
@@ -257,8 +258,8 @@ export const actionsList: Action[] = [
       type: z.string().describe('The block type to collect.'),
       num: z.number().int().describe('The number of blocks to collect.').min(1),
     }),
-    perform: (ctx: BotContext) => async (type: string, num: number) => {
-      await skills.collectBlock(ctx.bot, type, num)
+    perform: (ctx: SkillContext) => async (type: string, num: number) => {
+      await skills.collectBlock(ctx, type, num)
       return 'Collecting blocks...'
     },
   },
@@ -270,8 +271,8 @@ export const actionsList: Action[] = [
       recipe_name: z.string().describe('The name of the output item to craft.'),
       num: z.number().int().describe('The number of times to craft the recipe. This is NOT the number of output items, as it may craft many more items depending on the recipe.').min(1),
     }),
-    perform: (ctx: BotContext) => async (recipe_name: string, num: number) => {
-      await skills.craftRecipe(ctx.bot, recipe_name, num)
+    perform: (ctx: SkillContext) => async (recipe_name: string, num: number) => {
+      await skills.craftRecipe(ctx, recipe_name, num)
       return 'Crafting items...'
     },
   },
@@ -283,8 +284,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the input item to smelt.'),
       num: z.number().int().describe('The number of times to smelt the item.').min(1),
     }),
-    perform: (ctx: BotContext) => async (item_name: string, num: number) => {
-      await skills.smeltItem(ctx.bot, item_name, num)
+    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
+      await skills.smeltItem(ctx, item_name, num)
       return 'Smelting items...'
     },
   },
@@ -293,8 +294,8 @@ export const actionsList: Action[] = [
     name: 'clearFurnace',
     description: 'Take all items out of the nearest furnace.',
     schema: z.object({}),
-    perform: (ctx: BotContext) => async () => {
-      await skills.clearNearestFurnace(ctx.bot)
+    perform: (ctx: SkillContext) => async () => {
+      await skills.clearNearestFurnace(ctx)
       return 'Clearing furnace...'
     },
   },
@@ -305,9 +306,9 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.string().describe('The block type to place.'),
     }),
-    perform: (ctx: BotContext) => async (type: string) => {
+    perform: (ctx: SkillContext) => async (type: string) => {
       const pos = ctx.bot.entity.position
-      await skills.placeBlock(ctx.bot, type, pos.x, pos.y, pos.z)
+      await skills.placeBlock(ctx, type, pos.x, pos.y, pos.z)
       return 'Placing block...'
     },
   },
@@ -318,8 +319,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.string().describe('The type of entity to attack.'),
     }),
-    perform: (ctx: BotContext) => async (type: string) => {
-      await skills.attackNearest(ctx.bot, type, true)
+    perform: (ctx: SkillContext) => async (type: string) => {
+      await skills.attackNearest(ctx, type, true)
       return 'Attacking entity...'
     },
   },
@@ -330,13 +331,13 @@ export const actionsList: Action[] = [
     schema: z.object({
       player_name: z.string().describe('The name of the player to attack.'),
     }),
-    perform: (ctx: BotContext) => async (player_name: string) => {
+    perform: (ctx: SkillContext) => async (player_name: string) => {
       const player = ctx.bot.players[player_name]?.entity
       if (!player) {
-        skills.log(ctx.bot, `Could not find player ${player_name}.`)
+        skills.log(ctx, `Could not find player ${player_name}.`)
         return 'Player not found'
       }
-      await skills.attackEntity(ctx.bot, player, true)
+      await skills.attackEntity(ctx, player, true)
       return 'Attacking player...'
     },
   },
@@ -345,8 +346,8 @@ export const actionsList: Action[] = [
     name: 'goToBed',
     description: 'Go to the nearest bed and sleep.',
     schema: z.object({}),
-    perform: (ctx: BotContext) => async () => {
-      await skills.goToBed(ctx.bot)
+    perform: (ctx: SkillContext) => async () => {
+      await skills.goToBed(ctx)
       return 'Going to bed...'
     },
   },
@@ -357,8 +358,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.string().describe('The type of object to activate.'),
     }),
-    perform: (ctx: BotContext) => async (type: string) => {
-      await skills.activateNearestBlock(ctx.bot, type)
+    perform: (ctx: SkillContext) => async (type: string) => {
+      await skills.activateNearestBlock(ctx, type)
       return 'Activating block...'
     },
   },
@@ -369,8 +370,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.number().int().describe('The number of seconds to stay. -1 for forever.').min(-1),
     }),
-    perform: (ctx: BotContext) => async (seconds: number) => {
-      await skills.stay(ctx.bot, seconds)
+    perform: (ctx: SkillContext) => async (seconds: number) => {
+      await skills.stay(ctx, seconds)
       return 'Staying in place...'
     },
   },

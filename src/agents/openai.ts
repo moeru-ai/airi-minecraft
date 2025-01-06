@@ -3,6 +3,7 @@ import type { BotContext } from '../composables/bot'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../composables/config'
+import { createSkillContext } from '../skills'
 import { actionsList } from './actions'
 import { queriesList } from './queries'
 
@@ -51,7 +52,7 @@ export async function initActionAgent(ctx: BotContext): Promise<Agent> {
     actionAgent = actionAgent.tool(
       action.name,
       action.schema,
-      action.perform(ctx),
+      action.perform(createSkillContext(ctx)),
       { description: action.description },
     )
   })
