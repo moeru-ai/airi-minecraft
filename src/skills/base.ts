@@ -1,14 +1,42 @@
 import type { Bot } from 'mineflayer'
 
 /**
- * Log a message to the bot's output
+ * Context for skill execution
  */
-export function log(bot: Bot, message: string): void {
-  bot.chat(`${message}`)
+export interface SkillContext {
+  bot: Bot
+  // Whether the bot is in creative mode
+  isCreative: boolean
+  // Whether the bot should use cheats (like /tp, /setblock)
+  allowCheats: boolean
+  // Whether the bot should interrupt current action
+  shouldInterrupt: boolean
+  // Output buffer for logging
+  output: string[]
 }
 
 /**
- * Type definition for a position in the world
+ * Create a new skill context
+ */
+export function createContext(bot: Bot): SkillContext {
+  return {
+    bot,
+    isCreative: bot.game.gameMode === 'creative',
+    allowCheats: false,
+    shouldInterrupt: false,
+    output: [],
+  }
+}
+
+/**
+ * Log a message to the context's output buffer
+ */
+export function log(ctx: SkillContext, message: string): void {
+  ctx.output.push(message)
+}
+
+/**
+ * Position in the world
  */
 export interface Position {
   x: number
@@ -17,6 +45,6 @@ export interface Position {
 }
 
 /**
- * Type definition for a block face direction
+ * Block face direction
  */
 export type BlockFace = 'top' | 'bottom' | 'north' | 'south' | 'east' | 'west' | 'side'

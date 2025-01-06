@@ -1,4 +1,5 @@
 import type { Bot } from 'mineflayer'
+import type { SkillContext } from './base'
 import * as world from '../composables/world'
 import { log } from './base'
 import { goToPosition } from './movement'
@@ -6,7 +7,8 @@ import { goToPosition } from './movement'
 /**
  * Pick up nearby items
  */
-export async function pickupNearbyItems(bot: Bot): Promise<boolean> {
+export async function pickupNearbyItems(ctx: SkillContext): Promise<boolean> {
+  const { bot } = ctx
   const distance = 8
   const getNearestItem = (bot: Bot) =>
     bot.nearestEntity(entity =>
@@ -29,17 +31,18 @@ export async function pickupNearbyItems(bot: Bot): Promise<boolean> {
     pickedUp++
   }
 
-  log(bot, `Picked up ${pickedUp} items.`)
+  log(ctx, `Picked up ${pickedUp} items.`)
   return true
 }
 
 /**
  * Equip an item
  */
-export async function equip(bot: Bot, itemName: string): Promise<boolean> {
+export async function equip(ctx: SkillContext, itemName: string): Promise<boolean> {
+  const { bot } = ctx
   const item = bot.inventory.slots.find(slot => slot && slot.name === itemName)
   if (!item) {
-    log(bot, `You do not have any ${itemName} to equip.`)
+    log(ctx, `You do not have any ${itemName} to equip.`)
     return false
   }
 
@@ -62,14 +65,15 @@ export async function equip(bot: Bot, itemName: string): Promise<boolean> {
     await bot.equip(item, 'hand')
   }
 
-  log(bot, `Equipped ${itemName}.`)
+  log(ctx, `Equipped ${itemName}.`)
   return true
 }
 
 /**
  * Discard items
  */
-export async function discard(bot: Bot, itemName: string, num = -1): Promise<boolean> {
+export async function discard(ctx: SkillContext, itemName: string, num = -1): Promise<boolean> {
+  const { bot } = ctx
   let discarded = 0
 
   while (true) {
@@ -88,57 +92,59 @@ export async function discard(bot: Bot, itemName: string, num = -1): Promise<boo
   }
 
   if (discarded === 0) {
-    log(bot, `You do not have any ${itemName} to discard.`)
+    log(ctx, `You do not have any ${itemName} to discard.`)
     return false
   }
 
-  log(bot, `Discarded ${discarded} ${itemName}.`)
+  log(ctx, `Discarded ${discarded} ${itemName}.`)
   return true
 }
 
 /**
  * Put items in a chest
  */
-export async function putInChest(bot: Bot, itemName: string, num = -1): Promise<boolean> {
+export async function putInChest(ctx: SkillContext, itemName: string, num = -1): Promise<boolean> {
+  const { bot } = ctx
   const chest = world.getNearestBlock(bot, 'chest', 32)
   if (!chest) {
-    log(bot, 'Could not find a chest nearby.')
+    log(ctx, 'Could not find a chest nearby.')
     return false
   }
 
   const item = bot.inventory.items().find(item => item.name === itemName)
   if (!item) {
-    log(bot, `You do not have any ${itemName} to put in the chest.`)
+    log(ctx, `You do not have any ${itemName} to put in the chest.`)
     return false
   }
 
   const toPut = num === -1 ? item.count : Math.min(num, item.count)
-  await goToPosition(bot, chest.position.x, chest.position.y, chest.position.z, 2)
+  await goToPosition(ctx, chest.position.x, chest.position.y, chest.position.z, 2)
 
   const chestContainer = await bot.openContainer(chest)
   await chestContainer.deposit(item.type, null, toPut)
   await chestContainer.close()
 
-  log(bot, `Successfully put ${toPut} ${itemName} in the chest.`)
+  log(ctx, `Successfully put ${toPut} ${itemName} in the chest.`)
   return true
 }
 
 /**
  * Take items from a chest
  */
-export async function takeFromChest(bot: Bot, itemName: string, num = -1): Promise<boolean> {
+export async function takeFromChest(ctx: SkillContext, itemName: string, num = -1): Promise<boolean> {
+  const { bot } = ctx
   const chest = world.getNearestBlock(bot, 'chest', 32)
   if (!chest) {
-    log(bot, 'Could not find a chest nearby.')
+    log(ctx, 'Could not find a chest nearby.')
     return false
   }
 
-  await goToPosition(bot, chest.position.x, chest.position.y, chest.position.z, 2)
+  await goToPosition(ctx, chest.position.x, chest.position.y, chest.position.z, 2)
   const chestContainer = await bot.openContainer(chest)
 
   const item = chestContainer.containerItems().find(item => item.name === itemName)
   if (!item) {
-    log(bot, `Could not find any ${itemName} in the chest.`)
+    log(ctx, `Could not find any ${itemName} in the chest.`)
     await chestContainer.close()
     return false
   }
@@ -147,31 +153,32 @@ export async function takeFromChest(bot: Bot, itemName: string, num = -1): Promi
   await chestContainer.withdraw(item.type, null, toTake)
   await chestContainer.close()
 
-  log(bot, `Successfully took ${toTake} ${itemName} from the chest.`)
+  log(ctx, `Successfully took ${toTake} ${itemName} from the chest.`)
   return true
 }
 
 /**
  * View contents of a chest
  */
-export async function viewChest(bot: Bot): Promise<boolean> {
+export async function viewChest(ctx: SkillContext): Promise<boolean> {
+  const { bot } = ctx
   const chest = world.getNearestBlock(bot, 'chest', 32)
   if (!chest) {
-    log(bot, 'Could not find a chest nearby.')
+    log(ctx, 'Could not find a chest nearby.')
     return false
   }
 
-  await goToPosition(bot, chest.position.x, chest.position.y, chest.position.z, 2)
+  await goToPosition(ctx, chest.position.x, chest.position.y, chest.position.z, 2)
   const chestContainer = await bot.openContainer(chest)
   const items = chestContainer.containerItems()
 
   if (items.length === 0) {
-    log(bot, 'The chest is empty.')
+    log(ctx, 'The chest is empty.')
   }
   else {
-    log(bot, 'The chest contains:')
+    log(ctx, 'The chest contains:')
     for (const item of items) {
-      log(bot, `${item.count} ${item.name}`)
+      log(ctx, `${item.count} ${item.name}`)
     }
   }
 
@@ -182,7 +189,8 @@ export async function viewChest(bot: Bot): Promise<boolean> {
 /**
  * Consume (eat/drink) an item
  */
-export async function consume(bot: Bot, itemName = ''): Promise<boolean> {
+export async function consume(ctx: SkillContext, itemName = ''): Promise<boolean> {
+  const { bot } = ctx
   let item
   let name
 
@@ -192,13 +200,13 @@ export async function consume(bot: Bot, itemName = ''): Promise<boolean> {
   }
 
   if (!item) {
-    log(bot, `You do not have any ${name} to eat.`)
+    log(ctx, `You do not have any ${name} to eat.`)
     return false
   }
 
   await bot.equip(item, 'hand')
   await bot.consume()
-  log(bot, `Consumed ${item.name}.`)
+  log(ctx, `Consumed ${item.name}.`)
   return true
 }
 
@@ -206,21 +214,22 @@ export async function consume(bot: Bot, itemName = ''): Promise<boolean> {
  * Give items to a player
  */
 export async function giveToPlayer(
-  bot: Bot,
+  ctx: SkillContext,
   itemType: string,
   username: string,
   num = 1,
 ): Promise<boolean> {
+  const { bot } = ctx
   const player = bot.players[username]?.entity
   if (!player) {
-    log(bot, `Could not find ${username}.`)
+    log(ctx, `Could not find ${username}.`)
     return false
   }
 
-  await goToPosition(bot, player.position.x, player.position.y, player.position.z, 3)
+  await goToPosition(ctx, player.position.x, player.position.y, player.position.z, 3)
 
   if (bot.entity.position.y < player.position.y - 1) {
-    await goToPosition(bot, player.position.x, player.position.y, player.position.z, 1)
+    await goToPosition(ctx, player.position.x, player.position.y, player.position.z, 1)
   }
 
   if (bot.entity.position.distanceTo(player.position) < 2) {
@@ -231,17 +240,17 @@ export async function giveToPlayer(
 
   await bot.lookAt(player.position)
 
-  if (await discard(bot, itemType, num)) {
+  if (await discard(ctx, itemType, num)) {
     let given = false
     bot.once('playerCollect', (collector, collected) => {
       if (collector.username === username) {
-        log(bot, `${username} received ${itemType}.`)
+        log(ctx, `${username} received ${itemType}.`)
         given = true
       }
     })
 
     const start = Date.now()
-    while (!given && !bot.interrupt_code) {
+    while (!given && !ctx.shouldInterrupt) {
       await new Promise(resolve => setTimeout(resolve, 500))
       if (given) {
         return true
@@ -252,6 +261,6 @@ export async function giveToPlayer(
     }
   }
 
-  log(bot, `Failed to give ${itemType} to ${username}, it was never received.`)
+  log(ctx, `Failed to give ${itemType} to ${username}, it was never received.`)
   return false
 }

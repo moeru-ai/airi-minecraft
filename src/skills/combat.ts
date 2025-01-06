@@ -1,5 +1,5 @@
-import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
+import type { SkillContext } from './base'
 import * as world from '../composables/world'
 import * as mc from '../utils/mcdata'
 import { log } from './base'
@@ -7,7 +7,8 @@ import { log } from './base'
 /**
  * Equip the item with highest attack damage
  */
-async function equipHighestAttack(bot: Bot): Promise<void> {
+async function equipHighestAttack(ctx: SkillContext): Promise<void> {
+  const { bot } = ctx
   const weapons = bot.inventory.items().filter(item =>
     item.name.includes('sword')
     || (item.name.includes('axe') && !item.name.includes('pickaxe')),
@@ -37,61 +38,65 @@ async function equipHighestAttack(bot: Bot): Promise<void> {
 /**
  * Attack the nearest mob of the given type
  */
-export async function attackNearest(bot: Bot, mobType: string, kill = true): Promise<boolean> {
-  bot.modes.pause('cowardice')
-  if (mobType === 'drowned' || mobType === 'cod' || mobType === 'salmon'
-    || mobType === 'tropical_fish' || mobType === 'squid') {
-    bot.modes.pause('self_preservation')
+export async function attackNearest(
+  ctx: SkillContext,
+  mobType: string,
+  kill = true,
+): Promise<boolean> {
+  const { bot } = ctx
+  const mob = world.getNearbyEntities(bot, 24).find(entity => entity.name === mobType)
+
+  if (mob) {
+    return await attackEntity(ctx, mob, kill)
   }
 
-  const mob = world.getNearbyEntities(bot, 24).find(entity => entity.name === mobType)
-  if (mob) {
-    return await attackEntity(bot, mob, kill)
-  }
-  log(bot, `Could not find any ${mobType} to attack.`)
+  log(ctx, `Could not find any ${mobType} to attack.`)
   return false
 }
 
 /**
  * Attack a specific entity
  */
-export async function attackEntity(bot: Bot, entity: Entity, kill = true): Promise<boolean> {
+export async function attackEntity(
+  ctx: SkillContext,
+  entity: Entity,
+  kill = true,
+): Promise<boolean> {
+  const { bot } = ctx
   const pos = entity.position
-  await equipHighestAttack(bot)
+  await equipHighestAttack(ctx)
 
   if (!kill) {
     if (bot.entity.position.distanceTo(pos) > 5) {
       await bot.pathfinder.goto(bot.pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 4))
     }
     await bot.attack(entity)
-  }
-  else {
-    bot.pvp.attack(entity)
-    while (world.getNearbyEntities(bot, 24).includes(entity)) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      if (bot.interrupt_code) {
-        bot.pvp.stop()
-        return false
-      }
-    }
-    log(bot, `Successfully killed ${entity.name}.`)
     return true
   }
+
+  bot.pvp.attack(entity)
+  while (world.getNearbyEntities(bot, 24).includes(entity)) {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    if (ctx.shouldInterrupt) {
+      bot.pvp.stop()
+      return false
+    }
+  }
+
+  log(ctx, `Successfully killed ${entity.name}.`)
   return true
 }
 
 /**
  * Defend against nearby hostile mobs
  */
-export async function defendSelf(bot: Bot, range = 9): Promise<boolean> {
-  bot.modes.pause('self_defense')
-  bot.modes.pause('cowardice')
-
+export async function defendSelf(ctx: SkillContext, range = 9): Promise<boolean> {
+  const { bot } = ctx
   let attacked = false
   let enemy = world.getNearestEntityWhere(bot, entity => mc.isHostile(entity), range)
 
   while (enemy) {
-    await equipHighestAttack(bot)
+    await equipHighestAttack(ctx)
 
     if (bot.entity.position.distanceTo(enemy.position) >= 4
       && enemy.name !== 'creeper' && enemy.name !== 'phantom') {
@@ -103,10 +108,10 @@ export async function defendSelf(bot: Bot, range = 9): Promise<boolean> {
 
     if (bot.entity.position.distanceTo(enemy.position) <= 2) {
       try {
-        const inverted_goal = bot.pathfinder.goals.GoalInvert(
+        const invertedGoal = bot.pathfinder.goals.GoalInvert(
           bot.pathfinder.goals.GoalFollow(enemy, 2),
         )
-        await bot.pathfinder.goto(inverted_goal, true)
+        await bot.pathfinder.goto(invertedGoal, true)
       }
       catch { /* might error if entity dies, ignore */ }
     }
@@ -116,7 +121,7 @@ export async function defendSelf(bot: Bot, range = 9): Promise<boolean> {
     await new Promise(resolve => setTimeout(resolve, 500))
     enemy = world.getNearestEntityWhere(bot, entity => mc.isHostile(entity), range)
 
-    if (bot.interrupt_code) {
+    if (ctx.shouldInterrupt) {
       bot.pvp.stop()
       return false
     }
@@ -124,10 +129,10 @@ export async function defendSelf(bot: Bot, range = 9): Promise<boolean> {
 
   bot.pvp.stop()
   if (attacked) {
-    log(bot, `Successfully defended self.`)
+    log(ctx, 'Successfully defended self.')
   }
   else {
-    log(bot, `No enemies nearby to defend self from.`)
+    log(ctx, 'No enemies nearby to defend self from.')
   }
   return attacked
 }
