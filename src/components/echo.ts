@@ -1,10 +1,10 @@
-import type { ComponentLifecycle, Context } from '../bot'
+import type { BotContext, ComponentLifecycle } from '@/composables/bot'
+import { formBotChat } from '@/middlewares/chat'
 import { useLogg } from '@guiiai/logg'
-import { formBotChat } from 'src/middlewares/chat'
 
 const logger = useLogg('echo').useGlobalConfig()
 
-export function createEchoComponent(ctx: Context): ComponentLifecycle {
+export function createEchoComponent(ctx: BotContext): ComponentLifecycle {
   const onChat = formBotChat(ctx, (username, message) => {
     logger.withFields({ username, message }).log('Chat message received')
     ctx.bot.chat(message)

@@ -3,15 +3,23 @@ import mineflayer, { type Bot, type BotOptions } from 'mineflayer'
 
 const logger = useLogg('bot').useGlobalConfig()
 
-let ctx: Context | undefined
+let ctx: BotContext | undefined
 
-export interface Context {
+export interface BotContext {
   bot: Bot
   components: Map<string, ComponentLifecycle>
+
+  botName: string
+  prompt: {
+    selfPrompt: string
+  }
+  memory: {
+    getSummary: () => string
+  }
 }
 
 export interface Component {
-  (ctx: Context): ComponentLifecycle
+  (ctx: BotContext): ComponentLifecycle
 }
 
 export interface ComponentLifecycle {
@@ -28,6 +36,13 @@ export function createBot(options: BotOptions): Bot {
       password: options.password,
     }),
     components: new Map(),
+    botName: options.username,
+    prompt: {
+      selfPrompt: '',
+    },
+    memory: {
+      getSummary: () => '',
+    },
   }
 
   ctx.bot.on('error', (err: Error) => {
@@ -49,19 +64,19 @@ export function useBot() {
 
   const cleanup = () => {
     logger.log('Cleaning up bot and components')
-    ctx!.components.forEach((context: ComponentLifecycle) => context.cleanup?.())
+    ctx!.components.forEach((BotContext: ComponentLifecycle) => BotContext.cleanup?.())
     ctx!.components.clear()
     ctx!.bot.end()
   }
 
   const registerComponent = (componentName: string, component: Component) => {
     logger.withFields({ componentName }).log('Registering new component')
-    const context = component(ctx!)
+    const BotContext = component(ctx!)
 
-    if (context != null)
-      ctx!.components.set(componentName, context)
+    if (BotContext != null)
+      ctx!.components.set(componentName, BotContext)
 
-    return context
+    return BotContext
   }
 
   const listComponents = () => {

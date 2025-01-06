@@ -1,70 +1,76 @@
-import type { ComponentLifecycle, Context } from '../bot'
+import type { BotContext, ComponentLifecycle } from '@/composables/bot'
+import type { CommandContext } from '@/middlewares/command'
+import { registerCommand } from '@/composables/command'
 import { useLogg } from '@guiiai/logg'
 import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
-import { formBotChat } from 'src/middlewares/chat'
 
-export function createFollowComponent(ctx: Context): ComponentLifecycle {
-  const RANGE_GOAL = 2 // get within this radius of the player
+interface FollowContext {
+  following: string | null
+  movements: Movements
+}
 
+export function createFollowComponent(ctx: BotContext): ComponentLifecycle {
+  const RANGE_GOAL = 1 // get within this radius of the player
   const logger = useLogg('follow').useGlobalConfig()
-  logger.log('Loading follow plugin')
 
   ctx.bot.loadPlugin(pathfinder)
 
-  let defaultMove: Movements
-  let following: string | null = null
+  const state: FollowContext = {
+    following: null,
+    movements: new Movements(ctx.bot),
+  }
 
-  const followPlayer = () => {
-    if (!following)
+  function startFollow(username: string): void {
+    state.following = username
+    logger.withFields({ username }).log('Starting to follow player')
+    followPlayer()
+  }
+
+  function stopFollow(): void {
+    state.following = null
+    logger.log('Stopping follow')
+    ctx.bot.pathfinder.stop()
+  }
+
+  function followPlayer(): void {
+    if (!state.following)
       return
 
-    const target = ctx.bot.players[following]?.entity
+    const target = ctx.bot.players[state.following]?.entity
     if (!target) {
       ctx.bot.chat('I lost sight of you!')
-      following = null
+      state.following = null
       return
     }
 
     const { x: playerX, y: playerY, z: playerZ } = target.position
 
-    ctx.bot.pathfinder.setMovements(defaultMove)
+    ctx.bot.pathfinder.setMovements(state.movements)
     ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
   }
 
-  const onChat = formBotChat(ctx, (username, message) => {
-    if (username === ctx.bot.username)
+  registerCommand('follow', (commandCtx: CommandContext) => {
+    const username = commandCtx.sender
+    if (!username) {
+      ctx.bot.chat('Please specify a player name!')
       return
+    }
+    startFollow(username)
+  })
 
-    if (message === 'follow') {
-      following = username
-      logger.withFields({ username }).log('Starting to follow player')
+  registerCommand('stop', () => {
+    stopFollow()
+  })
+
+  // Continuously update path to follow player
+  const followInterval = setInterval(() => {
+    if (state.following)
       followPlayer()
-    }
-    else if (message === 'stop') {
-      following = null
-      logger.log('Stopping follow')
-      ctx.bot.pathfinder.stop()
-    }
-  })
-
-  ctx.bot.once('spawn', () => {
-    defaultMove = new Movements(ctx.bot)
-    ctx.bot.on('chat', onChat)
-
-    // Continuously update path to follow player
-    const followInterval = setInterval(() => {
-      if (following)
-        followPlayer()
-    }, 1000)
-
-    ctx.bot.once('end', () => {
-      clearInterval(followInterval)
-    })
-  })
+  }, 1000)
 
   return {
     cleanup: () => {
-      ctx.bot.removeListener('chat', onChat)
+      clearInterval(followInterval)
     },
   }
 }

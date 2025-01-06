@@ -2,6 +2,7 @@
  * @source https://github.com/kolbytn/mindcraft
  */
 import type { Bot } from 'mineflayer'
+import { botConfig } from '@/composables/config'
 import minecraftData from 'minecraft-data'
 import { createBot } from 'mineflayer'
 import armorManager from 'mineflayer-armor-manager'
@@ -10,7 +11,6 @@ import { plugin as collectblock } from 'mineflayer-collectblock'
 import { pathfinder } from 'mineflayer-pathfinder'
 import { plugin as pvp } from 'mineflayer-pvp'
 import prismarine_items from 'prismarine-item'
-import { botConfig } from '../config'
 
 const mc_version = botConfig.version!
 const mcdata = minecraftData(mc_version)

@@ -1,11 +1,13 @@
 import process from 'node:process'
+
 import { Format, LogLevel, setGlobalFormat, setGlobalLogLevel, useLogg } from '@guiiai/logg'
 
-import { createBot, useBot } from './bot'
-import { createEchoComponent } from './components/echo'
+import { createCommandComponent } from './components/command'
 import { createFollowComponent } from './components/follow'
-import { createPathFinderComponent } from './components/patchfinder'
-import { botConfig, initEnv } from './config'
+import { createPathFinderComponent } from './components/pathfinder'
+import { createStatusComponent } from './components/status'
+import { createBot, useBot } from './composables/bot'
+import { botConfig, initEnv } from './composables/config'
 
 const logger = useLogg('main').useGlobalConfig()
 
@@ -16,12 +18,17 @@ async function main() {
   initEnv()
 
   createBot(botConfig)
-  const { cleanup, registerComponent } = useBot()
+  const { cleanup, registerComponent, ctx } = useBot()
 
-  registerComponent('echo', createEchoComponent)
-  registerComponent('pathfinder', createPathFinderComponent)
-  // registerComponent('chest', createChestComponent)
-  registerComponent('follow', createFollowComponent)
+  ctx.bot.once('spawn', () => {
+    registerComponent('status', createStatusComponent)
+    // registerComponent('echo', createEchoComponent)
+    registerComponent('pathfinder', createPathFinderComponent)
+    registerComponent('follow', createFollowComponent)
+    registerComponent('command', createCommandComponent)
+  })
+
+  // initAgent(ctx)
 
   process.on('SIGINT', () => {
     cleanup()

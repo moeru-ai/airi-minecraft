@@ -1,9 +1,10 @@
-import type { ComponentLifecycle, Context } from '../bot'
+import type { BotContext, ComponentLifecycle } from '@/composables/bot'
+import type { CommandContext } from '@/middlewares/command'
+import { registerCommand } from '@/composables/command'
 import { useLogg } from '@guiiai/logg'
 import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
-import { formBotChat } from 'src/middlewares/chat'
 
-export function createPathFinderComponent(ctx: Context): ComponentLifecycle {
+export function createPathFinderComponent(ctx: BotContext): ComponentLifecycle {
   const RANGE_GOAL = 1 // get within this radius of the player
 
   const logger = useLogg('pathfinder').useGlobalConfig()
@@ -13,14 +14,17 @@ export function createPathFinderComponent(ctx: Context): ComponentLifecycle {
 
   let defaultMove: Movements
 
-  const onChat = formBotChat(ctx, (username, message) => {
-    if (message !== 'come')
+  const handleCome = (commandCtx: CommandContext) => {
+    const username = commandCtx.sender
+    if (!username) {
+      ctx.bot.chat('Please specify a player name!')
       return
+    }
 
-    logger.withFields({ username, message }).log('Chat message received')
+    logger.withFields({ username }).log('Come command received')
     const target = ctx.bot.players[username]?.entity
     if (!target) {
-      ctx.bot.chat('I don\'t see you !')
+      ctx.bot.chat('I don\'t see that player!')
       return
     }
 
@@ -28,16 +32,14 @@ export function createPathFinderComponent(ctx: Context): ComponentLifecycle {
 
     ctx.bot.pathfinder.setMovements(defaultMove)
     ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
-  })
+  }
 
-  ctx.bot.once('spawn', () => {
-    defaultMove = new Movements(ctx.bot)
-    ctx.bot.on('chat', onChat)
-  })
+  defaultMove = new Movements(ctx.bot)
+  registerCommand('come', handleCome)
 
   return {
     cleanup: () => {
-      ctx.bot.removeListener('chat', onChat)
+      // Commands are cleaned up automatically
     },
   }
 }
