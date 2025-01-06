@@ -2,17 +2,19 @@ import type { BotContext, ComponentLifecycle } from '@/composables/bot'
 import type { CommandContext } from '@/middlewares/command'
 import { registerCommand } from '@/composables/command'
 import { useLogg } from '@guiiai/logg'
-import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
+import pathfinderModel from 'mineflayer-pathfinder'
 
-export function createPathFinderComponent(ctx: BotContext): ComponentLifecycle {
-  const RANGE_GOAL = 1 // get within this radius of the player
+const { goals, Movements, pathfinder } = pathfinderModel
 
+export function createPathFinderComponent(ctx: BotContext, config?: {
+  rangeGoal: number
+}): ComponentLifecycle {
   const logger = useLogg('pathfinder').useGlobalConfig()
   logger.log('Loading pathfinder plugin')
 
   ctx.bot.loadPlugin(pathfinder)
 
-  let defaultMove: Movements
+  let defaultMove: any
 
   const handleCome = (commandCtx: CommandContext) => {
     const username = commandCtx.sender
@@ -31,7 +33,7 @@ export function createPathFinderComponent(ctx: BotContext): ComponentLifecycle {
     const { x: playerX, y: playerY, z: playerZ } = target.position
 
     ctx.bot.pathfinder.setMovements(defaultMove)
-    ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
+    ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, config?.rangeGoal ?? 1))
   }
 
   defaultMove = new Movements(ctx.bot)

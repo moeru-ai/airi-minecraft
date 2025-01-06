@@ -1,5 +1,6 @@
 {
   "name": "airi-mc",
+  "type": "module",
   "version": "1.0.0",
   "packageManager": "pnpm@9.15.3",
   "description": "",
@@ -30,7 +31,8 @@
     "prismarine-item": "^1.15.0",
     "prismarine-viewer": "^1.29.0",
     "prismarine-windows": "^2.9.0",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.12.1",

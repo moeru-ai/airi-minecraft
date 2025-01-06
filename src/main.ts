@@ -29,7 +29,7 @@ async function main() {
     registerComponent('command', createCommandComponent)
   })
 
-  // initAgent()
+  initAgent()
 
   process.on('SIGINT', () => {
     cleanup()

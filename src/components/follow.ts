@@ -2,21 +2,19 @@ import type { BotContext, ComponentLifecycle } from '@/composables/bot'
 import type { CommandContext } from '@/middlewares/command'
 import { registerCommand } from '@/composables/command'
 import { useLogg } from '@guiiai/logg'
-import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
+import pathfinderModel from 'mineflayer-pathfinder'
 
-interface FollowContext {
-  following: string | null
-  movements: Movements
-}
+const { goals, Movements, pathfinder } = pathfinderModel
 
-export function createFollowComponent(ctx: BotContext): ComponentLifecycle {
-  const RANGE_GOAL = 1 // get within this radius of the player
+export function createFollowComponent(ctx: BotContext, config?: {
+  rangeGoal: number
+}): ComponentLifecycle {
   const logger = useLogg('follow').useGlobalConfig()
 
   ctx.bot.loadPlugin(pathfinder)
 
-  const state: FollowContext = {
-    following: null,
+  const state = {
+    following: undefined as string | undefined,
     movements: new Movements(ctx.bot),
   }
 
@@ -27,7 +25,7 @@ export function createFollowComponent(ctx: BotContext): ComponentLifecycle {
   }
 
   function stopFollow(): void {
-    state.following = null
+    state.following = undefined
     logger.log('Stopping follow')
     ctx.bot.pathfinder.stop()
   }
@@ -39,14 +37,14 @@ export function createFollowComponent(ctx: BotContext): ComponentLifecycle {
     const target = ctx.bot.players[state.following]?.entity
     if (!target) {
       ctx.bot.chat('I lost sight of you!')
-      state.following = null
+      state.following = undefined
       return
     }
 
     const { x: playerX, y: playerY, z: playerZ } = target.position
 
     ctx.bot.pathfinder.setMovements(state.movements)
-    ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
+    ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, config?.rangeGoal ?? 1))
   }
 
   registerCommand('follow', (commandCtx: CommandContext) => {
