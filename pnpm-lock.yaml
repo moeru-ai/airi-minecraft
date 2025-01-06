@@ -47,6 +47,9 @@ importers:
       prismarine-viewer:
         specifier: ^1.29.0
         version: 1.29.0
+      prismarine-windows:
+        specifier: ^2.9.0
+        version: 2.9.0
       xsai:
         specifier: ^0.0.23
         version: 0.0.23(@types/json-schema@7.0.15)

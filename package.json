@@ -27,6 +27,7 @@
     "prismarine-entity": "^2.4.0",
     "prismarine-item": "^1.15.0",
     "prismarine-viewer": "^1.29.0",
+    "prismarine-windows": "^2.9.0",
     "xsai": "^0.0.23"
   },
   "devDependencies": {

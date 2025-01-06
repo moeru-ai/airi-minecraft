@@ -1,6 +1,7 @@
-import type { ComponentLifecycle, Context } from '../ctx.bot'
+import type { ComponentLifecycle, Context } from '../bot'
 import { useLogg } from '@guiiai/logg'
 import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
+import { formBotChat } from 'src/middlewares/chat'
 
 export function createFollowComponent(ctx: Context): ComponentLifecycle {
   const RANGE_GOAL = 2 // get within this radius of the player
@@ -30,7 +31,7 @@ export function createFollowComponent(ctx: Context): ComponentLifecycle {
     ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
   }
 
-  const onChat = (username: string, message: string) => {
+  const onChat = formBotChat(ctx, (username, message) => {
     if (username === ctx.bot.username)
       return
 
@@ -44,7 +45,7 @@ export function createFollowComponent(ctx: Context): ComponentLifecycle {
       logger.log('Stopping follow')
       ctx.bot.pathfinder.stop()
     }
-  }
+  })
 
   ctx.bot.once('spawn', () => {
     defaultMove = new Movements(ctx.bot)

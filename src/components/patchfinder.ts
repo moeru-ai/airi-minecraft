@@ -1,8 +1,7 @@
-// This is an example that uses mineflayer-pathfinder to showcase how simple it is to walk to goals
-
 import type { ComponentLifecycle, Context } from '../bot'
 import { useLogg } from '@guiiai/logg'
 import { goals, Movements, pathfinder } from 'mineflayer-pathfinder'
+import { formBotChat } from 'src/middlewares/chat'
 
 export function createPathFinderComponent(ctx: Context): ComponentLifecycle {
   const RANGE_GOAL = 1 // get within this radius of the player
@@ -14,9 +13,7 @@ export function createPathFinderComponent(ctx: Context): ComponentLifecycle {
 
   let defaultMove: Movements
 
-  const onChat = (username: string, message: string) => {
-    if (username === ctx.bot.username)
-      return
+  const onChat = formBotChat(ctx, (username, message) => {
     if (message !== 'come')
       return
 
@@ -31,7 +28,7 @@ export function createPathFinderComponent(ctx: Context): ComponentLifecycle {
 
     ctx.bot.pathfinder.setMovements(defaultMove)
     ctx.bot.pathfinder.setGoal(new goals.GoalNear(playerX, playerY, playerZ, RANGE_GOAL))
-  }
+  })
 
   ctx.bot.once('spawn', () => {
     defaultMove = new Movements(ctx.bot)
