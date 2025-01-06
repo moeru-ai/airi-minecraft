@@ -15,6 +15,7 @@ export const botConfig: BotOptions = {
   host: '',
   port: 0,
   password: '',
+  version: '1.20',
 }
 
 export const openaiConfig: OpenAIConfig = {
@@ -33,6 +34,7 @@ export function initEnv() {
   botConfig.host = process.env.BOT_HOSTNAME || ''
   botConfig.port = Number.parseInt(process.env.BOT_PORT || '49415')
   botConfig.password = process.env.BOT_PASSWORD || ''
+  botConfig.version = process.env.BOT_VERSION || '1.20'
 
   logger.withFields({ openaiConfig }).log('Environment variables initialized')
 }

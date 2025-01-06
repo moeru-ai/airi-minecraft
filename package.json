@@ -16,10 +16,18 @@
   "dependencies": {
     "@guiiai/logg": "^1.0.6",
     "dotenv": "^16.4.7",
+    "minecraft-data": "^3.81.1",
     "mineflayer": "^4.23.0",
+    "mineflayer-armor-manager": "^2.0.1",
+    "mineflayer-auto-eat": "^5.0.0",
+    "mineflayer-collectblock": "^1.4.1",
     "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-pvp": "^1.3.2",
+    "neuri": "^0.0.16",
     "prismarine-entity": "^2.4.0",
-    "prismarine-viewer": "^1.29.0"
+    "prismarine-item": "^1.15.0",
+    "prismarine-viewer": "^1.29.0",
+    "xsai": "^0.0.23"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.12.1",

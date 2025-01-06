@@ -10,7 +10,6 @@ import { botConfig, initEnv } from './config'
 const logger = useLogg('main').useGlobalConfig()
 
 async function main() {
-  // await sleep(5000)
   setGlobalLogLevel(LogLevel.Debug)
   setGlobalFormat(Format.Pretty)
 

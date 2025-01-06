@@ -14,18 +14,42 @@ importers:
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
+      minecraft-data:
+        specifier: ^3.81.1
+        version: 3.81.1
       mineflayer:
         specifier: ^4.23.0
         version: 4.23.0
+      mineflayer-armor-manager:
+        specifier: ^2.0.1
+        version: 2.0.1(mineflayer@4.23.0)
+      mineflayer-auto-eat:
+        specifier: ^5.0.0
+        version: 5.0.0
+      mineflayer-collectblock:
+        specifier: ^1.4.1
+        version: 1.4.1
       mineflayer-pathfinder:
         specifier: ^2.4.5
         version: 2.4.5
+      mineflayer-pvp:
+        specifier: ^1.3.2
+        version: 1.3.2(prismarine-registry@1.10.0)
+      neuri:
+        specifier: ^0.0.16
+        version: 0.0.16(@types/json-schema@7.0.15)
       prismarine-entity:
         specifier: ^2.4.0
         version: 2.4.0
+      prismarine-item:
+        specifier: ^1.15.0
+        version: 1.15.0
       prismarine-viewer:
         specifier: ^1.29.0
         version: 1.29.0
+      xsai:
+        specifier: ^0.0.23
+        version: 0.0.23(@types/json-schema@7.0.15)
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^3.12.1
@@ -380,6 +404,9 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
+  '@nxg-org/mineflayer-util-plugin@1.8.3':
+    resolution: {integrity: sha512-YlIbzCDs9822xuvmYlD0vXZz0iye9buqp9NK4nNn15gYybdqBtC/YxK6BLqXtwNohZCKoZdKgei7Xd5Bt2/rUg==}
+
   '@pkgr/core@0.1.1':
     resolution: {integrity: sha512-cq8o4cWH0ibXh9VGi5P20Tu9XF/0fFXl9EUinr9QfTM7a7p0oTA4iJRCQWppXR1Pg8dSM0UCItCkPwsk9qWWYA==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
@@ -420,8 +447,17 @@ packages:
   '@types/ms@0.7.34':
     resolution: {integrity: sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==}
 
+  '@types/node-fetch@2.6.12':
+    resolution: {integrity: sha512-8nneRWKCg3rMtF69nLQJnOYUcbafYeFSjqkw3jCRLsqkWFlHaoQrr5mXmofFGOx3DKn7UfmBMyov8ySvLRVldA==}
+
   '@types/node-rsa@1.1.4':
     resolution: {integrity: sha512-dB0ECel6JpMnq5ULvpUTunx3yNm8e/dIkv8Zu9p2c8me70xIRUUG3q+qXRwcSf9rN3oqamv4116iHy90dJGRpA==}
+
+  '@types/node@14.18.63':
+    resolution: {integrity: sha512-fAtCfv4jJg+ExtXhvCkCqUKZ+4ok/JQk01qDKhL5BDDoS3AxKXhV5/MAVUZyQnSEd2GT92fkgZl0pz0Q0AzcIQ==}
+
+  '@types/node@18.19.69':
+    resolution: {integrity: sha512-ECPdY1nlaiO/Y6GUnwgtAAhLNaQ53AyIVz+eILxpEo5OvuqE6yWkqWBIb5dU0DqhKQtMeny+FBD3PK6lm7L5xQ==}
 
   '@types/node@22.10.5':
     resolution: {integrity: sha512-F8Q+SeGimwOo86fiovQh8qiXfFEh2/ocYv7tU5pJ3EXMSSxk1Joj5wefpFK2fHTf/N6HKGSxIDBT9f3gCxXPkQ==}
@@ -434,6 +470,76 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
+
+  '@typeschema/core@0.14.0':
+    resolution: {integrity: sha512-Ia6PtZHcL3KqsAWXjMi5xIyZ7XMH4aSnOQes8mfMLx+wGFGtGRNlwe6Y7cYvX+WfNK67OL0/HSe9t8QDygV0/w==}
+    peerDependencies:
+      '@types/json-schema': ^7.0.15
+    peerDependenciesMeta:
+      '@types/json-schema':
+        optional: true
+
+  '@typeschema/main@0.14.1':
+    resolution: {integrity: sha512-ReYIFVmMawLn3rq6+fBhiDFH1LrolQd+kKcuglCgnMip20ou2h2YEuIcDoLJ1tQ/RQnBTPyfvs+BwEytW9YVDg==}
+    peerDependencies:
+      '@typeschema/arktype': 0.14.0
+      '@typeschema/class-validator': 0.3.0
+      '@typeschema/deepkit': 0.14.0
+      '@typeschema/effect': 0.14.0
+      '@typeschema/fastest-validator': 0.2.0
+      '@typeschema/function': 0.14.0
+      '@typeschema/io-ts': 0.14.0
+      '@typeschema/joi': 0.14.0
+      '@typeschema/json': 0.14.0
+      '@typeschema/ow': 0.14.0
+      '@typeschema/runtypes': 0.14.0
+      '@typeschema/superstruct': 0.14.0
+      '@typeschema/suretype': 0.2.0
+      '@typeschema/typebox': 0.14.0
+      '@typeschema/valibot': 0.14.0
+      '@typeschema/valita': 0.2.0
+      '@typeschema/vine': 0.2.0
+      '@typeschema/yup': 0.14.0
+      '@typeschema/zod': 0.14.0
+    peerDependenciesMeta:
+      '@typeschema/arktype':
+        optional: true
+      '@typeschema/class-validator':
+        optional: true
+      '@typeschema/deepkit':
+        optional: true
+      '@typeschema/effect':
+        optional: true
+      '@typeschema/fastest-validator':
+        optional: true
+      '@typeschema/function':
+        optional: true
+      '@typeschema/io-ts':
+        optional: true
+      '@typeschema/joi':
+        optional: true
+      '@typeschema/json':
+        optional: true
+      '@typeschema/ow':
+        optional: true
+      '@typeschema/runtypes':
+        optional: true
+      '@typeschema/superstruct':
+        optional: true
+      '@typeschema/suretype':
+        optional: true
+      '@typeschema/typebox':
+        optional: true
+      '@typeschema/valibot':
+        optional: true
+      '@typeschema/valita':
+        optional: true
+      '@typeschema/vine':
+        optional: true
+      '@typeschema/yup':
+        optional: true
+      '@typeschema/zod':
+        optional: true
 
   '@typescript-eslint/eslint-plugin@8.19.0':
     resolution: {integrity: sha512-NggSaEZCdSrFddbctrVjkVZvFC6KGfKfNK0CU7mNK/iKHGKbzT4Wmgm08dKpcZECBu9f5FypndoMyRHkdqfT1Q==}
@@ -516,6 +622,64 @@ packages:
   '@xboxreplay/xboxlive-auth@3.3.3':
     resolution: {integrity: sha512-j0AU8pW10LM8O68CTZ5QHnvOjSsnPICy0oQcP7zyM7eWkDQ/InkiQiirQKsPn1XRYDl4ccNu0WM582s3UKwcBg==}
 
+  '@xsai/embed@0.0.23':
+    resolution: {integrity: sha512-nEk8+cRMaPUG+ehdurzo2aLSJdS+Hi5FNsiidY4NrJ4OUYFQ5Pr01d8vbwGoX+8qHY4qpE/VRKFnXWegAAroIg==}
+
+  '@xsai/generate-object@0.0.23':
+    resolution: {integrity: sha512-p+wEllbbwRJX6O3MsopeXV8ZRAa5Gs7OzUP96bVCWDMYPY52lOxUlqCpmRW6hRlW/MDrCh0AJEal5yfTJ3GzZw==}
+
+  '@xsai/generate-speech@0.0.23':
+    resolution: {integrity: sha512-t1AOIdiWuRwXIvR7N381V1ca4P7kP+UfA4WavJqdql7SEDsANVh2AXRXHN2k69+qZh5Tp1ToaipvbKjT58tCpQ==}
+
+  '@xsai/generate-text@0.0.22':
+    resolution: {integrity: sha512-3ZkxR3QfN0lkcCD4NM6glkA9+cWxPodHx73qnlSKzFV/m1McAI42JPKWpFOxfQdxkAQAkZ5cD5Et7PZs8Rc7bQ==}
+
+  '@xsai/generate-text@0.0.23':
+    resolution: {integrity: sha512-nD2Km5dqAGlS98L/RPr6xZCN7DYFAc+Qj+mq+90MkCtj12VSGV5HgBLqpIJCLrVlTL91qMGxNSQj3q6fyGvVxQ==}
+
+  '@xsai/generate-transcription@0.0.23':
+    resolution: {integrity: sha512-VzygC97WsPA2f7nE63RLq8F9PigAGMUFBpcE74ptcAuWDf+F4qcJ1IZzxTFoKc+EmmdnCHFY1p7Mf1A036rPLA==}
+
+  '@xsai/model@0.0.23':
+    resolution: {integrity: sha512-3c4KhGG4A6Nl4/4Y34fHvPwZRKy62ChfHM8630EPYlg/7XDzDtnjJYK+XdXcqUTCddruK8p01yccQLJpLMkX+g==}
+
+  '@xsai/providers@0.0.22':
+    resolution: {integrity: sha512-TinCtYJvnWB5MY4WuWzL/svbD0vrx3znRQglVUuPIGMqm3MCaGyvQk0hq9GK8FdGkyb/LZikxT2N8lB6NaHPBw==}
+
+  '@xsai/providers@0.0.23':
+    resolution: {integrity: sha512-kU4xcBfgFFYVEZtsEx4BZmFgUscPvkSsqx3EfE/USpwHQeHGEiVScAoQIO094iBIPFcTTBQagPeln+gaJWQQyw==}
+
+  '@xsai/shared-chat@0.0.22':
+    resolution: {integrity: sha512-VQHGrUkNrUj50TRho/qClPbeJLNjEbTC+MvDNTxuYrxcGydpkImP+SLmcpvdsSUjbr3GlGeZfpWrq/Y1WbreQQ==}
+
+  '@xsai/shared-chat@0.0.23':
+    resolution: {integrity: sha512-w9LkJNf6K8GIAGIljxOFvjdYuaAeqrZl1ExYpXJS+5ttuPN2Pr6dMxacFepfr6eQEV6IWODaMBfLEviRAL/JmQ==}
+
+  '@xsai/shared@0.0.23':
+    resolution: {integrity: sha512-sC5m/yYkXjxKchKk9Rp5E3rvKFJGWrAlwfplhqGeD2zC1F1LKGkYomfGMx9IUwZjXBAYqjeymsr1YKtTNT6kbw==}
+
+  '@xsai/stream-text@0.0.22':
+    resolution: {integrity: sha512-AgFmSMue4VAP/jYrS08axgDkjxb1PVN2QGMvFZDRrKDccEdokTD8CmoYwp3z8mhQjth+TE5botYpuktztgqYdg==}
+
+  '@xsai/stream-text@0.0.23':
+    resolution: {integrity: sha512-U4f00GYMiAB6zlPtTuhw5LjOK7YSDHpX3As+zib62t8uk5n6cGCm8Cne3VC0Fqs0BIO5hAZt1xb2IH7yIonv+Q==}
+
+  '@xsai/tool@0.0.22':
+    resolution: {integrity: sha512-4JJRaSJ77rMZrzsqzuPf90KQvquXFApvmKyXAv5InzSLltsTu5muC0YvNGCy9MAN50FCpLuBqt9CXusccLB8DQ==}
+    peerDependencies:
+      '@xsai/generate-text': 0.0.22
+    peerDependenciesMeta:
+      '@xsai/generate-text':
+        optional: true
+
+  '@xsai/tool@0.0.23':
+    resolution: {integrity: sha512-lvekP3xv1YcfZOvv9sWkBGPlQvhF1DgqW66IBC+TjuQhnsRoUF6rxDG5R//K61LIDPODjm6ttvztLI6JJZNW/A==}
+    peerDependencies:
+      '@xsai/generate-text': 0.0.23
+    peerDependenciesMeta:
+      '@xsai/generate-text':
+        optional: true
+
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
     engines: {node: '>=6.5'}
@@ -536,6 +700,10 @@ packages:
 
   aes-js@3.1.2:
     resolution: {integrity: sha512-e5pEa2kBnBOgR4Y/p20pskXI74UEz7de8ZGVo58asOtvSVG5YAbJeELPZxOmt+Bnz3rX753YKhfIn4X4l1PPRQ==}
+
+  agentkeepalive@4.6.0:
+    resolution: {integrity: sha512-kja8j7PjmncONqaTsB8fQ+wE2mSU2DJ9D4XKoJ5PFWIdRMa6SLSN1ff4mOr4jCbfRSsxR4keIiySJU0N9T5hIQ==}
+    engines: {node: '>= 8.0.0'}
 
   ajv@6.12.6:
     resolution: {integrity: sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==}
@@ -560,6 +728,9 @@ packages:
 
   asn1@0.2.3:
     resolution: {integrity: sha512-6i37w/+EhlWlGUJff3T/Q8u1RGmP5wgbiwYnOnbOqvtrPxT63/sYFyP9RcpxtxGymtfA075IvmOnL7ycNOWl3w==}
+
+  asynckit@0.4.0:
+    resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
 
   axios@0.21.4:
     resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
@@ -662,6 +833,10 @@ packages:
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
+  combined-stream@1.0.8:
+    resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
+    engines: {node: '>= 0.8'}
+
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
@@ -760,6 +935,13 @@ packages:
 
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
+
+  defu@6.1.4:
+    resolution: {integrity: sha512-mEQCMmwJu317oSz8CwdIOdwf3xMif1ttiM8LTufzc3g6kR+9Pe236twL8j3IYT1F7GfRgGcW6MWxzZjLIkuHIg==}
+
+  delayed-stream@1.0.0:
+    resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
+    engines: {node: '>=0.4.0'}
 
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
@@ -1150,6 +1332,17 @@ packages:
       debug:
         optional: true
 
+  form-data-encoder@1.7.2:
+    resolution: {integrity: sha512-qfqtYan3rxrnCk1VYaA4H+Ms9xdpPqvLZa6xmMgFvhO32x7/3J/ExcTd6qpxM0vH2GdMI+poehyBZvqfMTto8A==}
+
+  form-data@4.0.1:
+    resolution: {integrity: sha512-tzN8e4TX8+kkxGPK8D5u0FNmjPUjw3lwC9lSLxxoB/+GtsJG91CO8bSWy73APlgAZzZbXEYZJuxjkHH2w+Ezhw==}
+    engines: {node: '>= 6'}
+
+  formdata-node@4.4.1:
+    resolution: {integrity: sha512-0iirZp3uVDjVGt9p49aTaqjk84TrglENEDuqfdlZQ1roC9CWlPk6Avf8EEnZNcAqPonwkG35x4n3ww/1THYAeQ==}
+    engines: {node: '>= 12.20'}
+
   forwarded@0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
@@ -1229,6 +1422,9 @@ packages:
   http-errors@2.0.0:
     resolution: {integrity: sha512-FtwrG/euBzaEjYeRqOgly7G0qviiXoJWnvEH2Z1plBdXgbyjv34pHTSb9zoeHMyDy33+DWy5Wt9Wo+TURtOYSQ==}
     engines: {node: '>= 0.8'}
+
+  humanize-ms@1.2.1:
+    resolution: {integrity: sha512-Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ==}
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -1564,8 +1760,11 @@ packages:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
     engines: {node: '>=4'}
 
-  minecraft-data@3.80.1:
-    resolution: {integrity: sha512-wtm5E2KeuNsOSJdoEzrRzpsqJ6BoPsrsZ7AAoBtRAJW7c3XGwaw3NN0jTKt/yLOHGTXXd1xWzcIhP1Bte9UVaQ==}
+  minecraft-data@2.221.0:
+    resolution: {integrity: sha512-0AhqzbIKb6WqPSF6qBevaPryeWOz545hLxt6q+gfJF8YIQX/YfkyX/nXWhl+pSIS2rTBcQ0RJkRCtTeRzQwHDA==}
+
+  minecraft-data@3.81.1:
+    resolution: {integrity: sha512-NBP4NLQhLv+F/OGugTcb66GzQ9ZH5Me1Oa4IhFpBA90OUSSR/frZbJ/0zngUtBDw6q3l01tWxhAmauTXjQcH1A==}
 
   minecraft-folder-path@1.2.0:
     resolution: {integrity: sha512-qaUSbKWoOsH9brn0JQuBhxNAzTDMwrOXorwuRxdJKKKDYvZhtml+6GVCUrY5HRiEsieBEjCUnhVpDuQiKsiFaw==}
@@ -1574,8 +1773,33 @@ packages:
     resolution: {integrity: sha512-ACvquP6fI8TdPXfPNNGTTi9v12WW6LS4k2KmmUBSmNncM0KnUwywqTT6YQIfCff6dUMd9DZB1oaNZfEDto+QQw==}
     engines: {node: '>=14'}
 
+  mineflayer-armor-manager@2.0.1:
+    resolution: {integrity: sha512-csxRcFOrif1pu9TyUVR8xfmzRxwsxLSfcFVQDnCfhhV5U0Cuy5b9GjFWM4036a75XaQ94qkZklXgBDAsgJMGaQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      mineflayer: ^4.10.0
+
+  mineflayer-auto-eat@5.0.0:
+    resolution: {integrity: sha512-EUMO7InDI5AdOpj3xxTxtDmh24pm2djP6kNKJ/cq5bK0Q6qvfTNTGXSQxcNIwiUAxBUGO+zEt226SZS9B+SlaQ==}
+
+  mineflayer-collectblock@1.4.1:
+    resolution: {integrity: sha512-E5i5nxwx+FVIkJj5TFJpBQkxJ2pvCxN7Ubi2rB20ybPdRArmXr8kM6VwrLFvx0jhvR0z7+u4s5llwCCCMZ1weA==}
+
   mineflayer-pathfinder@2.4.5:
     resolution: {integrity: sha512-Jh3JnUgRLwhMh2Dugo4SPza68C41y+NPP5sdsgxRu35ydndo70i1JJGxauVWbXrpNwIxYNztUw78aFyb7icw8g==}
+
+  mineflayer-pvp@1.3.2:
+    resolution: {integrity: sha512-CI2T5w4ceiQdQRCFdrCs3OYmvO9G0cOx2qovUt6f27gknpVI90Ihe1qYhf+zBZJCg9uP1oJ1Pemlzw46Mm3wcA==}
+
+  mineflayer-tool@1.2.0:
+    resolution: {integrity: sha512-TRd7JOX4obJnzqzVi+4MLKmbeeCDjp9taerLKM8+AGpWfgtdbAguGmsr3BHu+TdXxOIT05veYecCv77S3KX6PA==}
+
+  mineflayer-utils@0.1.4:
+    resolution: {integrity: sha512-8+0dbGAjA6FO62/W80v5k44AuSAcwJUMdpMAAGhjI9AdCDz+UuyTnNkPBncF4EcLY7yUUdtA7m/OXQZKFdWOlg==}
+
+  mineflayer@2.41.0:
+    resolution: {integrity: sha512-IFFy4NgF24FU2PkAwazJphl2F+3gpbpN578ex0sq1XfcBBRge3kCz1UC2KDMjKI+V/8vffOL+OEnug9jt3f7Vw==}
+    engines: {node: '>=14'}
 
   mineflayer@4.23.0:
     resolution: {integrity: sha512-wSchhS59hK+oPs8tFg847H82YEvxU7zYKdDKj4e5FVo3CxJ74eXJVT+JcFwEvoqFO7kXiQlhJITxEvO13GOSKA==}
@@ -1608,6 +1832,11 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanoid@5.0.9:
+    resolution: {integrity: sha512-Aooyr6MXU6HpvvWXKoVoXwKMs/KyVakWwg7xQfv5/S/RIgJMy0Ifa45H9qqYy7pTCszrHzP21Uk4PZq2HpEM8Q==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
@@ -1626,6 +1855,13 @@ packages:
   negotiator@0.6.4:
     resolution: {integrity: sha512-myRT3DiWPHqho5PrJaIRyaMv2kgYf0mUVgBNOYMuCH5Ki1yEiQaf/ZJuQ62nvpc44wL5WDbTX7yGJi1Neevw8w==}
     engines: {node: '>= 0.6'}
+
+  neuri@0.0.16:
+    resolution: {integrity: sha512-x63/7dB/VsjU2hd8o5AvWp7EzjmEz872eNpmkSh+NHavWsXrHLUyer86fXwY8tF5SIFAY6dj7wPW8rpgK04NFA==}
+
+  node-domexception@1.0.0:
+    resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
+    engines: {node: '>=10.5.0'}
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -1663,6 +1899,15 @@ packages:
   on-headers@1.0.2:
     resolution: {integrity: sha512-pZAE+FJLoyITytdqK0U5s+FIpjN0JP3OzFi/u8Rx+EV5/W+JTWGXG8xFzevE7AjBfDqHv/8vL8qQsIhHnqRkrA==}
     engines: {node: '>= 0.8'}
+
+  openai@4.77.3:
+    resolution: {integrity: sha512-wLDy4+KWHz31HRFMW2+9KQuVuT2QWhs0z94w1Gm1h2Ut9vIHr9/rHZggbykZEfyiaJRVgw8ZS9K6AylDWzvPYw==}
+    hasBin: true
+    peerDependencies:
+      zod: ^3.23.8
+    peerDependenciesMeta:
+      zod:
+        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -1786,6 +2031,9 @@ packages:
     resolution: {integrity: sha512-RqXtCBz7n4iNG44nkwjqvGebbQIWZYjyCp3ORi3nBeLJ6AnmOH+qauaHkqH8hcyUFS6ObQeFx/xYYMwgMSoCKw==}
     engines: {node: '>=14'}
 
+  prismarine-entity@1.2.0:
+    resolution: {integrity: sha512-4dQ9LYl6HDJQrwZHjSKU4D5VNyHRnfrjcw7eVLlbRPkuR50utW5mmfPi4ys9U7tHNmGWHC/cwjH9xzT75LUovQ==}
+
   prismarine-entity@2.4.0:
     resolution: {integrity: sha512-DBwjmoCX1IYAhN99KwYkk2rMArn65JHTzuuGXchr4GLWQs7UN4Pf9tELqBwNOu4r57x3RaW0+9+0sI3FvJQWzQ==}
 
@@ -1811,6 +2059,9 @@ packages:
 
   prismarine-viewer@1.29.0:
     resolution: {integrity: sha512-kOAHZ6xoIBJghc00R739gM0rIzaFKwuRA0ZCvtcHxnZBoLGuWqYTF7SkkOaLZLn5mLhoRqZzLGVt1NM6EcSWrQ==}
+
+  prismarine-windows@1.6.0:
+    resolution: {integrity: sha512-026LG1yR76Xb62kM+W83IWT7Wy2yKplllbXNFBF2m0Lr4k4YpYKnpLb8tRft8MLOLRbYAt/KnxE/YKvRZul7kw==}
 
   prismarine-windows@2.9.0:
     resolution: {integrity: sha512-fm4kOLjGFPov7TEJRmXHoiPabxIQrG36r2mDjlNxfkcLfMHFb3/1ML6mp4iRQa7wL0GK4DIAyiBqCWoeWDxARg==}
@@ -1896,6 +2147,10 @@ packages:
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
+
+  require-self@0.2.3:
+    resolution: {integrity: sha512-keGBWkK0PWJGFAd6IznpjM5zZzySbsrvzq0ElXpZ4G8hzymV9I+/OnC916MF5mRxHRWSZKGIyCFJ73BZFz3xaA==}
+    hasBin: true
 
   resolve-from@4.0.0:
     resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}
@@ -2031,6 +2286,9 @@ packages:
     resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
     engines: {node: '>= 0.8'}
 
+  strict-event-emitter-types@2.0.0:
+    resolution: {integrity: sha512-Nk/brWYpD85WlOgzw5h173aci0Teyv8YdIAEtV+N88nDB0dLlazZyJMIsN6eo1/AR61l+p6CJTG1JIyFaoNEEA==}
+
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -2134,6 +2392,11 @@ packages:
   typed-emitter@2.1.0:
     resolution: {integrity: sha512-g/KzbYKbH5C2vPkaXGu8DJlHrGKHLsM25Zg9WuC9pMGfuvT+X25tZQWo5fK1BjBm8+UrVE9LDCvaY0CQk+fXDA==}
 
+  typescript@3.9.10:
+    resolution: {integrity: sha512-w6fIxVE/H1PkLKcCPsFqKE7Kv7QUwhU8qQY2MueZXWx5cPZdwFupLgKK3vntcK98BtNHZtAF4LA/yl2a7k8R6Q==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+
   typescript@5.7.2:
     resolution: {integrity: sha512-i5t66RHxDvVN40HfDd1PsEThGNnlMCMT3jMUuoh9/0TaqWevNontacunWyN02LA9/fIbEWlcHZcgTKb9QoaLfg==}
     engines: {node: '>=14.17'}
@@ -2144,6 +2407,9 @@ packages:
 
   uint4@0.1.2:
     resolution: {integrity: sha512-lhEx78gdTwFWG+mt6cWAZD/R6qrIj0TTBeH5xwyuDJyswLNlGe+KVlUPQ6+mx5Ld332pS0AMUTo9hIly7YsWxQ==}
+
+  undici-types@5.26.5:
+    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
   undici-types@6.20.0:
     resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
@@ -2203,6 +2469,10 @@ packages:
     peerDependencies:
       eslint: '>=6.0.0'
 
+  web-streams-polyfill@4.0.0-beta.3:
+    resolution: {integrity: sha512-QW95TCTaHmsYfHDybGMwO5IJIM93I/6vTRk+daHTWFPhwh+C8Cg7j7XyKrwrj8Ib6vYXe0ocYNrmzY4xAAN6ug==}
+    engines: {node: '>= 14'}
+
   webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
 
@@ -2241,6 +2511,9 @@ packages:
   xmlhttprequest-ssl@2.1.2:
     resolution: {integrity: sha512-TEU+nJVUUnA4CYJFLvK5X9AOeH4KvDvhIfm0vV1GaQRtchnG0hgK5p8hw/xjv8cunWYCsiPCSDzObPyhEwq3KQ==}
     engines: {node: '>=0.4.0'}
+
+  xsai@0.0.23:
+    resolution: {integrity: sha512-yzaYJIP+bBHdNc5nKrUKxW+EQhrT8NR/dOX2JWLznrZZlnECxndH4qlDHcNRy0th0m7+lsReAvCNTV80cwq1pw==}
 
   xxhash-wasm@0.4.2:
     resolution: {integrity: sha512-/eyHVRJQCirEkSZ1agRSCwriMhwlyUcFkXD5TPVSLP+IPzjsqMVzZwdoczLp1SoQU0R3dxz1RpIK+4YNQbCVOA==}
@@ -2547,6 +2820,8 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.18.0
 
+  '@nxg-org/mineflayer-util-plugin@1.8.3': {}
+
   '@pkgr/core@0.1.1': {}
 
   '@socket.io/component-emitter@3.1.2': {}
@@ -2587,9 +2862,20 @@ snapshots:
 
   '@types/ms@0.7.34': {}
 
+  '@types/node-fetch@2.6.12':
+    dependencies:
+      '@types/node': 22.10.5
+      form-data: 4.0.1
+
   '@types/node-rsa@1.1.4':
     dependencies:
       '@types/node': 22.10.5
+
+  '@types/node@14.18.63': {}
+
+  '@types/node@18.19.69':
+    dependencies:
+      undici-types: 5.26.5
 
   '@types/node@22.10.5':
     dependencies:
@@ -2603,6 +2889,16 @@ snapshots:
       safe-buffer: 5.1.2
 
   '@types/unist@3.0.3': {}
+
+  '@typeschema/core@0.14.0(@types/json-schema@7.0.15)':
+    optionalDependencies:
+      '@types/json-schema': 7.0.15
+
+  '@typeschema/main@0.14.1(@types/json-schema@7.0.15)':
+    dependencies:
+      '@typeschema/core': 0.14.0(@types/json-schema@7.0.15)
+    transitivePeerDependencies:
+      - '@types/json-schema'
 
   '@typescript-eslint/eslint-plugin@8.19.0(@typescript-eslint/parser@8.19.0(eslint@9.17.0)(typescript@5.7.2))(eslint@9.17.0)(typescript@5.7.2)':
     dependencies:
@@ -2729,6 +3025,139 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  '@xsai/embed@0.0.23':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/generate-object@0.0.23(@types/json-schema@7.0.15)':
+    dependencies:
+      '@typeschema/main': 0.14.1(@types/json-schema@7.0.15)
+      '@xsai/generate-text': 0.0.23
+      '@xsai/shared': 0.0.23
+    transitivePeerDependencies:
+      - '@types/json-schema'
+      - '@typeschema/arktype'
+      - '@typeschema/class-validator'
+      - '@typeschema/deepkit'
+      - '@typeschema/effect'
+      - '@typeschema/fastest-validator'
+      - '@typeschema/function'
+      - '@typeschema/io-ts'
+      - '@typeschema/joi'
+      - '@typeschema/json'
+      - '@typeschema/ow'
+      - '@typeschema/runtypes'
+      - '@typeschema/superstruct'
+      - '@typeschema/suretype'
+      - '@typeschema/typebox'
+      - '@typeschema/valibot'
+      - '@typeschema/valita'
+      - '@typeschema/vine'
+      - '@typeschema/yup'
+      - '@typeschema/zod'
+
+  '@xsai/generate-speech@0.0.23':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/generate-text@0.0.22':
+    dependencies:
+      '@xsai/shared-chat': 0.0.23
+
+  '@xsai/generate-text@0.0.23':
+    dependencies:
+      '@xsai/shared-chat': 0.0.23
+
+  '@xsai/generate-transcription@0.0.23':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/model@0.0.23':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/providers@0.0.22':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/providers@0.0.23':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/shared-chat@0.0.22':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/shared-chat@0.0.23':
+    dependencies:
+      '@xsai/shared': 0.0.23
+
+  '@xsai/shared@0.0.23': {}
+
+  '@xsai/stream-text@0.0.22':
+    dependencies:
+      '@xsai/shared-chat': 0.0.23
+
+  '@xsai/stream-text@0.0.23':
+    dependencies:
+      '@xsai/shared-chat': 0.0.23
+
+  '@xsai/tool@0.0.22(@types/json-schema@7.0.15)(@xsai/generate-text@0.0.22)':
+    dependencies:
+      '@typeschema/main': 0.14.1(@types/json-schema@7.0.15)
+      '@xsai/shared': 0.0.23
+    optionalDependencies:
+      '@xsai/generate-text': 0.0.22
+    transitivePeerDependencies:
+      - '@types/json-schema'
+      - '@typeschema/arktype'
+      - '@typeschema/class-validator'
+      - '@typeschema/deepkit'
+      - '@typeschema/effect'
+      - '@typeschema/fastest-validator'
+      - '@typeschema/function'
+      - '@typeschema/io-ts'
+      - '@typeschema/joi'
+      - '@typeschema/json'
+      - '@typeschema/ow'
+      - '@typeschema/runtypes'
+      - '@typeschema/superstruct'
+      - '@typeschema/suretype'
+      - '@typeschema/typebox'
+      - '@typeschema/valibot'
+      - '@typeschema/valita'
+      - '@typeschema/vine'
+      - '@typeschema/yup'
+      - '@typeschema/zod'
+
+  '@xsai/tool@0.0.23(@types/json-schema@7.0.15)(@xsai/generate-text@0.0.23)':
+    dependencies:
+      '@typeschema/main': 0.14.1(@types/json-schema@7.0.15)
+      '@xsai/shared': 0.0.23
+    optionalDependencies:
+      '@xsai/generate-text': 0.0.23
+    transitivePeerDependencies:
+      - '@types/json-schema'
+      - '@typeschema/arktype'
+      - '@typeschema/class-validator'
+      - '@typeschema/deepkit'
+      - '@typeschema/effect'
+      - '@typeschema/fastest-validator'
+      - '@typeschema/function'
+      - '@typeschema/io-ts'
+      - '@typeschema/joi'
+      - '@typeschema/json'
+      - '@typeschema/ow'
+      - '@typeschema/runtypes'
+      - '@typeschema/superstruct'
+      - '@typeschema/suretype'
+      - '@typeschema/typebox'
+      - '@typeschema/valibot'
+      - '@typeschema/valita'
+      - '@typeschema/vine'
+      - '@typeschema/yup'
+      - '@typeschema/zod'
+
   abort-controller@3.0.0:
     dependencies:
       event-target-shim: 5.0.1
@@ -2745,6 +3174,10 @@ snapshots:
   acorn@8.14.0: {}
 
   aes-js@3.1.2: {}
+
+  agentkeepalive@4.6.0:
+    dependencies:
+      humanize-ms: 1.2.1
 
   ajv@6.12.6:
     dependencies:
@@ -2766,6 +3199,8 @@ snapshots:
   array-flatten@1.1.1: {}
 
   asn1@0.2.3: {}
+
+  asynckit@0.4.0: {}
 
   axios@0.21.4(debug@4.4.0):
     dependencies:
@@ -2874,6 +3309,10 @@ snapshots:
 
   color-name@1.1.4: {}
 
+  combined-stream@1.0.8:
+    dependencies:
+      delayed-stream: 1.0.0
+
   commander@2.20.3: {}
 
   comment-parser@1.4.1: {}
@@ -2950,6 +3389,10 @@ snapshots:
       character-entities: 2.0.2
 
   deep-is@0.1.4: {}
+
+  defu@6.1.4: {}
+
+  delayed-stream@1.0.0: {}
 
   depd@2.0.0: {}
 
@@ -3489,6 +3932,19 @@ snapshots:
     optionalDependencies:
       debug: 4.4.0
 
+  form-data-encoder@1.7.2: {}
+
+  form-data@4.0.1:
+    dependencies:
+      asynckit: 0.4.0
+      combined-stream: 1.0.8
+      mime-types: 2.1.35
+
+  formdata-node@4.4.1:
+    dependencies:
+      node-domexception: 1.0.0
+      web-streams-polyfill: 4.0.0-beta.3
+
   forwarded@0.2.0: {}
 
   fresh@0.5.2: {}
@@ -3561,6 +4017,10 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.1
       toidentifier: 1.0.1
+
+  humanize-ms@1.2.1:
+    dependencies:
+      ms: 2.1.3
 
   iconv-lite@0.4.24:
     dependencies:
@@ -4032,7 +4492,9 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  minecraft-data@3.80.1: {}
+  minecraft-data@2.221.0: {}
+
+  minecraft-data@3.81.1: {}
 
   minecraft-folder-path@1.2.0: {}
 
@@ -4046,7 +4508,7 @@ snapshots:
       endian-toggle: 0.0.0
       lodash.get: 4.4.2
       lodash.merge: 4.6.2
-      minecraft-data: 3.80.1
+      minecraft-data: 3.81.1
       minecraft-folder-path: 1.2.0
       node-fetch: 2.7.0
       node-rsa: 0.4.2
@@ -4062,9 +4524,32 @@ snapshots:
       - encoding
       - supports-color
 
+  mineflayer-armor-manager@2.0.1(mineflayer@4.23.0):
+    dependencies:
+      minecraft-data: 3.81.1
+      mineflayer: 4.23.0
+
+  mineflayer-auto-eat@5.0.0:
+    dependencies:
+      '@nxg-org/mineflayer-util-plugin': 1.8.3
+      mineflayer: 4.23.0
+      strict-event-emitter-types: 2.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
+  mineflayer-collectblock@1.4.1:
+    dependencies:
+      mineflayer: 4.23.0
+      mineflayer-pathfinder: 2.4.5
+      mineflayer-tool: 1.2.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   mineflayer-pathfinder@2.4.5:
     dependencies:
-      minecraft-data: 3.80.1
+      minecraft-data: 3.81.1
       prismarine-block: 1.19.0
       prismarine-entity: 2.4.0
       prismarine-item: 1.15.0
@@ -4072,14 +4557,67 @@ snapshots:
       prismarine-physics: 1.9.0
       vec3: 0.1.10
 
-  mineflayer@4.23.0:
+  mineflayer-pvp@1.3.2(prismarine-registry@1.10.0):
     dependencies:
-      minecraft-data: 3.80.1
+      mineflayer: 4.23.0
+      mineflayer-pathfinder: 2.4.5
+      mineflayer-utils: 0.1.4(prismarine-registry@1.10.0)
+    transitivePeerDependencies:
+      - encoding
+      - prismarine-registry
+      - supports-color
+
+  mineflayer-tool@1.2.0:
+    dependencies:
+      mineflayer: 4.23.0
+      mineflayer-pathfinder: 2.4.5
+      prismarine-nbt: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
+  mineflayer-utils@0.1.4(prismarine-registry@1.10.0):
+    dependencies:
+      '@types/node': 14.18.63
+      mineflayer: 2.41.0(prismarine-registry@1.10.0)
+      prismarine-entity: 1.2.0
+      require-self: 0.2.3
+      typescript: 3.9.10
+    transitivePeerDependencies:
+      - encoding
+      - prismarine-registry
+      - supports-color
+
+  mineflayer@2.41.0(prismarine-registry@1.10.0):
+    dependencies:
+      minecraft-data: 2.221.0
       minecraft-protocol: 1.51.0
-      prismarine-biome: 1.3.0(minecraft-data@3.80.1)(prismarine-registry@1.10.0)
+      prismarine-biome: 1.3.0(minecraft-data@2.221.0)(prismarine-registry@1.10.0)
       prismarine-block: 1.19.0
       prismarine-chat: 1.10.1
-      prismarine-chunk: 1.36.0(minecraft-data@3.80.1)
+      prismarine-chunk: 1.36.0(minecraft-data@2.221.0)
+      prismarine-entity: 1.2.0
+      prismarine-item: 1.15.0
+      prismarine-physics: 1.9.0
+      prismarine-recipe: 1.3.1(prismarine-registry@1.10.0)
+      prismarine-windows: 1.6.0
+      prismarine-world: 3.6.3
+      protodef: 1.18.0
+      typed-emitter: 1.4.0
+      vec3: 0.1.10
+    transitivePeerDependencies:
+      - encoding
+      - prismarine-registry
+      - supports-color
+
+  mineflayer@4.23.0:
+    dependencies:
+      minecraft-data: 3.81.1
+      minecraft-protocol: 1.51.0
+      prismarine-biome: 1.3.0(minecraft-data@3.81.1)(prismarine-registry@1.10.0)
+      prismarine-block: 1.19.0
+      prismarine-chat: 1.10.1
+      prismarine-chunk: 1.36.0(minecraft-data@3.81.1)
       prismarine-entity: 2.4.0
       prismarine-item: 1.15.0
       prismarine-nbt: 2.7.0
@@ -4122,6 +4660,8 @@ snapshots:
 
   nanoid@3.3.8: {}
 
+  nanoid@5.0.9: {}
+
   natural-compare@1.4.0: {}
 
   natural-orderby@5.0.0: {}
@@ -4136,6 +4676,44 @@ snapshots:
   negotiator@0.6.3: {}
 
   negotiator@0.6.4: {}
+
+  neuri@0.0.16(@types/json-schema@7.0.15):
+    dependencies:
+      '@guiiai/logg': 1.0.6
+      '@typeschema/main': 0.14.1(@types/json-schema@7.0.15)
+      '@xsai/generate-text': 0.0.22
+      '@xsai/providers': 0.0.22
+      '@xsai/shared-chat': 0.0.22
+      '@xsai/stream-text': 0.0.22
+      '@xsai/tool': 0.0.22(@types/json-schema@7.0.15)(@xsai/generate-text@0.0.22)
+      defu: 6.1.4
+      nanoid: 5.0.9
+      openai: 4.77.3
+    transitivePeerDependencies:
+      - '@types/json-schema'
+      - '@typeschema/arktype'
+      - '@typeschema/class-validator'
+      - '@typeschema/deepkit'
+      - '@typeschema/effect'
+      - '@typeschema/fastest-validator'
+      - '@typeschema/function'
+      - '@typeschema/io-ts'
+      - '@typeschema/joi'
+      - '@typeschema/json'
+      - '@typeschema/ow'
+      - '@typeschema/runtypes'
+      - '@typeschema/superstruct'
+      - '@typeschema/suretype'
+      - '@typeschema/typebox'
+      - '@typeschema/valibot'
+      - '@typeschema/valita'
+      - '@typeschema/vine'
+      - '@typeschema/yup'
+      - '@typeschema/zod'
+      - encoding
+      - zod
+
+  node-domexception@1.0.0: {}
 
   node-fetch@2.7.0:
     dependencies:
@@ -4167,6 +4745,18 @@ snapshots:
       ee-first: 1.1.1
 
   on-headers@1.0.2: {}
+
+  openai@4.77.3:
+    dependencies:
+      '@types/node': 18.19.69
+      '@types/node-fetch': 2.6.12
+      abort-controller: 3.0.0
+      agentkeepalive: 4.6.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
 
   optionator@0.9.4:
     dependencies:
@@ -4272,15 +4862,20 @@ snapshots:
       - encoding
       - supports-color
 
-  prismarine-biome@1.3.0(minecraft-data@3.80.1)(prismarine-registry@1.10.0):
+  prismarine-biome@1.3.0(minecraft-data@2.221.0)(prismarine-registry@1.10.0):
     dependencies:
-      minecraft-data: 3.80.1
+      minecraft-data: 2.221.0
+      prismarine-registry: 1.10.0
+
+  prismarine-biome@1.3.0(minecraft-data@3.81.1)(prismarine-registry@1.10.0):
+    dependencies:
+      minecraft-data: 3.81.1
       prismarine-registry: 1.10.0
 
   prismarine-block@1.19.0:
     dependencies:
-      minecraft-data: 3.80.1
-      prismarine-biome: 1.3.0(minecraft-data@3.80.1)(prismarine-registry@1.10.0)
+      minecraft-data: 3.81.1
+      prismarine-biome: 1.3.0(minecraft-data@3.81.1)(prismarine-registry@1.10.0)
       prismarine-chat: 1.10.1
       prismarine-item: 1.15.0
       prismarine-nbt: 2.7.0
@@ -4292,9 +4887,9 @@ snapshots:
       prismarine-nbt: 2.7.0
       prismarine-registry: 1.10.0
 
-  prismarine-chunk@1.36.0(minecraft-data@3.80.1):
+  prismarine-chunk@1.36.0(minecraft-data@2.221.0):
     dependencies:
-      prismarine-biome: 1.3.0(minecraft-data@3.80.1)(prismarine-registry@1.10.0)
+      prismarine-biome: 1.3.0(minecraft-data@2.221.0)(prismarine-registry@1.10.0)
       prismarine-block: 1.19.0
       prismarine-nbt: 2.7.0
       prismarine-registry: 1.10.0
@@ -4304,6 +4899,23 @@ snapshots:
       xxhash-wasm: 0.4.2
     transitivePeerDependencies:
       - minecraft-data
+
+  prismarine-chunk@1.36.0(minecraft-data@3.81.1):
+    dependencies:
+      prismarine-biome: 1.3.0(minecraft-data@3.81.1)(prismarine-registry@1.10.0)
+      prismarine-block: 1.19.0
+      prismarine-nbt: 2.7.0
+      prismarine-registry: 1.10.0
+      smart-buffer: 4.2.0
+      uint4: 0.1.2
+      vec3: 0.1.10
+      xxhash-wasm: 0.4.2
+    transitivePeerDependencies:
+      - minecraft-data
+
+  prismarine-entity@1.2.0:
+    dependencies:
+      vec3: 0.1.10
 
   prismarine-entity@2.4.0:
     dependencies:
@@ -4323,7 +4935,7 @@ snapshots:
 
   prismarine-physics@1.9.0:
     dependencies:
-      minecraft-data: 3.80.1
+      minecraft-data: 3.81.1
       prismarine-nbt: 2.7.0
       vec3: 0.1.10
 
@@ -4341,7 +4953,7 @@ snapshots:
 
   prismarine-registry@1.10.0:
     dependencies:
-      minecraft-data: 3.80.1
+      minecraft-data: 3.81.1
       prismarine-nbt: 2.7.0
 
   prismarine-viewer@1.29.0:
@@ -4349,9 +4961,9 @@ snapshots:
       '@tweenjs/tween.js': 23.1.3
       compression: 1.7.5
       express: 4.21.2
-      minecraft-data: 3.80.1
+      minecraft-data: 3.81.1
       prismarine-block: 1.19.0
-      prismarine-chunk: 1.36.0(minecraft-data@3.80.1)
+      prismarine-chunk: 1.36.0(minecraft-data@3.81.1)
       prismarine-world: 3.6.3
       socket.io: 4.8.1
       socket.io-client: 4.8.1
@@ -4362,6 +4974,10 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  prismarine-windows@1.6.0:
+    dependencies:
+      prismarine-item: 1.15.0
 
   prismarine-windows@2.9.0:
     dependencies:
@@ -4459,6 +5075,8 @@ snapshots:
       jsesc: 0.5.0
 
   require-directory@2.1.1: {}
+
+  require-self@0.2.3: {}
 
   resolve-from@4.0.0: {}
 
@@ -4634,6 +5252,8 @@ snapshots:
 
   statuses@2.0.1: {}
 
+  strict-event-emitter-types@2.0.0: {}
+
   string-width@4.2.3:
     dependencies:
       emoji-regex: 8.0.0
@@ -4723,11 +5343,15 @@ snapshots:
     optionalDependencies:
       rxjs: 7.8.1
 
+  typescript@3.9.10: {}
+
   typescript@5.7.2: {}
 
   ufo@1.5.4: {}
 
   uint4@0.1.2: {}
+
+  undici-types@5.26.5: {}
 
   undici-types@6.20.0: {}
 
@@ -4794,6 +5418,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  web-streams-polyfill@4.0.0-beta.3: {}
+
   webidl-conversions@3.0.1: {}
 
   whatwg-url@5.0.0:
@@ -4818,6 +5444,40 @@ snapshots:
   xml-name-validator@4.0.0: {}
 
   xmlhttprequest-ssl@2.1.2: {}
+
+  xsai@0.0.23(@types/json-schema@7.0.15):
+    dependencies:
+      '@xsai/embed': 0.0.23
+      '@xsai/generate-object': 0.0.23(@types/json-schema@7.0.15)
+      '@xsai/generate-speech': 0.0.23
+      '@xsai/generate-text': 0.0.23
+      '@xsai/generate-transcription': 0.0.23
+      '@xsai/model': 0.0.23
+      '@xsai/providers': 0.0.23
+      '@xsai/shared-chat': 0.0.23
+      '@xsai/stream-text': 0.0.23
+      '@xsai/tool': 0.0.23(@types/json-schema@7.0.15)(@xsai/generate-text@0.0.23)
+    transitivePeerDependencies:
+      - '@types/json-schema'
+      - '@typeschema/arktype'
+      - '@typeschema/class-validator'
+      - '@typeschema/deepkit'
+      - '@typeschema/effect'
+      - '@typeschema/fastest-validator'
+      - '@typeschema/function'
+      - '@typeschema/io-ts'
+      - '@typeschema/joi'
+      - '@typeschema/json'
+      - '@typeschema/ow'
+      - '@typeschema/runtypes'
+      - '@typeschema/superstruct'
+      - '@typeschema/suretype'
+      - '@typeschema/typebox'
+      - '@typeschema/valibot'
+      - '@typeschema/valita'
+      - '@typeschema/vine'
+      - '@typeschema/yup'
+      - '@typeschema/zod'
 
   xxhash-wasm@0.4.2: {}
 
