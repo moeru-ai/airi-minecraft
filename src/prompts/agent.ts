@@ -1,4 +1,5 @@
 import type { BotContext } from '../composables/bot'
+import { getStatusToString } from '../components/status'
 
 export function basicSystemPrompt(botName: string): string {
   return `You are a playful Minecraft bot named ${botName} that can converse with players, see, move,
@@ -40,13 +41,7 @@ task to do in Minecraft. My ultimate goal is to discover as many things as possi
 accomplish as many tasks as possible and become the best Minecraft player in the world.
 
 I will give you the following information:
-${Array.from(ctx.status.entries()).map(([key, value]) => `${key}: ${value}`).join('\n')}
-
-Then you can choose some of the tools to use. Use the valid JS call function to call the tool.
-
-## For example:
-### Get the stats
-stats()
+${getStatusToString(ctx)}
 `
 
   return prompt

@@ -1,31 +1,10 @@
-import type { Bot } from 'mineflayer'
 import type { BotContext } from '../composables/bot'
 import { z } from 'zod'
-import { getStatus } from '../components/status'
+import { getStatusToString } from '../components/status'
+import * as world from '../composables/world'
 
 // Core types
 type QueryResult = string | Promise<string>
-
-// BotContext management
-let ctx: QueryBotContext
-
-export function initQueryBotContext(BotContext: QueryBotContext): void {
-  ctx = BotContext
-}
-
-interface QueryBotContext {
-  world: {
-    getBiomeName: (bot: Bot) => string
-    getNearbyPlayerNames: (bot: Bot) => string[]
-    getInventoryCounts: (bot: Bot) => Record<string, number>
-    getNearbyBlockTypes: (bot: Bot) => string[]
-    getCraftableItems: (bot: Bot) => string[]
-    getNearbyEntityTypes: (bot: Bot) => string[]
-  }
-  convoManager: {
-    getInGameAgents: () => string[]
-  }
-}
 
 interface Query {
   readonly name: string
@@ -51,9 +30,7 @@ function createStatsQuery(): Query {
     name: 'stats',
     description: 'Get your bot\'s location, health, hunger, and time of day.',
     schema: z.object({}),
-    perform: (ctx: BotContext) => (): string => {
-      return Array.from(getStatus(ctx).entries()).map(([key, value]) => `${key}: ${value}`).join('\n')
-    },
+    perform: (ctx: BotContext) => (): string => getStatusToString(ctx),
   }
 }
 
@@ -62,9 +39,9 @@ function createInventoryQuery(): Query {
     name: 'inventory',
     description: 'Get your bot\'s inventory.',
     schema: z.object({}),
-    perform: (agent: QueryAgentBotContext) => (): string => {
-      const { bot } = agent
-      const inventory = ctx.world.getInventoryCounts(bot)
+    perform: (ctx: BotContext) => (): string => {
+      const { bot } = ctx
+      const inventory = world.getInventoryCounts({ bot, botCtx: ctx })
       const items = Object.entries(inventory)
         .map(([item, count]) => formatInventoryItem(item, count))
         .join('')
@@ -77,7 +54,7 @@ function createInventoryQuery(): Query {
       ].filter(Boolean).join('')
 
       return pad(`INVENTORY${items || ': Nothing'}
-${agent.bot.game.gameMode === 'creative' ? '\n(You have infinite items in creative mode. You do not need to gather resources!!)' : ''}
+${bot.game.gameMode === 'creative' ? '\n(You have infinite items in creative mode. You do not need to gather resources!!)' : ''}
 WEARING: ${wearing || 'Nothing'}`)
     },
   }
@@ -88,8 +65,8 @@ function createNearbyBlocksQuery(): Query {
     name: 'nearbyBlocks',
     description: 'Get the blocks near the bot.',
     schema: z.object({}),
-    perform: (agent: QueryAgentBotContext) => (): string => {
-      const blocks = ctx.world.getNearbyBlockTypes(agent.bot)
+    perform: (ctx: BotContext) => (): string => {
+      const blocks = world.getNearbyBlockTypes({ bot: ctx.bot, botCtx: ctx })
       return pad(`NEARBY_BLOCKS${blocks.map(b => `\n- ${b}`).join('') || ': none'}`)
     },
   }
@@ -100,8 +77,8 @@ function createCraftableQuery(): Query {
     name: 'craftable',
     description: 'Get the craftable items with the bot\'s inventory.',
     schema: z.object({}),
-    perform: (agent: QueryAgentBotContext) => (): string => {
-      const craftable = ctx.world.getCraftableItems(agent.bot)
+    perform: (ctx: BotContext) => (): string => {
+      const craftable = world.getCraftableItems({ bot: ctx.bot, botCtx: ctx })
       return pad(`CRAFTABLE_ITEMS${craftable.map(i => `\n- ${i}`).join('') || ': none'}`)
     },
   }
@@ -112,42 +89,20 @@ function createEntitiesQuery(): Query {
     name: 'entities',
     description: 'Get the nearby players and entities.',
     schema: z.object({}),
-    perform: (agent: QueryAgentBotContext) => (): string => {
-      const { bot } = agent
-      const players = ctx.world.getNearbyPlayerNames(bot)
-        .filter(p => !ctx.convoManager.getInGameAgents().includes(p))
-      const bots = ctx.convoManager.getInGameAgents()
-        .filter(b => b !== agent.name)
-      const entities = ctx.world.getNearbyEntityTypes(bot)
-        .filter(e => e !== 'player' && e !== 'item')
+    perform: (ctx: BotContext) => (): string => {
+      const { bot } = ctx
+      const worldCtx = { bot, botCtx: ctx }
+      const players = world.getNearbyPlayerNames(worldCtx)
+      const entities = world.getNearbyEntityTypes(worldCtx)
+        .filter((e: string) => e !== 'player' && e !== 'item')
 
       const result = [
-        ...players.map(p => `- Human player: ${p}`),
-        ...bots.map(b => `- Bot player: ${b}`),
-        ...entities.map(e => `- entities: ${e}`),
+        ...players.map((p: string) => `- Human player: ${p}`),
+        ...entities.map((e: string) => `- entities: ${e}`),
       ]
 
       return pad(`NEARBY_ENTITIES${result.length ? `\n${result.join('\n')}` : ': none'}`)
     },
-  }
-}
-
-function createModesQuery(): Query {
-  return {
-    name: 'modes',
-    description: 'Get all available modes and their docs and see which are on/off.',
-    schema: z.object({}),
-    perform: (agent: QueryAgentBotContext) => (): string => agent.bot.modes.getDocs(),
-  }
-}
-
-function createSavedPlacesQuery(): Query {
-  return {
-    name: 'savedPlaces',
-    description: 'List all saved locations.',
-    schema: z.object({}),
-    perform: (agent: QueryAgentBotContext) => (): string =>
-      `Saved place names: ${agent.memory_bank.getKeys()}`,
   }
 }
 
@@ -158,6 +113,4 @@ export const queryList: readonly Query[] = [
   createNearbyBlocksQuery(),
   createCraftableQuery(),
   createEntitiesQuery(),
-  createModesQuery(),
-  createSavedPlacesQuery(),
 ] as const

@@ -28,7 +28,7 @@ async function main() {
     registerComponent('command', createCommandComponent)
   })
 
-  initAgent()
+  initAgent(ctx)
 
   process.on('SIGINT', () => {
     cleanup()

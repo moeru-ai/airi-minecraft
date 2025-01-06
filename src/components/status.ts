@@ -2,6 +2,10 @@ import type { BotContext, ComponentLifecycle } from '../composables/bot'
 import { useLogg } from '@guiiai/logg'
 import { registerCommand } from '../composables/command'
 
+export function getStatusToString(ctx: BotContext): string {
+  return Array.from(getStatus(ctx).entries()).map(([key, value]) => `${key}: ${value}`).join('\n')
+}
+
 export function getStatus(ctx: BotContext): Map<string, string> {
   const status = new Map<string, string>()
   const pos = ctx.bot.entity.position
