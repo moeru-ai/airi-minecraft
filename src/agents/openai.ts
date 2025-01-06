@@ -3,7 +3,7 @@ import type { BotContext } from '../composables/bot'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../composables/config'
-import { queryList } from './query'
+import { queryList } from './queries'
 
 const agents = new Set<Agent | Promise<Agent>>()
 
