@@ -36,7 +36,7 @@ export function getNearestFreeSpace(ctx: WorldContext, size: number = 1, distanc
 export function getNearestBlocks(ctx: WorldContext, blockTypes: string[] | string | null = null, distance: number = 16, count: number = 10000): Block[] {
   const blockIds = blockTypes === null
     ? mc.getAllBlockIds(['air'])
-    : (Array.isArray(blockTypes) ? blockTypes : [blockTypes]).map(mc.getBlockId)
+    : (Array.isArray(blockTypes) ? blockTypes : [blockTypes]).map(mc.getBlockId).filter((id): id is number => id !== null)
 
   const positions = ctx.bot.findBlocks({ matching: blockIds, maxDistance: distance, count })
 
@@ -97,9 +97,8 @@ export function getInventoryCounts(ctx: WorldContext): Record<string, number> {
 export function getCraftableItems(ctx: WorldContext): string[] {
   const table = getNearestBlock(ctx, 'crafting_table')
     || getInventoryStacks(ctx).find(item => item.name === 'crafting_table')
-
   return mc.getAllItems()
-    .filter(item => ctx.bot.recipesFor(item.id, null, 1, table).length > 0)
+    .filter(item => ctx.bot.recipesFor(item.id, null, 1, table as Block | null).length > 0)
     .map(item => item.name)
 }
 
@@ -136,7 +135,7 @@ export function getNearbyBlockTypes(ctx: WorldContext, distance: number = 16): s
 export async function isClearPath(ctx: WorldContext, target: Entity): Promise<boolean> {
   const movements = new pf.Movements(ctx.bot)
   movements.canDig = false
-  movements.canPlaceOn = false
+  // movements.canPlaceOn = false // TODO: fix this
 
   const goal = new pf.goals.GoalNear(
     target.position.x,

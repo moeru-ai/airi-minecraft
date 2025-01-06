@@ -1,3 +1,4 @@
+import type { Position } from './../skills/base'
 import type { BotInternalEventHandlers, BotInternalEvents } from './events'
 import { useLogg } from '@guiiai/logg'
 import mineflayer, { type Bot, type BotOptions } from 'mineflayer'
@@ -9,6 +10,7 @@ let ctx: BotContext | undefined
 export interface BotContext {
   bot: Bot
   botName: string
+  ready: boolean
 
   components: Map<string, ComponentLifecycle>
 
@@ -21,6 +23,12 @@ export interface BotContext {
   }
 
   status: Map<string, string>
+  // status: {
+  //   position: Position
+  //   health: number
+  //   weather: string
+  //   timeOfDay: string
+  // }
 
   health: {
     value: number
@@ -43,6 +51,7 @@ export interface ComponentLifecycle {
 export function createBot(options: BotOptions): Bot {
   logger.withFields({ options }).log('Creating bot')
   ctx = {
+    ready: false,
     bot: mineflayer.createBot({
       host: options.host,
       port: options.port,
@@ -110,6 +119,11 @@ export function createBot(options: BotOptions): Bot {
     }
 
     ctx.health.value = ctx.bot.health
+  })
+
+  ctx.bot.once('spawn', () => {
+    ctx!.ready = true
+    logger.log('Bot ready')
   })
 
   ctx.bot.on('death', () => {
