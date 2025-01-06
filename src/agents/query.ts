@@ -109,8 +109,8 @@ function createEntitiesQuery(): Query {
 // Export query list
 export const queryList: readonly Query[] = [
   createStatsQuery(),
-  createInventoryQuery(),
-  createNearbyBlocksQuery(),
-  createCraftableQuery(),
-  createEntitiesQuery(),
+  // createInventoryQuery(),
+  // createNearbyBlocksQuery(),
+  // createCraftableQuery(),
+  // createEntitiesQuery(),
 ] as const

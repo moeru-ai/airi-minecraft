@@ -7,16 +7,25 @@ let ctx: BotContext | undefined
 
 export interface BotContext {
   bot: Bot
+  botName: string
+
   components: Map<string, ComponentLifecycle>
 
-  botName: string
   prompt: {
     selfPrompt: string
   }
+
   memory: {
     getSummary: () => string
   }
+
   status: Map<string, string>
+
+  health: {
+    value: number
+    lastDamageTime: number
+    lastDamageTaken: number
+  }
 }
 
 export interface Component {
@@ -45,14 +54,50 @@ export function createBot(options: BotOptions): Bot {
       getSummary: () => '',
     },
     status: new Map(),
+    health: {
+      value: 20,
+      lastDamageTime: 0,
+      lastDamageTaken: 0,
+    },
   }
 
-  ctx.bot.on('error', (err: Error) => {
-    logger.errorWithError('Bot error:', err)
+  ctx.bot.on('health', () => {
+    if (!ctx)
+      return
+
+    logger.withFields({
+      health: ctx.health.value,
+      lastDamageTime: ctx.health.lastDamageTime,
+      lastDamageTaken: ctx.health.lastDamageTaken,
+      previousHealth: ctx.bot.health,
+    }).log('Health updated')
+
+    if (ctx.bot.health < ctx.health.value) {
+      ctx.health.lastDamageTime = Date.now()
+      ctx.health.lastDamageTaken = ctx.health.value - ctx.bot.health
+    }
+
+    ctx.health.value = ctx.bot.health
+  })
+
+  ctx.bot.on('death', () => {
+    logger.error('Bot died')
+  })
+
+  ctx.bot.on('messagestr', () => {
+
+  })
+
+  ctx.bot.on('end', (reason) => {
+    logger.withFields({ reason }).log('Bot ended')
   })
 
   ctx.bot.on('kicked', (reason: string) => {
     logger.withFields({ reason }).error('Bot was kicked')
+  })
+
+  ctx.bot.on('error', (err: Error) => {
+    logger.errorWithError('Bot error:', err)
   })
 
   logger.log('Bot created')

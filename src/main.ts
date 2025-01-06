@@ -1,4 +1,4 @@
-import process from 'node:process'
+import process, { exit } from 'node:process'
 
 import { useLogg } from '@guiiai/logg'
 
@@ -10,6 +10,7 @@ import { createStatusComponent } from './components/status'
 import { createBot, useBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
 import { initLogger } from './utils/logger'
+import { createTicker } from './utils/ticker'
 
 const logger = useLogg('main').useGlobalConfig()
 
@@ -28,15 +29,20 @@ async function main() {
     registerComponent('command', createCommandComponent)
   })
 
-  initAgent(ctx)
+  await initAgent(ctx)
+
+  const ticker = createTicker()
+  ticker.on('tick', async ({ delta }) => {
+    logger.log(`Tick ${delta}ms`)
+  })
 
   process.on('SIGINT', () => {
     cleanup()
-    process.exit(0)
+    exit(0)
   })
 }
 
 main().catch((err: Error) => {
   logger.errorWithError('Fatal error', err)
-  process.exit(1)
+  exit(1)
 })
