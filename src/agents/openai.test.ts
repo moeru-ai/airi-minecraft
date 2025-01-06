@@ -31,7 +31,7 @@ describe('openAI agent', { timeout: 10000 }, () => {
     expect(text?.toLowerCase()).toContain('airi')
   })
 
-  it('should choose right command', async () => {
+  it('should choose right query command', async () => {
     const { ctx } = useBot()
     const agent = await initAgent(ctx)
 
