@@ -72,7 +72,7 @@ function formatWearingItem(slot: string, item: string | undefined): string {
 // Query implementations
 function createStatsQuery(): Query {
   return {
-    name: '!stats',
+    name: 'stats',
     description: 'Get your bot\'s location, health, hunger, and time of day.',
     schema: z.object({}),
     perform: (agent: QueryAgentBotContext) => (): string => {
@@ -107,7 +107,7 @@ ${bot.modes.getMiniDocs()}`)
 
 function createInventoryQuery(): Query {
   return {
-    name: '!inventory',
+    name: 'inventory',
     description: 'Get your bot\'s inventory.',
     schema: z.object({}),
     perform: (agent: QueryAgentBotContext) => (): string => {
@@ -133,7 +133,7 @@ WEARING: ${wearing || 'Nothing'}`)
 
 function createNearbyBlocksQuery(): Query {
   return {
-    name: '!nearbyBlocks',
+    name: 'nearbyBlocks',
     description: 'Get the blocks near the bot.',
     schema: z.object({}),
     perform: (agent: QueryAgentBotContext) => (): string => {
@@ -145,7 +145,7 @@ function createNearbyBlocksQuery(): Query {
 
 function createCraftableQuery(): Query {
   return {
-    name: '!craftable',
+    name: 'craftable',
     description: 'Get the craftable items with the bot\'s inventory.',
     schema: z.object({}),
     perform: (agent: QueryAgentBotContext) => (): string => {
@@ -157,7 +157,7 @@ function createCraftableQuery(): Query {
 
 function createEntitiesQuery(): Query {
   return {
-    name: '!entities',
+    name: 'entities',
     description: 'Get the nearby players and entities.',
     schema: z.object({}),
     perform: (agent: QueryAgentBotContext) => (): string => {
@@ -182,7 +182,7 @@ function createEntitiesQuery(): Query {
 
 function createModesQuery(): Query {
   return {
-    name: '!modes',
+    name: 'modes',
     description: 'Get all available modes and their docs and see which are on/off.',
     schema: z.object({}),
     perform: (agent: QueryAgentBotContext) => (): string => agent.bot.modes.getDocs(),
@@ -191,7 +191,7 @@ function createModesQuery(): Query {
 
 function createSavedPlacesQuery(): Query {
   return {
-    name: '!savedPlaces',
+    name: 'savedPlaces',
     description: 'List all saved locations.',
     schema: z.object({}),
     perform: (agent: QueryAgentBotContext) => (): string =>

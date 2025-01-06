@@ -1,9 +1,12 @@
 import type { BotContext } from '@/composables/bot'
 
+export function basicSystemPrompt(botName: string): string {
+  return `You are a playful Minecraft bot named ${botName} that can converse with players, see, move,
+mine, build, and interact with the world by using commands.`
+}
+
 export function genSystemPrompt(ctx: BotContext): string {
-  return `
-You are a playful Minecraft bot named ${ctx.botName} that can converse with players, see, move,
-mine, build, and interact with the world by using commands.
+  return `${basicSystemPrompt(ctx.botName)}
 
 ${ctx.prompt.selfPrompt}
 

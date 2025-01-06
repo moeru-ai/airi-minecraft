@@ -2,19 +2,12 @@ import type { Agent, Neuri } from 'neuri'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../composables/config'
-import { queryList } from './queries'
+import { queryList } from './query'
 
-// Types
-interface AgentBotContext {
-  readonly agents: Set<Agent | Promise<Agent>>
-}
-
-// State management
 const agents = new Set<Agent | Promise<Agent>>()
 
 const logger = useLogg('openai').useGlobalConfig()
 
-// Agent initialization
 export async function initAgent(): Promise<Neuri> {
   logger.log('Initializing agent')
   let n = neuri()
@@ -46,29 +39,3 @@ export async function initQueryAgent(): Promise<Agent> {
 
   return queryAgent.build()
 }
-
-// export async function initAgent(ctx: BotContext) {
-//   logger.log('Initializing agent')
-
-//   initQueryAgent(ctx)
-// }
-
-// export function initQueryAgent(ctx: BotContext) {
-//   logger.log('Initializing query agent')
-//   const agentBotContext = createQueryAgentBotContext(ctx.bot)
-
-//   const tools = []
-
-//   for (const query of queryList) {
-//     tools.push(
-//       tool({
-//         name: query.name,
-//         description: query.description,
-//         execute: query.perform(agentBotContext),
-//         parameters: query.schema as never,
-//       }),
-//     )
-//   }
-
-//   return tools
-// }
