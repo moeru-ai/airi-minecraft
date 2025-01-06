@@ -206,3 +206,34 @@ export async function stay(bot: Bot, seconds = 30): Promise<boolean> {
   log(bot, `Stayed for ${(Date.now() - start) / 1000} seconds.`)
   return true
 }
+/**
+ * Sleep in the nearest bed within 32 blocks
+ */
+export async function goToBed(bot: Bot): Promise<boolean> {
+  const beds: Vec3[] = bot.findBlocks({
+    matching: (block: Block) => block.name.includes('bed'),
+    maxDistance: 32,
+    count: 1,
+  })
+
+  if (beds.length === 0) {
+    log(bot, 'Could not find a bed to sleep in.')
+    return false
+  }
+
+  const loc: Vec3 = beds[0]
+  await goToPosition(bot, loc.x, loc.y, loc.z)
+
+  const bed: Block | null = bot.blockAt(loc)
+  await bot.sleep(bed)
+  log(bot, 'You are in bed.')
+
+  bot.modes.pause('unstuck')
+
+  while (bot.isSleeping) {
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  log(bot, 'You have woken up.')
+  return true
+}

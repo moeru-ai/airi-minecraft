@@ -3,7 +3,8 @@ import type { BotContext } from '../composables/bot'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../composables/config'
-import { queryList } from './queries'
+import { actionsList } from './actions'
+import { queriesList } from './queries'
 
 const agents = new Set<Agent | Promise<Agent>>()
 
@@ -14,6 +15,7 @@ export async function initAgent(ctx: BotContext): Promise<Neuri> {
   let n = neuri()
 
   agents.add(initQueryAgent(ctx))
+  agents.add(initActionAgent(ctx))
 
   agents.forEach(agent => n = n.agent(agent))
 
@@ -29,7 +31,7 @@ export async function initQueryAgent(ctx: BotContext): Promise<Agent> {
   logger.log('Initializing query agent')
   let queryAgent = agent('query')
 
-  queryList.forEach((query) => {
+  Object.values(queriesList).forEach((query) => {
     queryAgent = queryAgent.tool(
       query.name,
       query.schema,
@@ -39,4 +41,20 @@ export async function initQueryAgent(ctx: BotContext): Promise<Agent> {
   })
 
   return queryAgent.build()
+}
+
+export async function initActionAgent(ctx: BotContext): Promise<Agent> {
+  logger.log('Initializing action agent')
+  let actionAgent = agent('action')
+
+  Object.values(actionsList).forEach((action) => {
+    actionAgent = actionAgent.tool(
+      action.name,
+      action.schema,
+      action.perform(ctx),
+      { description: action.description },
+    )
+  })
+
+  return actionAgent.build()
 }

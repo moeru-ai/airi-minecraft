@@ -6,6 +6,87 @@ import * as mc from '../utils/mcdata'
 import { log } from './base'
 import { goToPosition } from './movement'
 
+export async function collectBlock(
+  bot: Bot,
+  blockType: string,
+  num: number = 1,
+  exclude: typeof Vec3[] | null = null,
+): Promise<boolean> {
+  if (num < 1) {
+    log(bot, `Invalid number of blocks to collect: ${num}.`)
+    return false
+  }
+
+  const blocktypes: string[] = [blockType]
+  if (blockType === 'coal' || blockType === 'diamond' || blockType === 'emerald'
+    || blockType === 'iron' || blockType === 'gold' || blockType === 'lapis_lazuli'
+    || blockType === 'redstone') {
+    blocktypes.push(`${blockType}_ore`)
+  }
+  if (blockType.endsWith('ore')) {
+    blocktypes.push(`deepslate_${blockType}`)
+  }
+  if (blockType === 'dirt') {
+    blocktypes.push('grass_block')
+  }
+
+  let collected = 0
+
+  for (let i = 0; i < num; i++) {
+    let blocks = world.getNearestBlocks(bot, blocktypes, 64)
+    if (exclude) {
+      blocks = blocks.filter(
+        block => !exclude.some(pos =>
+          pos.x === block.position.x
+          && pos.y === block.position.y
+          && pos.z === block.position.z,
+        ),
+      )
+    }
+
+    const movements = new bot.pathfinder.Movements(bot)
+    movements.dontMineUnderFallingBlock = false
+    blocks = blocks.filter(block => movements.safeToBreak(block))
+
+    if (blocks.length === 0) {
+      log(bot, collected === 0
+        ? `No ${blockType} nearby to collect.`
+        : `No more ${blockType} nearby to collect.`)
+      break
+    }
+
+    const block = blocks[0]
+    await bot.tool.equipForBlock(block)
+    const itemId = bot.heldItem ? bot.heldItem.type : null
+
+    if (!block.canHarvest(itemId)) {
+      log(bot, `Don't have right tools to harvest ${blockType}.`)
+      return false
+    }
+
+    try {
+      await bot.collectBlock.collect(block)
+      collected++
+      await autoLight(bot)
+    }
+    catch (err) {
+      if (err.name === 'NoChests') {
+        log(bot, `Failed to collect ${blockType}: Inventory full, no place to deposit.`)
+        break
+      }
+      log(bot, `Failed to collect ${blockType}: ${err}.`)
+      continue
+    }
+
+    if (bot.interrupt_code) {
+      break
+    }
+  }
+
+  log(bot, `Collected ${collected} ${blockType}.`)
+  return collected > 0
+}
+
 /**
  * Place a torch if needed
  */

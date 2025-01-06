@@ -1,8 +1,8 @@
 import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
-import * as mc from '../../../utils/mcdata.js'
-import * as world from '../world.js'
-import { log } from './base.js'
+import * as world from '../composables/world'
+import * as mc from '../utils/mcdata'
+import { log } from './base'
 
 /**
  * Equip the item with highest attack damage
