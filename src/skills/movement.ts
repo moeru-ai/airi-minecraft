@@ -120,9 +120,6 @@ export async function goToPlayer(
   return true
 }
 
-/**
- * Follow a player continuously
- */
 export async function followPlayer(
   ctx: SkillContext,
   username: string,
@@ -130,21 +127,40 @@ export async function followPlayer(
 ): Promise<boolean> {
   const { bot } = ctx
   const player = bot.players[username]?.entity
-  if (!player)
+  if (!player) {
+    log(ctx, `Could not find player ${username}`)
     return false
+  }
 
-  bot.pathfinder.setGoal(new goals.GoalFollow(player, distance))
-  log(ctx, `You are now actively following player ${username}.`)
+  const movements = new Movements(bot)
+  bot.pathfinder.setMovements(movements)
+  bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
+
+  log(ctx, `Started following ${username}`)
+
+  const followInterval = setInterval(() => {
+    const target = bot.players[username]?.entity
+    if (!target) {
+      log(ctx, 'Lost sight of player')
+      clearInterval(followInterval)
+      return
+    }
+
+    const { x, y, z } = target.position
+    bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
+  }, 1000)
 
   while (!ctx.shouldInterrupt) {
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    if (ctx.allowCheats
-      && bot.entity.position.distanceTo(player.position) > 100
-      && player.onGround) {
+    if (ctx.allowCheats && bot.entity.position.distanceTo(player.position) > 100) {
       await goToPlayer(ctx, username)
     }
   }
+
+  // TODO: need global status management
+  // clearInterval(followInterval)
+  // bot.pathfinder.stop()
   return true
 }
 

@@ -1,6 +1,6 @@
-import type { BotContext, ComponentLifecycle } from 'src/composables/bot'
+import type { BotContext, ComponentLifecycle } from '../composables/bot'
 import { useLogg } from '@guiiai/logg'
-import { assistant, type Message, messages, system, user } from 'neuri/openai'
+import { assistant, type Message, system, user } from 'neuri/openai'
 import { getAgent } from '../agents/openai'
 import { formBotChat } from '../middlewares/chat'
 import { genActionAgentPrompt } from '../prompts/agent'
@@ -18,7 +18,7 @@ export function createAiChatComponent(ctx: BotContext): ComponentLifecycle {
     historyMessage.push(user(`${username}: ${message}`))
 
     const agent = getAgent()
-    const content = await agent.handleStateless(messages(...historyMessage), async (c) => {
+    const content = await agent.handleStateless([...historyMessage], async (c) => {
       logger.log('Generate response')
 
       try {
