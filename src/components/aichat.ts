@@ -1,30 +1,39 @@
 import type { BotContext, ComponentLifecycle } from 'src/composables/bot'
 import { useLogg } from '@guiiai/logg'
-import { messages, system, user } from 'neuri/openai'
-import { getAgent } from 'src/agents/openai'
-import { formBotChat } from 'src/middlewares/chat'
-import { genActionAgentPrompt } from 'src/prompts/agent'
+import { assistant, type Message, messages, system, user } from 'neuri/openai'
+import { getAgent } from '../agents/openai'
+import { formBotChat } from '../middlewares/chat'
+import { genActionAgentPrompt } from '../prompts/agent'
 
 export function createAiChatComponent(ctx: BotContext): ComponentLifecycle {
   const logger = useLogg('aichat').useGlobalConfig()
   logger.log('Loading aichat plugin')
 
+  const historyMessage: Message[] = []
+  historyMessage.push(system(genActionAgentPrompt(ctx)))
+
   const onChat = formBotChat(ctx, async (username, message) => {
     logger.withFields({ username, message }).log('Chat message received')
 
+    historyMessage.push(user(`${username}: ${message}`))
+
     const agent = getAgent()
-    const content = await agent.handle(messages(
-      system(genActionAgentPrompt(ctx)),
-      user(`${username}: ${message}`),
-    ), async (c) => {
+    const content = await agent.handleStateless(messages(...historyMessage), async (c) => {
       logger.log('Generate response')
 
       try {
-        const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' })
+        const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' }) || { error: { message: 'Unknown error' } }
 
         logger.withFields({ completion }).log('Completion')
 
+        if (!completion || 'error' in completion) {
+          logger.withFields(c).error('Completion')
+          throw new Error(completion?.error?.message ?? 'Unknown error')
+        }
+
         const content = await completion?.firstContent()
+        historyMessage.push(assistant(content))
+
         return content
       }
       catch (e) {
