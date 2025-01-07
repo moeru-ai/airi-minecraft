@@ -1,4 +1,3 @@
-import type { Position } from './../skills/base'
 import type { BotInternalEventHandlers, BotInternalEvents } from './events'
 import { useLogg } from '@guiiai/logg'
 import mineflayer, { type Bot, type BotOptions } from 'mineflayer'

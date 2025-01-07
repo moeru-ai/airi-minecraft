@@ -2,11 +2,11 @@ import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createBot, useBot } from '../composables/bot'
 import { botConfig, initEnv } from '../composables/config'
-import { genQueryAgentPrompt, genSystemBasicPrompt } from '../prompts/agent'
+import { genSystemBasicPrompt } from '../prompts/agent'
 import { initLogger } from '../utils/logger'
 import { initAgent } from './openai'
 
-describe('openAI agent', { timeout: 10000 }, () => {
+describe('openAI agent', { timeout: 0 }, () => {
   beforeAll(() => {
     initLogger()
     initEnv()
@@ -17,36 +17,23 @@ describe('openAI agent', { timeout: 10000 }, () => {
     const { ctx } = useBot()
     const agent = await initAgent(ctx)
 
-    ctx.bot.once('spawn', async () => {
-      const text = await agent.handle(
-        messages(
-          system(genSystemBasicPrompt('airi')),
-          user('Hello, who are you?'),
-        ),
-        async (c) => {
-          const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
-          return await completion?.firstContent()
-        },
-      )
+    await new Promise<void>((resolve) => {
+      ctx.bot.once('spawn', async () => {
+        const text = await agent.handle(
+          messages(
+            system(genSystemBasicPrompt('airi')),
+            user('Hello, who are you?'),
+          ),
+          async (c) => {
+            const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
+            return await completion?.firstContent()
+          },
+        )
 
-      expect(text?.toLowerCase()).toContain('airi')
-    })
-  })
+        expect(text?.toLowerCase()).toContain('airi')
 
-  it('should choose right query command', async () => {
-    const { ctx } = useBot()
-    const agent = await initAgent(ctx)
-
-    ctx.bot.once('spawn', async () => {
-      const text = await agent.handle(messages(
-        system(genQueryAgentPrompt(ctx)),
-        user('What are you status?'),
-      ), async (c) => {
-        const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
-        return await completion?.firstContent()
+        resolve()
       })
-
-      expect(text?.toLowerCase()).toContain('position')
     })
   })
 })

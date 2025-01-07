@@ -5,6 +5,7 @@ import type { BotContext } from 'src/composables/bot'
  */
 export interface SkillContext {
   bot: Bot
+  botCtx: BotContext
   // Whether the bot is in creative mode
   isCreative: boolean
   // Whether the bot should use cheats (like /tp, /setblock)
@@ -21,6 +22,7 @@ export interface SkillContext {
 export function createSkillContext(ctx: BotContext): SkillContext {
   return {
     bot: ctx.bot,
+    botCtx: ctx,
     isCreative: ctx.bot.game?.gameMode === 'creative',
     allowCheats: false,
     shouldInterrupt: false,

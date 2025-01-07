@@ -20,16 +20,27 @@ export function createAiChatComponent(ctx: BotContext): ComponentLifecycle {
 
     const agent = getAgent()
     const content = await agent.handle(history.concat(user(message)), async (c) => {
-      const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
-      const content = await completion?.firstContent()
-      if (content) {
-        history.push(assistant(content))
-      }
+      logger.log('Generate response')
 
-      return content
+      try {
+        const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' })
+
+        logger.withFields({ completion }).log('Completion')
+
+        const content = await completion?.firstContent()
+        if (content) {
+          history.push(assistant(content))
+        }
+
+        return content
+      }
+      catch (e) {
+        logger.errorWithError('Generate response error', e)
+      }
     })
 
     if (content) {
+      logger.withFields({ content }).log('Bot response')
       ctx.bot.chat(content)
     }
   })

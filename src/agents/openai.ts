@@ -5,7 +5,6 @@ import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../composables/config'
 import { createSkillContext } from '../skills'
 import { actionsList } from './actions'
-import { queriesList } from './queries'
 
 let neuriAgent: Neuri | undefined
 const agents = new Set<Agent | Promise<Agent>>()
@@ -16,7 +15,6 @@ export async function initAgent(ctx: BotContext): Promise<Neuri> {
   logger.log('Initializing agent')
   let n = neuri()
 
-  agents.add(initQueryAgent(ctx))
   agents.add(initActionAgent(ctx))
 
   agents.forEach(agent => n = n.agent(agent))
@@ -36,22 +34,6 @@ export function getAgent(): Neuri {
     throw new Error('Agent not initialized')
   }
   return neuriAgent
-}
-
-export async function initQueryAgent(ctx: BotContext): Promise<Agent> {
-  logger.log('Initializing query agent')
-  let queryAgent = agent('query')
-
-  Object.values(queriesList).forEach((query) => {
-    queryAgent = queryAgent.tool(
-      query.name,
-      query.schema,
-      query.perform(ctx),
-      { description: query.description },
-    )
-  })
-
-  return queryAgent.build()
 }
 
 export async function initActionAgent(ctx: BotContext): Promise<Agent> {

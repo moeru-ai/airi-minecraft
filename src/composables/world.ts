@@ -12,6 +12,13 @@ interface WorldContext {
   botCtx: BotContext
 }
 
+export function createWorldContext(ctx: BotContext): WorldContext {
+  return {
+    bot: ctx.bot,
+    botCtx: ctx,
+  }
+}
+
 export function getNearestFreeSpace(ctx: WorldContext, size: number = 1, distance: number = 8): Vec3 | undefined {
   const emptyPositions = ctx.bot.findBlocks({
     matching: (block: Block) => block?.name === 'air',
