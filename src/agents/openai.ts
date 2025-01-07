@@ -7,6 +7,7 @@ import { createSkillContext } from '../skills'
 import { actionsList } from './actions'
 import { queriesList } from './queries'
 
+let neuriAgent: Neuri | undefined
 const agents = new Set<Agent | Promise<Agent>>()
 
 const logger = useLogg('openai').useGlobalConfig()
@@ -20,12 +21,21 @@ export async function initAgent(ctx: BotContext): Promise<Neuri> {
 
   agents.forEach(agent => n = n.agent(agent))
 
-  return n.build({
+  neuriAgent = await n.build({
     provider: {
       apiKey: openaiConfig.apiKey,
       baseURL: openaiConfig.baseUrl,
     },
   })
+
+  return neuriAgent
+}
+
+export function getAgent(): Neuri {
+  if (!neuriAgent) {
+    throw new Error('Agent not initialized')
+  }
+  return neuriAgent
 }
 
 export async function initQueryAgent(ctx: BotContext): Promise<Agent> {

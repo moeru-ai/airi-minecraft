@@ -3,6 +3,7 @@ import process, { exit } from 'node:process'
 import { useLogg } from '@guiiai/logg'
 
 import { initAgent } from './agents/openai'
+import { createAiChatComponent } from './components/aichat'
 import { createCommandComponent } from './components/command'
 import { createFollowComponent } from './components/follow'
 import { createPathFinderComponent } from './components/pathfinder'
@@ -27,6 +28,7 @@ async function main() {
     registerComponent('pathfinder', createPathFinderComponent)
     registerComponent('follow', createFollowComponent)
     registerComponent('command', createCommandComponent)
+    registerComponent('aichat', createAiChatComponent)
   })
 
   await initAgent(ctx)
