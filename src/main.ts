@@ -35,7 +35,7 @@ async function main() {
 
   const ticker = createTicker()
   ticker.on('tick', async ({ delta }) => {
-    logger.log(`Tick ${delta}ms`)
+    // logger.log(`Tick ${delta}ms`)
   })
 
   process.on('SIGINT', () => {

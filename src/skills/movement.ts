@@ -1,7 +1,10 @@
 import type { Entity } from 'prismarine-entity'
 import type { SkillContext } from './base'
+import pathfinderModel from 'mineflayer-pathfinder'
 import * as world from '../composables/world'
 import { log } from './base'
+
+const { goals, Movements } = pathfinderModel
 
 /**
  * Navigate to a specific position
@@ -25,7 +28,7 @@ export async function goToPosition(
     return true
   }
 
-  await bot.pathfinder.goto(bot.pathfinder.goals.GoalNear(x, y, z, minDistance))
+  await bot.pathfinder.goto(new goals.GoalNear(x, y, z, minDistance))
   log(ctx, `You have reached ${x}, ${y}, ${z}.`)
   return true
 }
@@ -45,7 +48,8 @@ export async function goToNearestBlock(
     range = MAX_RANGE
   }
 
-  const block = world.getNearestBlock(ctx.bot, blockType, range)
+  const worldCtx = world.createWorldContext(ctx.botCtx)
+  const block = world.getNearestBlock(worldCtx, blockType, range)
   if (!block) {
     log(ctx, `Could not find any ${blockType} in ${range} blocks.`)
     return false
@@ -66,8 +70,9 @@ export async function goToNearestEntity(
   range = 64,
 ): Promise<boolean> {
   const { bot } = ctx
+  const worldCtx = world.createWorldContext(ctx.botCtx)
   const entity = world.getNearestEntityWhere(
-    bot,
+    worldCtx,
     entity => entity.name === entityType,
     range,
   )
@@ -110,7 +115,7 @@ export async function goToPlayer(
     return false
   }
 
-  await bot.pathfinder.goto(bot.pathfinder.goals.GoalFollow(player, distance), true)
+  await bot.pathfinder.goto(new goals.GoalFollow(player, distance))
   log(ctx, `You have reached ${username}.`)
   return true
 }
@@ -128,7 +133,7 @@ export async function followPlayer(
   if (!player)
     return false
 
-  bot.pathfinder.setGoal(bot.pathfinder.goals.GoalFollow(player, distance), true)
+  bot.pathfinder.setGoal(new goals.GoalFollow(player, distance))
   log(ctx, `You are now actively following player ${username}.`)
 
   while (!ctx.shouldInterrupt) {
@@ -136,7 +141,7 @@ export async function followPlayer(
 
     if (ctx.allowCheats
       && bot.entity.position.distanceTo(player.position) > 100
-      && player.isOnGround) {
+      && player.onGround) {
       await goToPlayer(ctx, username)
     }
   }
@@ -149,11 +154,11 @@ export async function followPlayer(
 export async function moveAway(ctx: SkillContext, distance: number): Promise<boolean> {
   const { bot } = ctx
   const pos = bot.entity.position
-  const goal = bot.pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, distance)
-  const invertedGoal = bot.pathfinder.goals.GoalInvert(goal)
+  const goal = new goals.GoalNear(pos.x, pos.y, pos.z, distance)
+  const invertedGoal = new goals.GoalInvert(goal)
 
   if (ctx.allowCheats) {
-    const move = new bot.pathfinder.Movements(bot)
+    const move = new Movements(bot)
     const path = await bot.pathfinder.getPathTo(move, invertedGoal, 10000)
     const lastMove = path.path[path.path.length - 1]
 
@@ -181,8 +186,8 @@ export async function moveAwayFromEntity(
   distance = 16,
 ): Promise<boolean> {
   const { bot } = ctx
-  const goal = bot.pathfinder.goals.GoalFollow(entity, distance)
-  const invertedGoal = bot.pathfinder.goals.GoalInvert(goal)
+  const goal = new goals.GoalFollow(entity, distance)
+  const invertedGoal = new goals.GoalInvert(goal)
   await bot.pathfinder.goto(invertedGoal)
   return true
 }
@@ -192,7 +197,9 @@ export async function moveAwayFromEntity(
  */
 export async function stay(ctx: SkillContext, seconds = 30): Promise<boolean> {
   const start = Date.now()
-  while (!ctx.shouldInterrupt && (seconds === -1 || Date.now() - start < seconds * 1000)) {
+  const targetTime = seconds === -1 ? Infinity : start + seconds * 1000
+
+  while (!ctx.shouldInterrupt && Date.now() < targetTime) {
     await new Promise(resolve => setTimeout(resolve, 500))
   }
 
