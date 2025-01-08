@@ -55,28 +55,6 @@ export const WOOL_COLORS: string[] = [
   'black',
 ]
 
-export function initBot(username: string): Bot {
-  const bot = createBot({
-    username,
-
-    host: botConfig.host,
-    port: botConfig.port,
-    auth: 'offline',
-
-    version: mc_version,
-  })
-  bot.loadPlugin(pathfinder)
-  bot.loadPlugin(pvp)
-  bot.loadPlugin(collectblock)
-  bot.loadPlugin(autoEat)
-  bot.loadPlugin(armorManager) // auto equip armor
-  bot.once('resourcePack', () => {
-    bot.acceptResourcePack()
-  })
-
-  return bot
-}
-
 export function isHuntable(mob: { name?: string, metadata: any[] }): boolean {
   if (!mob || !mob.name)
     return false
@@ -172,6 +150,7 @@ export function getItemCraftingRecipes(itemName: string): Record<string, number>
     return null
   }
 
+  // todo: fix this
   const recipes: Record<string, number>[] = []
   for (const r of mcdata.recipes[itemId]) {
     const recipe: Record<string, number> = {}
