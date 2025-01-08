@@ -3,6 +3,11 @@ import type { Action } from '../agents/actions'
 import type { BotInternalEventHandlers, BotInternalEvents } from './events'
 import { useLogg } from '@guiiai/logg'
 import mineflayer, { type Bot, type BotOptions } from 'mineflayer'
+import armorManager from 'mineflayer-armor-manager'
+import { loader as autoEat } from 'mineflayer-auto-eat'
+import { plugin as collectblock } from 'mineflayer-collectblock'
+import { pathfinder } from 'mineflayer-pathfinder'
+import { plugin as pvp } from 'mineflayer-pvp'
 
 const logger = useLogg('bot').useGlobalConfig()
 
@@ -92,6 +97,17 @@ export function createBot(options: BotOptions): Bot {
       'time:midnight': [],
     },
   }
+
+  logger.log('Loading plugins')
+  ctx.bot.loadPlugin(pathfinder)
+  ctx.bot.loadPlugin(pvp)
+  ctx.bot.loadPlugin(collectblock)
+  ctx.bot.loadPlugin(autoEat)
+  ctx.bot.loadPlugin(armorManager) // auto equip armor
+  ctx.bot.once('resourcePack', () => {
+    ctx?.bot.acceptResourcePack()
+  })
+  logger.log('Plugins loaded')
 
   ctx.bot.on('time', () => {
     if (!ctx)

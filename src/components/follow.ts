@@ -4,14 +4,12 @@ import { useLogg } from '@guiiai/logg'
 import pathfinderModel from 'mineflayer-pathfinder'
 import { registerCommand } from '../composables/command'
 
-const { goals, Movements, pathfinder } = pathfinderModel
+const { goals, Movements } = pathfinderModel
 
 export function createFollowComponent(ctx: BotContext, config?: {
   rangeGoal: number
 }): ComponentLifecycle {
   const logger = useLogg('follow').useGlobalConfig()
-
-  ctx.bot.loadPlugin(pathfinder)
 
   const state = {
     following: undefined as string | undefined,

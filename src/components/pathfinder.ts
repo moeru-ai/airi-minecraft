@@ -4,15 +4,12 @@ import { useLogg } from '@guiiai/logg'
 import pathfinderModel from 'mineflayer-pathfinder'
 import { registerCommand } from '../composables/command'
 
-const { goals, Movements, pathfinder } = pathfinderModel
+const { goals, Movements } = pathfinderModel
 
 export function createPathFinderComponent(ctx: BotContext, config?: {
   rangeGoal: number
 }): ComponentLifecycle {
   const logger = useLogg('pathfinder').useGlobalConfig()
-  logger.log('Loading pathfinder plugin')
-
-  ctx.bot.loadPlugin(pathfinder)
 
   let defaultMove: any
 
