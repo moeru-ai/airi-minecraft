@@ -16,7 +16,7 @@ import { createTicker } from './utils/ticker'
 const logger = useLogg('main').useGlobalConfig()
 
 async function main() {
-  initLogger()
+  initLogger() // todo: save logs to file
   initEnv()
 
   createBot(botConfig)

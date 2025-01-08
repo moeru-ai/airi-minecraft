@@ -110,41 +110,69 @@ export async function followPlayer(
   username: string,
   distance = 4,
 ): Promise<boolean> {
+  // const player = ctx.bot.players[username]?.entity
+  // if (!player) {
+  //   log(ctx, `Could not find player ${username}`)
+  //   return false
+  // }
+
+  // const movements = new Movements(ctx.bot)
+  // ctx.bot.pathfinder.setMovements(movements)
+  // ctx.bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
+
+  // log(ctx, `Started following ${username}`)
+
+  // const followInterval = setInterval(() => {
+  //   const target = ctx.bot.players[username]?.entity
+  //   if (!target) {
+  //     log(ctx, 'Lost sight of player')
+  //     clearInterval(followInterval)
+  //     return
+  //   }
+
+  //   const { x, y, z } = target.position
+  //   ctx.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
+  // }, 1000)
+
+  // while (!ctx.shouldInterrupt) {
+  //   await new Promise(resolve => setTimeout(resolve, 500))
+
+  //   if (ctx.allowCheats && ctx.bot.entity.position.distanceTo(player.position) > 100) {
+  //     await goToPlayer(ctx, username)
+  //   }
+  // }
+
+  // // TODO: need global status management
+  // clearInterval(followInterval)
+  // ctx.bot.pathfinder.stop()
+  // return true
+
   const player = ctx.bot.players[username]?.entity
   if (!player) {
-    log(ctx, `Could not find player ${username}`)
     return false
   }
 
   const movements = new Movements(ctx.bot)
   ctx.bot.pathfinder.setMovements(movements)
-  ctx.bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
-
-  log(ctx, `Started following ${username}`)
-
-  const followInterval = setInterval(() => {
-    const target = ctx.bot.players[username]?.entity
-    if (!target) {
-      log(ctx, 'Lost sight of player')
-      clearInterval(followInterval)
-      return
-    }
-
-    const { x, y, z } = target.position
-    ctx.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
-  }, 1000)
+  ctx.bot.pathfinder.setGoal(new goals.GoalFollow(player, distance), true)
+  log(ctx, `You are now actively following player ${username}.`)
 
   while (!ctx.shouldInterrupt) {
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    if (ctx.allowCheats && ctx.bot.entity.position.distanceTo(player.position) > 100) {
+    if (ctx.allowCheats && ctx.bot.entity.position.distanceTo(player.position) > 100 && player.onGround) {
       await goToPlayer(ctx, username)
     }
-  }
 
-  // TODO: need global status management
-  // clearInterval(followInterval)
-  // ctx.bot.pathfinder.stop()
+    // if (ctx.bot.modes?.isOn('unstuck')) {
+    //   const isNearby = ctx.bot.entity.position.distanceTo(player.position) <= distance + 1
+    //   if (isNearby) {
+    //     ctx.bot.modes.pause('unstuck')
+    //   } else {
+    //     ctx.bot.modes.unpause('unstuck')
+    //   }
+    // }
+  }
   return true
 }
 
@@ -183,7 +211,6 @@ export async function moveAwayFromEntity(
   await ctx.bot.pathfinder.goto(invertedGoal)
   return true
 }
-
 
 export async function stay(ctx: SkillContext, seconds = 30): Promise<boolean> {
   const start = Date.now()

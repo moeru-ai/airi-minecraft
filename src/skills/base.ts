@@ -1,5 +1,19 @@
 import type { Bot } from 'mineflayer'
-import type { BotContext } from 'src/composables/bot'
+import type { BotContext } from '../composables/bot'
+import { useLogg } from '@guiiai/logg'
+
+let ctx: SkillContext | undefined
+const logger = useLogg('skills').useGlobalConfig()
+
+export function useSkillContext(botCtx: BotContext): SkillContext {
+  if (!ctx) {
+    logger.log('Creating skill context')
+    ctx = createSkillContext(botCtx)
+  }
+
+  return ctx
+}
+
 /**
  * Context for skill execution
  */

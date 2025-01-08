@@ -11,6 +11,7 @@ export function createAiChatComponent(ctx: BotContext): ComponentLifecycle {
 
   ctx.memory.chatHistory.push(system(genActionAgentPrompt(ctx)))
 
+  // todo: get system message
   const onChat = formBotChat(ctx, async (username, message) => {
     logger.withFields({ username, message }).log('Chat message received')
 

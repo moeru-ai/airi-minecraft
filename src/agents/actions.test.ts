@@ -1,9 +1,9 @@
 import { messages, system, user } from 'neuri/openai'
-import { sleep } from 'src/utils/helper'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createBot, useBot } from '../composables/bot'
 import { botConfig, initEnv } from '../composables/config'
 import { genActionAgentPrompt, genQueryAgentPrompt } from '../prompts/agent'
+import { sleep } from '../utils/helper'
 import { initLogger } from '../utils/logger'
 import { initAgent } from './openai'
 

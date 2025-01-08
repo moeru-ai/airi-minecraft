@@ -3,7 +3,7 @@ import type { BotContext } from '../composables/bot'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../composables/config'
-import { createSkillContext } from '../skills'
+import { useSkillContext } from '../skills'
 import { actionsList } from './actions'
 
 let neuriAgent: Neuri | undefined
@@ -47,7 +47,7 @@ export async function initActionAgent(ctx: BotContext): Promise<Agent> {
       async ({ parameters }) => {
         logger.withFields({ name: action.name, parameters }).log('Calling action')
         ctx.memory.actions.push(action)
-        return action.perform(createSkillContext(ctx))(...Object.values(parameters))
+        return action.perform(useSkillContext(ctx))(...Object.values(parameters))
       },
       { description: action.description },
     )

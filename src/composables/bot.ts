@@ -1,5 +1,5 @@
 import type { Message } from 'neuri/openai'
-import type { Action } from 'src/agents/actions'
+import type { Action } from '../agents/actions'
 import type { BotInternalEventHandlers, BotInternalEvents } from './events'
 import { useLogg } from '@guiiai/logg'
 import mineflayer, { type Bot, type BotOptions } from 'mineflayer'
@@ -51,6 +51,7 @@ export interface ComponentLifecycle {
   cleanup: () => void
 }
 
+// todo: reconnect
 export function createBot(options: BotOptions): Bot {
   logger.withFields({ options }).log('Creating bot')
   ctx = {
@@ -68,6 +69,7 @@ export function createBot(options: BotOptions): Bot {
     },
     memory: {
       chatHistory: [],
+      actions: [],
     },
     status: new Map(),
     health: {

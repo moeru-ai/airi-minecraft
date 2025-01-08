@@ -6,7 +6,7 @@ import * as skills from '../skills'
 
 type ActionResult = string | Promise<string>
 
-interface Action {
+export interface Action {
   readonly name: string
   readonly description: string
   readonly schema: z.ZodObject<any>
@@ -105,23 +105,22 @@ export const actionsList: Action[] = [
   //   }
   // },
 
-  // getStopAction(): Action {
-  //   return {
-  //     name: 'stop',
-  //     description: 'Force stop all actions and commands that are currently executing.',
-  //     schema: z.object({}),
-  //     perform: (ctx: BotContext) => async () => {
-  //       await ctx.actions.stop()
-  //       ctx.clearBotLogs()
-  //       ctx.actions.cancelResume()
-  //       ctx.bot.emit('idle')
-  //       let msg = 'Agent stopped.'
-  //       if (ctx.self_prompter.on)
-  //         msg += ' Self-prompting still active.'
-  //       return msg
-  //     },
-  //   }
-  // },
+  {
+    name: 'stop',
+    description: 'Force stop all actions and commands that are currently executing.',
+    schema: z.object({}),
+    perform: (ctx: SkillContext) => async () => {
+      // await ctx.actions.stop()
+      // ctx.clearBotLogs()
+      // ctx.actions.cancelResume()
+      // ctx.bot.emit('idle')
+      ctx.shouldInterrupt = true
+      const msg = 'Agent stopped.'
+      // if (ctx.self_prompter.on)
+      //   msg += ' Self-prompting still active.'
+      return msg
+    },
+  },
 
   // getStfuAction(): Action {
   //   return {
