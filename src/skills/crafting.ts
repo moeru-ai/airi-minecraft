@@ -1,18 +1,15 @@
 import type { SkillContext } from './base'
 import * as world from '../composables/world'
+import { createWorldContext } from '../composables/world'
 import * as mc from '../utils/mcdata'
 import { log } from './base'
-import { placeBlock } from './blocks'
+import { collectBlock, placeBlock } from './blocks'
 import { goToPosition } from './movement'
 
-/**
- * Craft items from a recipe
- */
 export async function craftRecipe(ctx: SkillContext, itemName: string, num = 1): Promise<boolean> {
-  const { bot } = ctx
   let placedTable = false
 
-  if (mc.getItemCraftingRecipes(itemName).length === 0) {
+  if (mc.getItemCraftingRecipes(itemName)?.length === 0) {
     log(ctx, `${itemName} is either not an item, or it does not have a crafting recipe!`)
     return false
   }
@@ -24,19 +21,19 @@ export async function craftRecipe(ctx: SkillContext, itemName: string, num = 1):
     return false
   }
 
-  let recipes = bot.recipesFor(itemId, null, 1, null)
+  let recipes = ctx.bot.recipesFor(itemId, null, 1, null)
   let craftingTable = null
   const craftingTableRange = 32
 
   if (!recipes || recipes.length === 0) {
-    recipes = bot.recipesFor(itemId, null, 1, true)
+    recipes = ctx.bot.recipesFor(itemId, null, 1, true)
     if (!recipes || recipes.length === 0) {
       log(ctx, `You do not have the resources to craft a ${itemName}.`)
       return false
     }
 
     // Look for crafting table
-    const worldCtx = { bot, botCtx: { bot, botName: bot.username } }
+    const worldCtx = createWorldContext(ctx.botCtx)
     craftingTable = world.getNearestBlock(worldCtx, 'crafting_table', craftingTableRange)
     if (!craftingTable) {
       // Try to place crafting table
@@ -48,7 +45,7 @@ export async function craftRecipe(ctx: SkillContext, itemName: string, num = 1):
           await placeBlock(ctx, 'crafting_table', pos.x, pos.y, pos.z)
           craftingTable = world.getNearestBlock(worldCtx, 'crafting_table', craftingTableRange)
           if (craftingTable) {
-            recipes = bot.recipesFor(itemId, null, 1, craftingTable)
+            recipes = ctx.bot.recipesFor(itemId, null, 1, craftingTable)
             placedTable = true
           }
         }
@@ -59,34 +56,34 @@ export async function craftRecipe(ctx: SkillContext, itemName: string, num = 1):
       }
     }
     else {
-      recipes = bot.recipesFor(itemId, null, 1, craftingTable)
+      recipes = ctx.bot.recipesFor(itemId, null, 1, craftingTable)
     }
   }
 
   if (!recipes || recipes.length === 0) {
     log(ctx, `You do not have the resources to craft a ${itemName}. It requires: ${
-      Object.entries(mc.getItemCraftingRecipes(itemName)[0])
+      Object.entries(mc.getItemCraftingRecipes(itemName)?.[0] ?? {})
         .map(([key, value]) => `${key}: ${value}`)
         .join(', ')
     }.`)
     if (placedTable && craftingTable) {
-      await bot.collectBlock.collect(craftingTable)
+      await collectBlock(ctx, 'crafting_table', 1)
     }
     return false
   }
 
-  if (craftingTable && bot.entity.position.distanceTo(craftingTable.position) > 4) {
+  if (craftingTable && ctx.bot.entity.position.distanceTo(craftingTable.position) > 4) {
     await goToPosition(ctx, craftingTable.position.x, craftingTable.position.y, craftingTable.position.z, 4)
   }
 
   const recipe = recipes[0]
   // Check that the agent has sufficient items to use the recipe `num` times
-  const worldCtx = { bot, botCtx: { bot, botName: bot.username } }
+  const worldCtx = createWorldContext(ctx.botCtx)
   const inventory = world.getInventoryCounts(worldCtx) // Items in the agents inventory
   const requiredIngredients = mc.ingredientsFromPrismarineRecipe(recipe) // Items required to use the recipe once
   const craftLimit = mc.calculateLimitingResource(inventory, requiredIngredients)
 
-  await bot.craft(recipe, Math.min(craftLimit.num, num), craftingTable)
+  await ctx.bot.craft(recipe, Math.min(craftLimit.num, num), craftingTable ?? undefined)
 
   if (craftLimit.num < num) {
     log(ctx, `Not enough ${craftLimit.limitingResource} to craft ${num}, crafted ${craftLimit.num}. You now have ${world.getInventoryCounts(worldCtx)[itemName]} ${itemName}.`)
@@ -96,20 +93,16 @@ export async function craftRecipe(ctx: SkillContext, itemName: string, num = 1):
   }
 
   if (placedTable && craftingTable) {
-    await bot.collectBlock.collect(craftingTable)
+    await collectBlock(ctx, 'crafting_table', 1)
   }
 
   // Equip any armor the bot may have crafted
-  bot.armorManager.equipAll()
+  ctx.bot.armorManager.equipAll()
 
   return true
 }
 
-/**
- * Smelt items in a furnace
- */
 export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): Promise<boolean> {
-  const { bot } = ctx
   if (!mc.isSmeltable(itemName)) {
     log(ctx, `Cannot smelt ${itemName}. Hint: make sure you are smelting the 'raw' item.`)
     return false
@@ -117,7 +110,7 @@ export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): P
 
   let placedFurnace = false
   const furnaceRange = 32
-  const worldCtx = { bot, botCtx: { bot, botName: bot.username } }
+  const worldCtx = createWorldContext(ctx.botCtx)
   let furnaceBlock = world.getNearestBlock(worldCtx, 'furnace', furnaceRange)
 
   if (!furnaceBlock) {
@@ -139,13 +132,13 @@ export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): P
     return false
   }
 
-  if (bot.entity.position.distanceTo(furnaceBlock.position) > 4) {
+  if (ctx.bot.entity.position.distanceTo(furnaceBlock.position) > 4) {
     await goToPosition(ctx, furnaceBlock.position.x, furnaceBlock.position.y, furnaceBlock.position.z, 4)
   }
 
-  await bot.lookAt(furnaceBlock.position)
+  await ctx.bot.lookAt(furnaceBlock.position)
 
-  const furnace = await bot.openFurnace(furnaceBlock)
+  const furnace = await ctx.bot.openFurnace(furnaceBlock)
 
   // Check if the furnace is already smelting something
   const inputItem = furnace.inputItem()
@@ -158,7 +151,7 @@ export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): P
   if (inputItem && inputItem.type !== itemId && inputItem.count > 0) {
     log(ctx, `The furnace is currently smelting ${mc.getItemName(inputItem.type) ?? 'unknown'}.`)
     if (placedFurnace) {
-      await bot.collectBlock.collect(furnaceBlock)
+      await collectBlock(ctx, 'furnace', 1)
     }
     return false
   }
@@ -168,18 +161,18 @@ export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): P
   if (!invCounts[itemName] || invCounts[itemName] < num) {
     log(ctx, `You do not have enough ${itemName} to smelt.`)
     if (placedFurnace) {
-      await bot.collectBlock.collect(furnaceBlock)
+      await collectBlock(ctx, 'furnace', 1)
     }
     return false
   }
 
   // Fuel the furnace
   if (!furnace.fuelItem()) {
-    const fuel = mc.getSmeltingFuel(bot)
+    const fuel = mc.getSmeltingFuel(ctx.bot)
     if (!fuel) {
       log(ctx, `You have no fuel to smelt ${itemName}, you need coal, charcoal, or wood.`)
       if (placedFurnace) {
-        await bot.collectBlock.collect(furnaceBlock)
+        await collectBlock(ctx, 'furnace', 1)
       }
       return false
     }
@@ -190,7 +183,7 @@ export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): P
     if (fuel.count < putFuel) {
       log(ctx, `You don't have enough ${fuel.name} to smelt ${num} ${itemName}; you need ${putFuel}.`)
       if (placedFurnace) {
-        await bot.collectBlock.collect(furnaceBlock)
+        await collectBlock(ctx, 'furnace', 1)
       }
       return false
     }
@@ -231,10 +224,10 @@ export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): P
     }
   }
 
-  await bot.closeWindow(furnace)
+  await ctx.bot.closeWindow(furnace)
 
   if (placedFurnace) {
-    await bot.collectBlock.collect(furnaceBlock)
+    await collectBlock(ctx, 'furnace', 1)
   }
 
   if (total === 0) {
@@ -251,23 +244,19 @@ export async function smeltItem(ctx: SkillContext, itemName: string, num = 1): P
   return true
 }
 
-/**
- * Clear the nearest furnace
- */
 export async function clearNearestFurnace(ctx: SkillContext): Promise<boolean> {
-  const { bot } = ctx
-  const worldCtx = { bot, botCtx: { bot, botName: bot.username } }
+  const worldCtx = createWorldContext(ctx.botCtx)
   const furnaceBlock = world.getNearestBlock(worldCtx, 'furnace', 32)
   if (!furnaceBlock) {
     log(ctx, 'No furnace nearby to clear.')
     return false
   }
 
-  if (bot.entity.position.distanceTo(furnaceBlock.position) > 4) {
+  if (ctx.bot.entity.position.distanceTo(furnaceBlock.position) > 4) {
     await goToPosition(ctx, furnaceBlock.position.x, furnaceBlock.position.y, furnaceBlock.position.z, 4)
   }
 
-  const furnace = await bot.openFurnace(furnaceBlock)
+  const furnace = await ctx.bot.openFurnace(furnaceBlock)
 
   // Take the items out of the furnace
   let smeltedItem, inputItem, fuelItem
