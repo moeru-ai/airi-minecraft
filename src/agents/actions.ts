@@ -105,6 +105,7 @@ export const actionsList: Action[] = [
   //   }
   // },
 
+  // todo: must 'stop now' can be used to stop the agent
   {
     name: 'stop',
     description: 'Force stop all actions and commands that are currently executing.',

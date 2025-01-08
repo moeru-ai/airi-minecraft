@@ -1,17 +1,23 @@
+import type { TypeOf } from 'zod'
 import type { BlockFace, SkillContext } from './base'
+import pathfinderModel, { type SafeBlock } from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 import * as world from '../composables/world'
+import { posEqual } from '../utils/helper'
 import * as mc from '../utils/mcdata'
 import { log } from './base'
 import { goToPosition } from './movement'
+
+const { goals, Movements } = pathfinderModel
 
 /**
  * Place a torch if needed
  */
 async function autoLight(ctx: SkillContext): Promise<boolean> {
-  if (world.shouldPlaceTorch(ctx.bot)) {
+  const worldCtx = world.createWorldContext(ctx.botCtx)
+  if (world.shouldPlaceTorch(worldCtx)) {
     try {
-      const pos = world.getPosition(ctx.bot)
+      const pos = world.getPosition(worldCtx)
       return await placeBlock(ctx, 'torch', pos.x, pos.y, pos.z, 'bottom', true)
     }
     catch {
@@ -30,10 +36,9 @@ export async function breakBlockAt(
   y: number,
   z: number,
 ): Promise<boolean> {
-  const { bot } = ctx
   validatePosition(x, y, z)
 
-  const block = bot.blockAt(new Vec3(x, y, z))
+  const block = ctx.bot.blockAt(new Vec3(x, y, z))
   if (isUnbreakableBlock(block))
     return false
 
@@ -41,7 +46,7 @@ export async function breakBlockAt(
     return breakWithCheats(ctx, x, y, z)
   }
 
-  await moveIntoRange(bot, block)
+  await moveIntoRange(ctx, block)
 
   if (ctx.isCreative) {
     return breakInCreative(ctx, block, x, y, z)
@@ -61,40 +66,38 @@ function isUnbreakableBlock(block: any): boolean {
 }
 
 async function breakWithCheats(ctx: SkillContext, x: number, y: number, z: number): Promise<boolean> {
-  const { bot } = ctx
-  bot.chat(`/setblock ${Math.floor(x)} ${Math.floor(y)} ${Math.floor(z)} air`)
+  ctx.bot.chat(`/setblock ${Math.floor(x)} ${Math.floor(y)} ${Math.floor(z)} air`)
   log(ctx, `Used /setblock to break block at ${x}, ${y}, ${z}.`)
   return true
 }
 
-async function moveIntoRange(bot: any, block: any) {
-  if (bot.entity.position.distanceTo(block.position) > 4.5) {
+async function moveIntoRange(ctx: SkillContext, block: any) {
+  if (ctx.bot.entity.position.distanceTo(block.position) > 4.5) {
     const pos = block.position
-    const movements = new bot.pathfinder.Movements(bot)
+    const movements = new Movements(ctx.bot)
     movements.allowParkour = false
     movements.allowSprinting = false
-    bot.pathfinder.setMovements(movements)
-    await bot.pathfinder.goto(bot.pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 4))
+    ctx.bot.pathfinder.setMovements(movements)
+    await ctx.bot.pathfinder.goto(new goals.GoalNear(pos.x, pos.y, pos.z, 4))
   }
 }
 
 async function breakInCreative(ctx: SkillContext, block: any, x: number, y: number, z: number): Promise<boolean> {
-  const { bot } = ctx
-  await bot.dig(block, true)
+  await ctx.bot.dig(block, true)
   log(ctx, `Broke ${block.name} at x:${x.toFixed(1)}, y:${y.toFixed(1)}, z:${z.toFixed(1)}.`)
   return true
 }
 
 async function breakInSurvival(ctx: SkillContext, block: any, x: number, y: number, z: number): Promise<boolean> {
-  const { bot } = ctx
-  await bot.tool.equipForBlock(block)
-  const itemId = bot.heldItem?.type
+  await ctx.bot.tool.equipForBlock(block)
+
+  const itemId = ctx.bot.heldItem?.type
   if (!block.canHarvest(itemId)) {
     log(ctx, `Don't have right tools to break ${block.name}.`)
     return false
   }
 
-  await bot.dig(block, true)
+  await ctx.bot.dig(block, true)
   log(ctx, `Broke ${block.name} at x:${x.toFixed(1)}, y:${y.toFixed(1)}, z:${z.toFixed(1)}.`)
   return true
 }
@@ -111,7 +114,6 @@ export async function placeBlock(
   placeOn: BlockFace = 'bottom',
   dontCheat = false,
 ): Promise<boolean> {
-  const { bot } = ctx
   if (!mc.getBlockId(blockType)) {
     log(ctx, `Invalid block type: ${blockType}.`)
     return false
@@ -146,7 +148,7 @@ function getBlockState(blockType: string, placeOn: BlockFace): string {
 }
 
 function getInvertedFace(placeOn: BlockFace): string {
-  const faceMap = {
+  const faceMap: Record<string, string> = {
     north: 'south',
     south: 'north',
     east: 'west',
@@ -186,17 +188,16 @@ async function placeWithCheats(
   targetDest: Vec3,
   placeOn: BlockFace,
 ): Promise<boolean> {
-  const { bot } = ctx
   const blockState = getBlockState(blockType, placeOn)
 
-  bot.chat(`/setblock ${targetDest.x} ${targetDest.y} ${targetDest.z} ${blockState}`)
+  ctx.bot.chat(`/setblock ${targetDest.x} ${targetDest.y} ${targetDest.z} ${blockState}`)
 
   if (blockType.includes('door')) {
-    bot.chat(`/setblock ${targetDest.x} ${targetDest.y + 1} ${targetDest.z} ${blockState}[half=upper]`)
+    ctx.bot.chat(`/setblock ${targetDest.x} ${targetDest.y + 1} ${targetDest.z} ${blockState}[half=upper]`)
   }
 
   if (blockType.includes('bed')) {
-    bot.chat(`/setblock ${targetDest.x} ${targetDest.y} ${targetDest.z - 1} ${blockState}[part=head]`)
+    ctx.bot.chat(`/setblock ${targetDest.x} ${targetDest.y} ${targetDest.z - 1} ${blockState}[part=head]`)
   }
 
   log(ctx, `Used /setblock to place ${blockType} at ${targetDest}.`)
@@ -209,13 +210,12 @@ async function placeWithoutCheats(
   targetDest: Vec3,
   placeOn: BlockFace,
 ): Promise<boolean> {
-  const { bot } = ctx
   const itemName = blockType === 'redstone_wire' ? 'redstone' : blockType
 
-  let block = bot.inventory.items().find(item => item.name === itemName)
+  let block = ctx.bot.inventory.items().find(item => item.name === itemName)
   if (!block && ctx.isCreative) {
-    await bot.creative.setInventorySlot(36, mc.makeItem(itemName, 1))
-    block = bot.inventory.items().find(item => item.name === itemName)
+    await ctx.bot.creative.setInventorySlot(36, mc.makeItem(itemName, 1))
+    block = ctx.bot.inventory.items().find(item => item.name === itemName)
   }
 
   if (!block) {
@@ -223,22 +223,27 @@ async function placeWithoutCheats(
     return false
   }
 
-  const targetBlock = bot.blockAt(targetDest)
-  if (targetBlock.name === blockType) {
+  const targetBlock = ctx.bot.blockAt(targetDest)
+  if (targetBlock?.name === blockType) {
     log(ctx, `${blockType} already at ${targetBlock.position}.`)
     return false
   }
 
   const emptyBlocks = ['air', 'water', 'lava', 'grass', 'short_grass', 'tall_grass', 'snow', 'dead_bush', 'fern']
-  if (!emptyBlocks.includes(targetBlock.name)) {
+  if (!emptyBlocks.includes(targetBlock?.name ?? '')) {
     if (!await clearBlockSpace(ctx, targetBlock, blockType)) {
       return false
     }
   }
 
-  const { buildOffBlock, faceVec } = findPlacementSpot(bot, targetDest, placeOn, emptyBlocks)
+  const { buildOffBlock, faceVec } = findPlacementSpot(ctx, targetDest, placeOn, emptyBlocks)
   if (!buildOffBlock) {
-    log(ctx, `Cannot place ${blockType} at ${targetBlock.position}: nothing to place on.`)
+    log(ctx, `Cannot place ${blockType} at ${targetBlock?.position}: nothing to place on.`)
+    return false
+  }
+
+  if (!faceVec) {
+    log(ctx, `Cannot place ${blockType} at ${targetBlock?.position}: no valid face to place on.`)
     return false
   }
 
@@ -261,7 +266,7 @@ async function clearBlockSpace(
   return true
 }
 
-function findPlacementSpot(bot: any, targetDest: Vec3, placeOn: BlockFace, emptyBlocks: string[]) {
+function findPlacementSpot(ctx: SkillContext, targetDest: Vec3, placeOn: BlockFace, emptyBlocks: string[]) {
   const dirMap = {
     top: new Vec3(0, 1, 0),
     bottom: new Vec3(0, -1, 0),
@@ -274,8 +279,8 @@ function findPlacementSpot(bot: any, targetDest: Vec3, placeOn: BlockFace, empty
   const dirs = getPlacementDirections(placeOn, dirMap)
 
   for (const d of dirs) {
-    const block = bot.blockAt(targetDest.plus(d))
-    if (!emptyBlocks.includes(block.name)) {
+    const block = ctx.bot.blockAt(targetDest.plus(d))
+    if (!emptyBlocks.includes(block?.name ?? '')) {
       return {
         buildOffBlock: block,
         faceVec: new Vec3(-d.x, -d.y, -d.z),
@@ -287,7 +292,7 @@ function findPlacementSpot(bot: any, targetDest: Vec3, placeOn: BlockFace, empty
 }
 
 function getPlacementDirections(placeOn: BlockFace, dirMap: Record<string, Vec3>): Vec3[] {
-  const dirs = []
+  const dirs: Vec3[] = []
   if (placeOn === 'side') {
     dirs.push(dirMap.north, dirMap.south, dirMap.east, dirMap.west)
   }
@@ -302,7 +307,6 @@ function getPlacementDirections(placeOn: BlockFace, dirMap: Record<string, Vec3>
 }
 
 async function moveIntoPosition(ctx: SkillContext, blockType: string, targetBlock: any) {
-  const { bot } = ctx
   const dontMoveFor = [
     'torch',
     'redstone_torch',
@@ -318,38 +322,38 @@ async function moveIntoPosition(ctx: SkillContext, blockType: string, targetBloc
     'water_bucket',
   ]
 
-  const pos = bot.entity.position
+  const pos = ctx.bot.entity.position
   const posAbove = pos.plus(new Vec3(0, 1, 0))
 
   if (!dontMoveFor.includes(blockType)
     && (pos.distanceTo(targetBlock.position) < 1
       || posAbove.distanceTo(targetBlock.position) < 1)) {
-    await moveAwayFromBlock(bot, targetBlock)
+    await moveAwayFromBlock(ctx, targetBlock)
   }
 
-  if (bot.entity.position.distanceTo(targetBlock.position) > 4.5) {
-    await moveToBlock(bot, targetBlock)
+  if (ctx.bot.entity.position.distanceTo(targetBlock.position) > 4.5) {
+    await moveToBlock(ctx, targetBlock)
   }
 }
 
-async function moveAwayFromBlock(bot: any, targetBlock: any) {
-  const goal = bot.pathfinder.goals.GoalNear(
+async function moveAwayFromBlock(ctx: SkillContext, targetBlock: any) {
+  const goal = new goals.GoalNear(
     targetBlock.position.x,
     targetBlock.position.y,
     targetBlock.position.z,
     2,
   )
-  const invertedGoal = bot.pathfinder.goals.GoalInvert(goal)
-  bot.pathfinder.setMovements(new bot.pathfinder.Movements(bot))
-  await bot.pathfinder.goto(invertedGoal)
+  const invertedGoal = new goals.GoalInvert(goal)
+  ctx.bot.pathfinder.setMovements(new Movements(ctx.bot))
+  await ctx.bot.pathfinder.goto(invertedGoal)
 }
 
-async function moveToBlock(bot: any, targetBlock: any) {
+async function moveToBlock(ctx: SkillContext, targetBlock: any) {
   const pos = targetBlock.position
-  const movements = new bot.pathfinder.Movements(bot)
-  bot.pathfinder.setMovements(movements)
-  await bot.pathfinder.goto(
-    bot.pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 4),
+  const movements = new Movements(ctx.bot)
+  ctx.bot.pathfinder.setMovements(movements)
+  await ctx.bot.pathfinder.goto(
+    new goals.GoalNear(pos.x, pos.y, pos.z, 4),
   )
 }
 
@@ -361,12 +365,11 @@ async function tryPlaceBlock(
   blockType: string,
   targetDest: Vec3,
 ): Promise<boolean> {
-  const { bot } = ctx
-  await bot.equip(block, 'hand')
-  await bot.lookAt(buildOffBlock.position)
+  await ctx.bot.equip(block, 'hand')
+  await ctx.bot.lookAt(buildOffBlock.position)
 
   try {
-    await bot.placeBlock(buildOffBlock, faceVec)
+    await ctx.bot.placeBlock(buildOffBlock, faceVec)
     log(ctx, `Placed ${blockType} at ${targetDest}.`)
     await new Promise(resolve => setTimeout(resolve, 200))
     return true
@@ -381,8 +384,7 @@ async function tryPlaceBlock(
  * Use a door at the specified position
  */
 export async function useDoor(ctx: SkillContext, doorPos: Vec3 | null = null): Promise<boolean> {
-  const { bot } = ctx
-  doorPos = doorPos || await findNearestDoor(bot)
+  doorPos = doorPos || await findNearestDoor(ctx.bot)
 
   if (!doorPos) {
     log(ctx, 'Could not find a door to use.')
@@ -390,7 +392,7 @@ export async function useDoor(ctx: SkillContext, doorPos: Vec3 | null = null): P
   }
 
   await goToPosition(ctx, doorPos.x, doorPos.y, doorPos.z, 1)
-  while (bot.pathfinder.isMoving()) {
+  while (ctx.bot.pathfinder.isMoving()) {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 
@@ -422,26 +424,27 @@ async function findNearestDoor(bot: any): Promise<Vec3 | null> {
 }
 
 async function operateDoor(ctx: SkillContext, doorPos: Vec3): Promise<boolean> {
-  const { bot } = ctx
-  const doorBlock = bot.blockAt(doorPos)
-  await bot.lookAt(doorPos)
+  const doorBlock = ctx.bot.blockAt(doorPos)
+  await ctx.bot.lookAt(doorPos)
 
-  if (!doorBlock._properties.open) {
-    await bot.activateBlock(doorBlock)
+  if (!doorBlock) {
+    log(ctx, `Cannot find door at ${doorPos}.`)
+    return false
   }
 
-  bot.setControlState('forward', true)
+  if (!doorBlock.getProperties().open) {
+    await ctx.bot.activateBlock(doorBlock)
+  }
+
+  ctx.bot.setControlState('forward', true)
   await new Promise(resolve => setTimeout(resolve, 600))
-  bot.setControlState('forward', false)
-  await bot.activateBlock(doorBlock)
+  ctx.bot.setControlState('forward', false)
+  await ctx.bot.activateBlock(doorBlock)
 
   log(ctx, `Used door at ${doorPos}.`)
   return true
 }
 
-/**
- * Till and sow a block at the specified position
- */
 export async function tillAndSow(
   ctx: SkillContext,
   x: number,
@@ -449,22 +452,33 @@ export async function tillAndSow(
   z: number,
   seedType: string | null = null,
 ): Promise<boolean> {
-  const { bot } = ctx
   const pos = { x: Math.round(x), y: Math.round(y), z: Math.round(z) }
 
-  const block = bot.blockAt(new Vec3(pos.x, pos.y, pos.z))
+  const block = ctx.bot.blockAt(new Vec3(pos.x, pos.y, pos.z))
+
+  if (!block) {
+    log(ctx, `Cannot till, no block at ${pos}.`)
+    return false
+  }
+
   if (!canTillBlock(block)) {
     log(ctx, `Cannot till ${block.name}, must be grass_block or dirt.`)
     return false
   }
 
-  const above = bot.blockAt(new Vec3(pos.x, pos.y + 1, pos.z))
+  const above = ctx.bot.blockAt(new Vec3(pos.x, pos.y + 1, pos.z))
+
+  if (!above) {
+    log(ctx, `Cannot till, no block above the block.`)
+    return false
+  }
+
   if (!isBlockClear(above)) {
     log(ctx, `Cannot till, there is ${above.name} above the block.`)
     return false
   }
 
-  await moveIntoRange(bot, block)
+  await moveIntoRange(ctx, block)
 
   if (!await tillBlock(ctx, block, pos)) {
     return false
@@ -486,35 +500,33 @@ function isBlockClear(block: any): boolean {
 }
 
 async function tillBlock(ctx: SkillContext, block: any, pos: any): Promise<boolean> {
-  const { bot } = ctx
   if (block.name === 'farmland') {
     return true
   }
 
-  const hoe = bot.inventory.items().find(item => item.name.includes('hoe'))
+  const hoe = ctx.bot.inventory.items().find(item => item.name.includes('hoe'))
   if (!hoe) {
     log(ctx, 'Cannot till, no hoes.')
     return false
   }
 
-  await bot.equip(hoe, 'hand')
-  await bot.activateBlock(block)
+  await ctx.bot.equip(hoe, 'hand')
+  await ctx.bot.activateBlock(block)
   log(ctx, `Tilled block x:${pos.x.toFixed(1)}, y:${pos.y.toFixed(1)}, z:${pos.z.toFixed(1)}.`)
   return true
 }
 
 async function sowSeeds(ctx: SkillContext, block: any, seedType: string, pos: any): Promise<boolean> {
-  const { bot } = ctx
   seedType = fixSeedName(seedType)
 
-  const seeds = bot.inventory.items().find(item => item.name === seedType)
+  const seeds = ctx.bot.inventory.items().find(item => item.name === seedType)
   if (!seeds) {
     log(ctx, `No ${seedType} to plant.`)
     return false
   }
 
-  await bot.equip(seeds, 'hand')
-  await bot.placeBlock(block, new Vec3(0, -1, 0))
+  await ctx.bot.equip(seeds, 'hand')
+  await ctx.bot.placeBlock(block, new Vec3(0, -1, 0))
   log(ctx, `Planted ${seedType} at x:${pos.x.toFixed(1)}, y:${pos.y.toFixed(1)}, z:${pos.z.toFixed(1)}.`)
   return true
 }
@@ -526,19 +538,16 @@ function fixSeedName(seedType: string): string {
   return seedType
 }
 
-/**
- * Activate the nearest block of a specific type
- */
 export async function activateNearestBlock(ctx: SkillContext, type: string): Promise<boolean> {
-  const { bot } = ctx
-  const block = world.getNearestBlock(bot, type, 16)
+  const worldCtx = world.createWorldContext(ctx.botCtx)
+  const block = world.getNearestBlock(worldCtx, type, 16)
   if (!block) {
     log(ctx, `Could not find any ${type} to activate.`)
     return false
   }
 
-  await moveIntoRange(bot, block)
-  await bot.activateBlock(block)
+  await moveIntoRange(ctx, block)
+  await ctx.bot.activateBlock(block)
   log(ctx, `Activated ${type} at x:${block.position.x.toFixed(1)}, y:${block.position.y.toFixed(1)}, z:${block.position.z.toFixed(1)}.`)
   return true
 }
@@ -547,9 +556,8 @@ export async function collectBlock(
   ctx: SkillContext,
   blockType: string,
   num: number = 1,
-  exclude: typeof Vec3[] | null = null,
+  exclude: Vec3[] | null = null,
 ): Promise<boolean> {
-  const { bot } = ctx
   if (num < 1) {
     log(ctx, `Invalid number of blocks to collect: ${num}.`)
     return false
@@ -577,7 +585,7 @@ export async function collectBlock(
 
     collected++
 
-    if (bot.interrupt_code) {
+    if (ctx.shouldInterrupt) {
       break
     }
   }
@@ -603,9 +611,9 @@ function getBlockTypes(blockType: string): string[] {
   return blocktypes
 }
 
-function getValidBlocks(ctx: SkillContext, blocktypes: string[], exclude: typeof Vec3[] | null): any[] {
-  const { bot } = ctx
-  let blocks = world.getNearestBlocks(bot, blocktypes, 64)
+function getValidBlocks(ctx: SkillContext, blocktypes: string[], exclude: Vec3[] | null): any[] {
+  const worldCtx = world.createWorldContext(ctx.botCtx)
+  let blocks = world.getNearestBlocks(worldCtx, blocktypes, 64)
 
   if (exclude) {
     blocks = blocks.filter(
@@ -617,9 +625,9 @@ function getValidBlocks(ctx: SkillContext, blocktypes: string[], exclude: typeof
     )
   }
 
-  const movements = new bot.pathfinder.Movements(bot)
+  const movements = new Movements(ctx.bot)
   movements.dontMineUnderFallingBlock = false
-  return blocks.filter(block => movements.safeToBreak(block))
+  return blocks.filter(block => movements.safeToBreak(block as SafeBlock))
 }
 
 function logNoBlocksMessage(ctx: SkillContext, blockType: string, collected: number): void {
@@ -629,9 +637,8 @@ function logNoBlocksMessage(ctx: SkillContext, blockType: string, collected: num
 }
 
 async function canHarvestBlock(ctx: SkillContext, block: any, blockType: string): Promise<boolean> {
-  const { bot } = ctx
-  await bot.tool.equipForBlock(block)
-  const itemId = bot.heldItem ? bot.heldItem.type : null
+  await ctx.bot.tool.equipForBlock(block)
+  const itemId = ctx.bot.heldItem ? ctx.bot.heldItem.type : null
 
   if (!block.canHarvest(itemId)) {
     log(ctx, `Don't have right tools to harvest ${blockType}.`)
@@ -641,9 +648,8 @@ async function canHarvestBlock(ctx: SkillContext, block: any, blockType: string)
 }
 
 async function tryCollectBlock(ctx: SkillContext, block: any, blockType: string): Promise<boolean> {
-  const { bot } = ctx
   try {
-    await bot.collectBlock.collect(block)
+    await ctx.bot.collectBlock.collect(block)
     await autoLight(ctx)
     return true
   }

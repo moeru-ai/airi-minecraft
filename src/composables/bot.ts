@@ -8,6 +8,7 @@ import { loader as autoEat } from 'mineflayer-auto-eat'
 import { plugin as collectblock } from 'mineflayer-collectblock'
 import { pathfinder } from 'mineflayer-pathfinder'
 import { plugin as pvp } from 'mineflayer-pvp'
+import { plugin as tool } from 'mineflayer-tool'
 
 const logger = useLogg('bot').useGlobalConfig()
 
@@ -104,6 +105,7 @@ export function createBot(options: BotOptions): Bot {
   ctx.bot.loadPlugin(collectblock)
   ctx.bot.loadPlugin(autoEat)
   ctx.bot.loadPlugin(armorManager) // auto equip armor
+  ctx.bot.loadPlugin(tool)
   ctx.bot.once('resourcePack', () => {
     ctx?.bot.acceptResourcePack()
   })
