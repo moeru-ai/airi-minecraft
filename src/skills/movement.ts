@@ -6,9 +6,6 @@ import { log } from './base'
 
 const { goals, Movements } = pathfinderModel
 
-/**
- * Navigate to a specific position
- */
 export async function goToPosition(
   ctx: SkillContext,
   x: number,
@@ -16,26 +13,22 @@ export async function goToPosition(
   z: number,
   minDistance = 2,
 ): Promise<boolean> {
-  const { bot } = ctx
   if (x == null || y == null || z == null) {
     log(ctx, `Missing coordinates, given x:${x} y:${y} z:${z}`)
     return false
   }
 
   if (ctx.allowCheats) {
-    bot.chat(`/tp @s ${x} ${y} ${z}`)
+    ctx.bot.chat(`/tp @s ${x} ${y} ${z}`)
     log(ctx, `Teleported to ${x}, ${y}, ${z}.`)
     return true
   }
 
-  await bot.pathfinder.goto(new goals.GoalNear(x, y, z, minDistance))
+  await ctx.bot.pathfinder.goto(new goals.GoalNear(x, y, z, minDistance))
   log(ctx, `You have reached ${x}, ${y}, ${z}.`)
   return true
 }
 
-/**
- * Navigate to the nearest block of a specific type
- */
 export async function goToNearestBlock(
   ctx: SkillContext,
   blockType: string,
@@ -60,16 +53,12 @@ export async function goToNearestBlock(
   return true
 }
 
-/**
- * Navigate to the nearest entity of a specific type
- */
 export async function goToNearestEntity(
   ctx: SkillContext,
   entityType: string,
   minDistance = 2,
   range = 64,
 ): Promise<boolean> {
-  const { bot } = ctx
   const worldCtx = world.createWorldContext(ctx.botCtx)
   const entity = world.getNearestEntityWhere(
     worldCtx,
@@ -82,7 +71,7 @@ export async function goToNearestEntity(
     return false
   }
 
-  const distance = bot.entity.position.distanceTo(entity.position)
+  const distance = ctx.bot.entity.position.distanceTo(entity.position)
   log(ctx, `Found ${entityType} ${distance} blocks away.`)
   await goToPosition(
     ctx,
@@ -94,28 +83,24 @@ export async function goToNearestEntity(
   return true
 }
 
-/**
- * Navigate to a specific player
- */
 export async function goToPlayer(
   ctx: SkillContext,
   username: string,
   distance = 3,
 ): Promise<boolean> {
-  const { bot } = ctx
   if (ctx.allowCheats) {
-    bot.chat(`/tp @s ${username}`)
+    ctx.bot.chat(`/tp @s ${username}`)
     log(ctx, `Teleported to ${username}.`)
     return true
   }
 
-  const player = bot.players[username]?.entity
+  const player = ctx.bot.players[username]?.entity
   if (!player) {
     log(ctx, `Could not find ${username}.`)
     return false
   }
 
-  await bot.pathfinder.goto(new goals.GoalFollow(player, distance))
+  await ctx.bot.pathfinder.goto(new goals.GoalFollow(player, distance))
   log(ctx, `You have reached ${username}.`)
   return true
 }
@@ -125,21 +110,20 @@ export async function followPlayer(
   username: string,
   distance = 4,
 ): Promise<boolean> {
-  const { bot } = ctx
-  const player = bot.players[username]?.entity
+  const player = ctx.bot.players[username]?.entity
   if (!player) {
     log(ctx, `Could not find player ${username}`)
     return false
   }
 
-  const movements = new Movements(bot)
-  bot.pathfinder.setMovements(movements)
-  bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
+  const movements = new Movements(ctx.bot)
+  ctx.bot.pathfinder.setMovements(movements)
+  ctx.bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
 
   log(ctx, `Started following ${username}`)
 
   const followInterval = setInterval(() => {
-    const target = bot.players[username]?.entity
+    const target = ctx.bot.players[username]?.entity
     if (!target) {
       log(ctx, 'Lost sight of player')
       clearInterval(followInterval)
@@ -147,70 +131,60 @@ export async function followPlayer(
     }
 
     const { x, y, z } = target.position
-    bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
+    ctx.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
   }, 1000)
 
   while (!ctx.shouldInterrupt) {
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    if (ctx.allowCheats && bot.entity.position.distanceTo(player.position) > 100) {
+    if (ctx.allowCheats && ctx.bot.entity.position.distanceTo(player.position) > 100) {
       await goToPlayer(ctx, username)
     }
   }
 
   // TODO: need global status management
   // clearInterval(followInterval)
-  // bot.pathfinder.stop()
+  // ctx.bot.pathfinder.stop()
   return true
 }
 
-/**
- * Move away from current position
- */
 export async function moveAway(ctx: SkillContext, distance: number): Promise<boolean> {
-  const { bot } = ctx
-  const pos = bot.entity.position
+  const pos = ctx.bot.entity.position
   const goal = new goals.GoalNear(pos.x, pos.y, pos.z, distance)
   const invertedGoal = new goals.GoalInvert(goal)
 
   if (ctx.allowCheats) {
-    const move = new Movements(bot)
-    const path = await bot.pathfinder.getPathTo(move, invertedGoal, 10000)
+    const move = new Movements(ctx.bot)
+    const path = await ctx.bot.pathfinder.getPathTo(move, invertedGoal, 10000)
     const lastMove = path.path[path.path.length - 1]
 
     if (lastMove) {
       const x = Math.floor(lastMove.x)
       const y = Math.floor(lastMove.y)
       const z = Math.floor(lastMove.z)
-      bot.chat(`/tp @s ${x} ${y} ${z}`)
+      ctx.bot.chat(`/tp @s ${x} ${y} ${z}`)
       return true
     }
   }
 
-  await bot.pathfinder.goto(invertedGoal)
-  const newPos = bot.entity.position
+  await ctx.bot.pathfinder.goto(invertedGoal)
+  const newPos = ctx.bot.entity.position
   log(ctx, `Moved away from nearest entity to ${newPos}.`)
   return true
 }
 
-/**
- * Move away from a specific entity
- */
 export async function moveAwayFromEntity(
   ctx: SkillContext,
   entity: Entity,
   distance = 16,
 ): Promise<boolean> {
-  const { bot } = ctx
   const goal = new goals.GoalFollow(entity, distance)
   const invertedGoal = new goals.GoalInvert(goal)
-  await bot.pathfinder.goto(invertedGoal)
+  await ctx.bot.pathfinder.goto(invertedGoal)
   return true
 }
 
-/**
- * Stay in current position
- */
+
 export async function stay(ctx: SkillContext, seconds = 30): Promise<boolean> {
   const start = Date.now()
   const targetTime = seconds === -1 ? Infinity : start + seconds * 1000
@@ -220,5 +194,37 @@ export async function stay(ctx: SkillContext, seconds = 30): Promise<boolean> {
   }
 
   log(ctx, `Stayed for ${(Date.now() - start) / 1000} seconds.`)
+  return true
+}
+
+export async function goToBed(ctx: SkillContext): Promise<boolean> {
+  const beds = ctx.bot.findBlocks({
+    matching: block => block.name.includes('bed'),
+    maxDistance: 32,
+    count: 1,
+  })
+
+  if (beds.length === 0) {
+    log(ctx, 'Could not find a bed to sleep in.')
+    return false
+  }
+
+  const loc = beds[0]
+  await goToPosition(ctx, loc.x, loc.y, loc.z)
+
+  const bed = ctx.bot.blockAt(loc)
+  if (!bed) {
+    log(ctx, 'Could not find bed block.')
+    return false
+  }
+
+  await ctx.bot.sleep(bed)
+  log(ctx, 'You are in bed.')
+
+  while (ctx.bot.isSleeping) {
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  log(ctx, 'You have woken up.')
   return true
 }
