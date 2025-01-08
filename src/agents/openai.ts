@@ -46,6 +46,7 @@ export async function initActionAgent(ctx: BotContext): Promise<Agent> {
       action.schema,
       async ({ parameters }) => {
         logger.withFields({ name: action.name, parameters }).log('Calling action')
+        ctx.memory.actions.push(action)
         return action.perform(createSkillContext(ctx))(...Object.values(parameters))
       },
       { description: action.description },

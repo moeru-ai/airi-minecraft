@@ -1,3 +1,5 @@
+import type { Message } from 'neuri/openai'
+import type { Action } from 'src/agents/actions'
 import type { BotInternalEventHandlers, BotInternalEvents } from './events'
 import { useLogg } from '@guiiai/logg'
 import mineflayer, { type Bot, type BotOptions } from 'mineflayer'
@@ -18,7 +20,9 @@ export interface BotContext {
   }
 
   memory: {
-    getSummary: () => string
+    chatHistory: Message[]
+    actions: Action[]
+    // getSummary: () => string
   }
 
   status: Map<string, string>
@@ -63,7 +67,7 @@ export function createBot(options: BotOptions): Bot {
       selfPrompt: '',
     },
     memory: {
-      getSummary: () => '',
+      chatHistory: [],
     },
     status: new Map(),
     health: {

@@ -9,16 +9,15 @@ export function createAiChatComponent(ctx: BotContext): ComponentLifecycle {
   const logger = useLogg('aichat').useGlobalConfig()
   logger.log('Loading aichat plugin')
 
-  const historyMessage: Message[] = []
-  historyMessage.push(system(genActionAgentPrompt(ctx)))
+  ctx.memory.chatHistory.push(system(genActionAgentPrompt(ctx)))
 
   const onChat = formBotChat(ctx, async (username, message) => {
     logger.withFields({ username, message }).log('Chat message received')
 
-    historyMessage.push(user(`${username}: ${message}`))
+    ctx.memory.chatHistory.push(user(`${username}: ${message}`))
 
     const agent = getAgent()
-    const content = await agent.handleStateless([...historyMessage], async (c) => {
+    const content = await agent.handleStateless([...ctx.memory.chatHistory], async (c) => {
       logger.log('Generate response')
 
       try {
@@ -28,11 +27,12 @@ export function createAiChatComponent(ctx: BotContext): ComponentLifecycle {
 
         if (!completion || 'error' in completion) {
           logger.withFields(c).error('Completion')
-          throw new Error(completion?.error?.message ?? 'Unknown error')
+          return
+          // throw new Error(completion?.error?.message ?? 'Unknown error')
         }
 
         const content = await completion?.firstContent()
-        historyMessage.push(assistant(content))
+        ctx.memory.chatHistory.push(assistant(content))
 
         return content
       }
