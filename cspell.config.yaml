@@ -1,4 +1,4 @@
-version: "0.2"
+version: '0.2'
 ignorePaths: []
 dictionaryDefinitions: []
 dictionaries: []
@@ -36,5 +36,6 @@ words:
   - vitepress
   - vuejs
   - xsai
+  - OneLinerable
 ignoreWords: []
 import: []

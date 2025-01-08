@@ -1,6 +1,6 @@
 import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createBot, useBot } from '../composables/bot'
+import { initBot, useBot } from '../composables/bot'
 import { botConfig, initEnv } from '../composables/config'
 import { genActionAgentPrompt, genQueryAgentPrompt } from '../prompts/agent'
 import { sleep } from '../utils/helper'
@@ -11,17 +11,17 @@ describe('actions agent', { timeout: 0 }, () => {
   beforeAll(() => {
     initLogger()
     initEnv()
-    createBot(botConfig)
+    initBot({ botConfig })
   })
 
   it('should choose right query command', async () => {
-    const { ctx } = useBot()
-    const agent = await initAgent(ctx)
+    const { bot } = useBot()
+    const agent = await initAgent(bot)
 
     await new Promise<void>((resolve) => {
-      ctx.bot.once('spawn', async () => {
+      bot.bot.once('spawn', async () => {
         const text = await agent.handle(messages(
-          system(genQueryAgentPrompt(ctx)),
+          system(genQueryAgentPrompt(bot)),
           user('What are you status?'),
         ), async (c) => {
           const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
@@ -37,15 +37,15 @@ describe('actions agent', { timeout: 0 }, () => {
   })
 
   it('should choose right action command', async () => {
-    const { ctx } = useBot()
-    const agent = await initAgent(ctx)
+    const { bot } = useBot()
+    const agent = await initAgent(bot)
 
     // console.log(JSON.stringify(agent, null, 2))
 
     await new Promise<void>((resolve) => {
-      ctx.bot.on('spawn', async () => {
+      bot.bot.on('spawn', async () => {
         const text = await agent.handle(messages(
-          system(genActionAgentPrompt(ctx)),
+          system(genActionAgentPrompt(bot)),
           user('goToPlayer: luoling8192'),
         ), async (c) => {
           console.log(JSON.stringify(c, null, 2))

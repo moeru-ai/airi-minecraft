@@ -1,17 +1,7 @@
-import type { SkillContext } from '../skills'
+import type { Action } from '../libs/mineflayer'
 import { z } from 'zod'
-import { getStatusToString } from '../components/status'
 import * as world from '../composables/world'
 import * as skills from '../skills'
-
-type ActionResult = string | Promise<string>
-
-export interface Action {
-  readonly name: string
-  readonly description: string
-  readonly schema: z.ZodObject<any>
-  readonly perform: (ctx: SkillContext) => (...args: any[]) => ActionResult
-}
 
 // Utils
 const pad = (str: string): string => `\n${str}\n`
@@ -29,28 +19,27 @@ export const actionsList: Action[] = [
     name: 'stats',
     description: 'Get your bot\'s location, health, hunger, and time of day.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => (): string => getStatusToString(ctx.botCtx),
+    perform: mineflayer => (): string => mineflayer.status.toOneLiner(),
   },
   {
     name: 'inventory',
     description: 'Get your bot\'s inventory.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => (): string => {
-      const { bot } = ctx
-      const inventory = world.getInventoryCounts(world.createWorldContext(ctx.botCtx))
+    perform: mineflayer => (): string => {
+      const inventory = world.getInventoryCounts(mineflayer)
       const items = Object.entries(inventory)
         .map(([item, count]) => formatInventoryItem(item, count))
         .join('')
 
       const wearing = [
-        formatWearingItem('Head', bot.inventory.slots[5]?.name),
-        formatWearingItem('Torso', bot.inventory.slots[6]?.name),
-        formatWearingItem('Legs', bot.inventory.slots[7]?.name),
-        formatWearingItem('Feet', bot.inventory.slots[8]?.name),
+        formatWearingItem('Head', mineflayer.bot.inventory.slots[5]?.name),
+        formatWearingItem('Torso', mineflayer.bot.inventory.slots[6]?.name),
+        formatWearingItem('Legs', mineflayer.bot.inventory.slots[7]?.name),
+        formatWearingItem('Feet', mineflayer.bot.inventory.slots[8]?.name),
       ].filter(Boolean).join('')
 
       return pad(`INVENTORY${items || ': Nothing'}
-  ${bot.game.gameMode === 'creative' ? '\n(You have infinite items in creative mode. You do not need to gather resources!!)' : ''}
+  ${mineflayer.bot.game.gameMode === 'creative' ? '\n(You have infinite items in creative mode. You do not need to gather resources!!)' : ''}
   WEARING: ${wearing || 'Nothing'}`)
     },
   },
@@ -58,8 +47,8 @@ export const actionsList: Action[] = [
     name: 'nearbyBlocks',
     description: 'Get the blocks near the bot.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => (): string => {
-      const blocks = world.getNearbyBlockTypes(world.createWorldContext(ctx.botCtx))
+    perform: mineflayer => (): string => {
+      const blocks = world.getNearbyBlockTypes(mineflayer)
       return pad(`NEARBY_BLOCKS${blocks.map((b: string) => `\n- ${b}`).join('') || ': none'}`)
     },
   },
@@ -67,8 +56,8 @@ export const actionsList: Action[] = [
     name: 'craftable',
     description: 'Get the craftable items with the bot\'s inventory.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => (): string => {
-      const craftable = world.getCraftableItems(world.createWorldContext(ctx.botCtx))
+    perform: mineflayer => (): string => {
+      const craftable = world.getCraftableItems(mineflayer)
       return pad(`CRAFTABLE_ITEMS${craftable.map((i: string) => `\n- ${i}`).join('') || ': none'}`)
     },
   },
@@ -76,10 +65,9 @@ export const actionsList: Action[] = [
     name: 'entities',
     description: 'Get the nearby players and entities.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => (): string => {
-      const worldCtx = world.createWorldContext(ctx.botCtx)
-      const players = world.getNearbyPlayerNames(worldCtx)
-      const entities = world.getNearbyEntityTypes(worldCtx)
+    perform: mineflayer => (): string => {
+      const players = world.getNearbyPlayerNames(mineflayer)
+      const entities = world.getNearbyEntityTypes(mineflayer)
         .filter((e: string) => e !== 'player' && e !== 'item')
 
       const result = [
@@ -97,10 +85,10 @@ export const actionsList: Action[] = [
   //     schema: z.object({
   //       prompt: z.string().describe('A natural language prompt to guide code generation. Make a detailed step-by-step plan.'),
   //     }),
-  //     perform: (ctx: BotContext) => async (prompt: string) => {
+  //     perform: (mineflayer: BotContext) => async (prompt: string) => {
   //       if (!settings.allow_insecure_coding)
   //         return 'newAction not allowed! Code writing is disabled in settings. Notify the user.'
-  //       return await ctx.coder.generateCode(ctx.history)
+  //       return await ctx.coder.generateCode(mineflayer.history)
   //     },
   //   }
   // },
@@ -110,14 +98,14 @@ export const actionsList: Action[] = [
     name: 'stop',
     description: 'Force stop all actions and commands that are currently executing.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => async () => {
+    perform: mineflayer => async () => {
       // await ctx.actions.stop()
       // ctx.clearBotLogs()
       // ctx.actions.cancelResume()
       // ctx.bot.emit('idle')
-      ctx.shouldInterrupt = true
+      mineflayer.shouldInterrupt = true
       const msg = 'Agent stopped.'
-      // if (ctx.self_prompter.on)
+      // if (mineflayer.self_prompter.on)
       //   msg += ' Self-prompting still active.'
       return msg
     },
@@ -128,7 +116,7 @@ export const actionsList: Action[] = [
   //     name: 'stfu',
   //     description: 'Stop all chatting and self prompting, but continue current action.',
   //     schema: z.object({}),
-  //     perform: (ctx: BotContext) => async () => {
+  //     perform: (mineflayer: BotContext) => async () => {
   //       ctx.openChat('Shutting up.')
   //       ctx.shutUp()
   //       return 'Shutting up.'
@@ -141,7 +129,7 @@ export const actionsList: Action[] = [
   //     name: 'restart',
   //     description: 'Restart the agent process.',
   //     schema: z.object({}),
-  //     perform: (ctx: BotContext) => async () => {
+  //     perform: (mineflayer: BotContext) => async () => {
   //       ctx.cleanKill()
   //       return 'Restarting agent...'
   //     },
@@ -153,7 +141,7 @@ export const actionsList: Action[] = [
   //     name: 'clearChat',
   //     description: 'Clear the chat history.',
   //     schema: z.object({}),
-  //     perform: (ctx: BotContext) => async () => {
+  //     perform: (mineflayer: BotContext) => async () => {
   //       ctx.history.clear()
   //       return `${ctx.name}'s chat history was cleared, starting new conversation from scratch.`
   //     },
@@ -166,8 +154,8 @@ export const actionsList: Action[] = [
       player_name: z.string().describe('The name of the player to go to.'),
       closeness: z.number().describe('How close to get to the player.').min(0),
     }),
-    perform: (ctx: SkillContext) => async (player_name: string, closeness: number) => {
-      await skills.goToPlayer(ctx, player_name, closeness)
+    perform: mineflayer => async (player_name: string, closeness: number) => {
+      await skills.goToPlayer(mineflayer, player_name, closeness)
       return 'Moving to player...'
     },
   },
@@ -179,8 +167,8 @@ export const actionsList: Action[] = [
       player_name: z.string().describe('name of the player to follow.'),
       follow_dist: z.number().describe('The distance to follow from.').min(0),
     }),
-    perform: (ctx: SkillContext) => async (player_name: string, follow_dist: number) => {
-      await skills.followPlayer(ctx, player_name, follow_dist)
+    perform: mineflayer => async (player_name: string, follow_dist: number) => {
+      await skills.followPlayer(mineflayer, player_name, follow_dist)
       return 'Following player...'
     },
   },
@@ -194,8 +182,8 @@ export const actionsList: Action[] = [
       z: z.number().describe('The z coordinate.'),
       closeness: z.number().describe('How close to get to the location.').min(0),
     }),
-    perform: (ctx: SkillContext) => async (x: number, y: number, z: number, closeness: number) => {
-      await skills.goToPosition(ctx, x, y, z, closeness)
+    perform: mineflayer => async (x: number, y: number, z: number, closeness: number) => {
+      await skills.goToPosition(mineflayer, x, y, z, closeness)
       return 'Moving to coordinates...'
     },
   },
@@ -207,8 +195,8 @@ export const actionsList: Action[] = [
       type: z.string().describe('The block type to go to.'),
       search_range: z.number().describe('The range to search for the block.').min(32).max(512),
     }),
-    perform: (ctx: SkillContext) => async (block_type: string, range: number) => {
-      await skills.goToNearestBlock(ctx, block_type, 4, range)
+    perform: mineflayer => async (block_type: string, range: number) => {
+      await skills.goToNearestBlock(mineflayer, block_type, 4, range)
       return 'Searching for block...'
     },
   },
@@ -220,8 +208,8 @@ export const actionsList: Action[] = [
       type: z.string().describe('The type of entity to go to.'),
       search_range: z.number().describe('The range to search for the entity.').min(32).max(512),
     }),
-    perform: (ctx: SkillContext) => async (entity_type: string, range: number) => {
-      await skills.goToNearestEntity(ctx, entity_type, 4, range)
+    perform: mineflayer => async (entity_type: string, range: number) => {
+      await skills.goToNearestEntity(mineflayer, entity_type, 4, range)
       return 'Searching for entity...'
     },
   },
@@ -232,8 +220,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       distance: z.number().describe('The distance to move away.').min(0),
     }),
-    perform: (ctx: SkillContext) => async (distance: number) => {
-      await skills.moveAway(ctx, distance)
+    perform: mineflayer => async (distance: number) => {
+      await skills.moveAway(mineflayer, distance)
       return 'Moving away...'
     },
   },
@@ -246,8 +234,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to give.'),
       num: z.number().int().describe('The number of items to give.').min(1),
     }),
-    perform: (ctx: SkillContext) => async (player_name: string, item_name: string, num: number) => {
-      await skills.giveToPlayer(ctx, item_name, player_name, num)
+    perform: mineflayer => async (player_name: string, item_name: string, num: number) => {
+      await skills.giveToPlayer(mineflayer, item_name, player_name, num)
       return 'Giving items to player...'
     },
   },
@@ -258,8 +246,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       item_name: z.string().describe('The name of the item to consume.'),
     }),
-    perform: (ctx: SkillContext) => async (item_name: string) => {
-      await skills.consume(ctx, item_name)
+    perform: mineflayer => async (item_name: string) => {
+      await skills.consume(mineflayer, item_name)
       return 'Consuming item...'
     },
   },
@@ -270,8 +258,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       item_name: z.string().describe('The name of the item to equip.'),
     }),
-    perform: (ctx: SkillContext) => async (item_name: string) => {
-      await skills.equip(ctx, item_name)
+    perform: mineflayer => async (item_name: string) => {
+      await skills.equip(mineflayer, item_name)
       return 'Equipping item...'
     },
   },
@@ -283,8 +271,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to put in the chest.'),
       num: z.number().int().describe('The number of items to put in the chest.').min(1),
     }),
-    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
-      await skills.putInChest(ctx, item_name, num)
+    perform: mineflayer => async (item_name: string, num: number) => {
+      await skills.putInChest(mineflayer, item_name, num)
       return 'Putting items in chest...'
     },
   },
@@ -296,8 +284,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to take.'),
       num: z.number().int().describe('The number of items to take.').min(1),
     }),
-    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
-      await skills.takeFromChest(ctx, item_name, num)
+    perform: mineflayer => async (item_name: string, num: number) => {
+      await skills.takeFromChest(mineflayer, item_name, num)
       return 'Taking items from chest...'
     },
   },
@@ -306,8 +294,8 @@ export const actionsList: Action[] = [
     name: 'viewChest',
     description: 'View the items/counts of the nearest chest.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => async () => {
-      await skills.viewChest(ctx)
+    perform: mineflayer => async () => {
+      await skills.viewChest(mineflayer)
       return 'Viewing chest contents...'
     },
   },
@@ -319,11 +307,11 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to discard.'),
       num: z.number().int().describe('The number of items to discard.').min(1),
     }),
-    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
-      const start_loc = ctx.bot.entity.position
-      await skills.moveAway(ctx, 5)
-      await skills.discard(ctx, item_name, num)
-      await skills.goToPosition(ctx, start_loc.x, start_loc.y, start_loc.z, 0)
+    perform: mineflayer => async (item_name: string, num: number) => {
+      const start_loc = mineflayer.bot.entity.position
+      await skills.moveAway(mineflayer, 5)
+      await skills.discard(mineflayer, item_name, num)
+      await skills.goToPosition(mineflayer, start_loc.x, start_loc.y, start_loc.z, 0)
       return 'Discarding items...'
     },
   },
@@ -335,8 +323,8 @@ export const actionsList: Action[] = [
       type: z.string().describe('The block type to collect.'),
       num: z.number().int().describe('The number of blocks to collect.').min(1),
     }),
-    perform: (ctx: SkillContext) => async (type: string, num: number) => {
-      await skills.collectBlock(ctx, type, num)
+    perform: mineflayer => async (type: string, num: number) => {
+      await skills.collectBlock(mineflayer, type, num)
       return 'Collecting blocks...'
     },
   },
@@ -348,8 +336,8 @@ export const actionsList: Action[] = [
       recipe_name: z.string().describe('The name of the output item to craft.'),
       num: z.number().int().describe('The number of times to craft the recipe. This is NOT the number of output items, as it may craft many more items depending on the recipe.').min(1),
     }),
-    perform: (ctx: SkillContext) => async (recipe_name: string, num: number) => {
-      await skills.craftRecipe(ctx, recipe_name, num)
+    perform: mineflayer => async (recipe_name: string, num: number) => {
+      await skills.craftRecipe(mineflayer, recipe_name, num)
       return 'Crafting items...'
     },
   },
@@ -361,8 +349,8 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the input item to smelt.'),
       num: z.number().int().describe('The number of times to smelt the item.').min(1),
     }),
-    perform: (ctx: SkillContext) => async (item_name: string, num: number) => {
-      await skills.smeltItem(ctx, item_name, num)
+    perform: mineflayer => async (item_name: string, num: number) => {
+      await skills.smeltItem(mineflayer, item_name, num)
       return 'Smelting items...'
     },
   },
@@ -371,8 +359,8 @@ export const actionsList: Action[] = [
     name: 'clearFurnace',
     description: 'Take all items out of the nearest furnace.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => async () => {
-      await skills.clearNearestFurnace(ctx)
+    perform: mineflayer => async () => {
+      await skills.clearNearestFurnace(mineflayer)
       return 'Clearing furnace...'
     },
   },
@@ -383,9 +371,9 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.string().describe('The block type to place.'),
     }),
-    perform: (ctx: SkillContext) => async (type: string) => {
-      const pos = ctx.bot.entity.position
-      await skills.placeBlock(ctx, type, pos.x, pos.y, pos.z)
+    perform: mineflayer => async (type: string) => {
+      const pos = mineflayer.bot.entity.position
+      await skills.placeBlock(mineflayer, type, pos.x, pos.y, pos.z)
       return 'Placing block...'
     },
   },
@@ -396,8 +384,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.string().describe('The type of entity to attack.'),
     }),
-    perform: (ctx: SkillContext) => async (type: string) => {
-      await skills.attackNearest(ctx, type, true)
+    perform: mineflayer => async (type: string) => {
+      await skills.attackNearest(mineflayer, type, true)
       return 'Attacking entity...'
     },
   },
@@ -408,13 +396,13 @@ export const actionsList: Action[] = [
     schema: z.object({
       player_name: z.string().describe('The name of the player to attack.'),
     }),
-    perform: (ctx: SkillContext) => async (player_name: string) => {
-      const player = ctx.bot.players[player_name]?.entity
+    perform: mineflayer => async (player_name: string) => {
+      const player = mineflayer.bot.players[player_name]?.entity
       if (!player) {
-        skills.log(ctx, `Could not find player ${player_name}.`)
+        skills.log(mineflayer, `Could not find player ${player_name}.`)
         return 'Player not found'
       }
-      await skills.attackEntity(ctx, player, true)
+      await skills.attackEntity(mineflayer, player, true)
       return 'Attacking player...'
     },
   },
@@ -423,8 +411,8 @@ export const actionsList: Action[] = [
     name: 'goToBed',
     description: 'Go to the nearest bed and sleep.',
     schema: z.object({}),
-    perform: (ctx: SkillContext) => async () => {
-      await skills.goToBed(ctx)
+    perform: mineflayer => async () => {
+      await skills.goToBed(mineflayer)
       return 'Going to bed...'
     },
   },
@@ -435,8 +423,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.string().describe('The type of object to activate.'),
     }),
-    perform: (ctx: SkillContext) => async (type: string) => {
-      await skills.activateNearestBlock(ctx, type)
+    perform: mineflayer => async (type: string) => {
+      await skills.activateNearestBlock(mineflayer, type)
       return 'Activating block...'
     },
   },
@@ -447,8 +435,8 @@ export const actionsList: Action[] = [
     schema: z.object({
       type: z.number().int().describe('The number of seconds to stay. -1 for forever.').min(-1),
     }),
-    perform: (ctx: SkillContext) => async (seconds: number) => {
-      await skills.stay(ctx, seconds)
+    perform: mineflayer => async (seconds: number) => {
+      await skills.stay(mineflayer, seconds)
       return 'Staying in place...'
     },
   },
@@ -460,7 +448,7 @@ export const actionsList: Action[] = [
   //       mode_name: z.string().describe('The name of the mode to enable.'),
   //       on: z.boolean().describe('Whether to enable or disable the mode.'),
   //     }),
-  //     perform: (ctx: BotContext) => async (mode_name: string, on: boolean) => {
+  //     perform: (mineflayer: BotContext) => async (mode_name: string, on: boolean) => {
   //       const modes = ctx.bot.modes
   //       if (!modes.exists(mode_name))
   //         return `Mode ${mode_name} does not exist.${modes.getDocs()}`
@@ -479,7 +467,7 @@ export const actionsList: Action[] = [
   //     schema: z.object({
   //       selfPrompt: z.string().describe('The goal prompt.'),
   //     }),
-  //     perform: (ctx: BotContext) => async (prompt: string) => {
+  //     perform: (mineflayer: BotContext) => async (prompt: string) => {
   //       if (convoManager.inConversation()) {
   //         ctx.self_prompter.setPrompt(prompt)
   //         convoManager.scheduleSelfPrompter()
@@ -497,7 +485,7 @@ export const actionsList: Action[] = [
   //     name: 'endGoal',
   //     description: 'Call when you have accomplished your goal. It will stop self-prompting and the current action.',
   //     schema: z.object({}),
-  //     perform: (ctx: BotContext) => async () => {
+  //     perform: (mineflayer: BotContext) => async () => {
   //       ctx.self_prompter.stop()
   //       convoManager.cancelSelfPrompter()
   //       return 'Self-prompting stopped.'
@@ -513,7 +501,7 @@ export const actionsList: Action[] = [
   //       player_name: z.string().describe('The name of the player to send the message to.'),
   //       message: z.string().describe('The message to send.'),
   //     }),
-  //     perform: (ctx: BotContext) => async (player_name: string, message: string) => {
+  //     perform: (mineflayer: BotContext) => async (player_name: string, message: string) => {
   //       if (!convoManager.isOtherAgent(player_name))
   //         return `${player_name} is not a bot, cannot start conversation.`
   //       if (convoManager.inConversation() && !convoManager.inConversation(player_name))
@@ -532,7 +520,7 @@ export const actionsList: Action[] = [
   //     schema: z.object({
   //       player_name: z.string().describe('The name of the player to end the conversation with.'),
   //     }),
-  //     perform: (ctx: BotContext) => async (player_name: string) => {
+  //     perform: (mineflayer: BotContext) => async (player_name: string) => {
   //       if (!convoManager.inConversation(player_name))
   //         return `Not in conversation with ${player_name}.`
   //       convoManager.endConversation(player_name)

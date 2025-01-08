@@ -1,5 +1,4 @@
 import type { Entity } from 'prismarine-entity'
-import type { BotContext } from '../composables/bot'
 
 // TODO: need to be refactored
 interface ChatBotContext {
@@ -11,20 +10,21 @@ interface ChatBotContext {
   isCommand: () => boolean
 }
 
-export function newChatBotContext(ctx: BotContext, username: string, message: string): ChatBotContext {
+export function newChatBotContext(entity: Entity, botUsername: string, username: string, message: string): ChatBotContext {
   return {
     fromUsername: username,
-    fromEntity: ctx.bot.entity,
+    fromEntity: entity,
     fromMessage: message,
-    isBot: () => username === ctx.bot.username,
+    isBot: () => username === botUsername,
     isCommand: () => message.startsWith('#'),
   }
 }
 
-export function formBotChat(ctx: BotContext, cb: (username: string, message: string) => void) {
+export function formBotChat(botUsername: string, cb: (username: string, message: string) => void) {
   return (username: string, message: string) => {
-    if (ctx.bot.username === username)
+    if (botUsername === username)
       return
+
     cb(username, message)
   }
 }

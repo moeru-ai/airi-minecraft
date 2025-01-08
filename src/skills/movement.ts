@@ -1,5 +1,6 @@
 import type { Entity } from 'prismarine-entity'
-import type { SkillContext } from './base'
+import type { Mineflayer } from '../libs/mineflayer'
+
 import pathfinderModel from 'mineflayer-pathfinder'
 import * as world from '../composables/world'
 import { log } from './base'
@@ -7,74 +8,72 @@ import { log } from './base'
 const { goals, Movements } = pathfinderModel
 
 export async function goToPosition(
-  ctx: SkillContext,
+  mineflayer: Mineflayer,
   x: number,
   y: number,
   z: number,
   minDistance = 2,
 ): Promise<boolean> {
   if (x == null || y == null || z == null) {
-    log(ctx, `Missing coordinates, given x:${x} y:${y} z:${z}`)
+    log(mineflayer, `Missing coordinates, given x:${x} y:${y} z:${z}`)
     return false
   }
 
-  if (ctx.allowCheats) {
-    ctx.bot.chat(`/tp @s ${x} ${y} ${z}`)
-    log(ctx, `Teleported to ${x}, ${y}, ${z}.`)
+  if (mineflayer.allowCheats) {
+    mineflayer.bot.chat(`/tp @s ${x} ${y} ${z}`)
+    log(mineflayer, `Teleported to ${x}, ${y}, ${z}.`)
     return true
   }
 
-  await ctx.bot.pathfinder.goto(new goals.GoalNear(x, y, z, minDistance))
-  log(ctx, `You have reached ${x}, ${y}, ${z}.`)
+  await mineflayer.bot.pathfinder.goto(new goals.GoalNear(x, y, z, minDistance))
+  log(mineflayer, `You have reached ${x}, ${y}, ${z}.`)
   return true
 }
 
 export async function goToNearestBlock(
-  ctx: SkillContext,
+  mineflayer: Mineflayer,
   blockType: string,
   minDistance = 2,
   range = 64,
 ): Promise<boolean> {
   const MAX_RANGE = 512
   if (range > MAX_RANGE) {
-    log(ctx, `Maximum search range capped at ${MAX_RANGE}.`)
+    log(mineflayer, `Maximum search range capped at ${MAX_RANGE}.`)
     range = MAX_RANGE
   }
 
-  const worldCtx = world.createWorldContext(ctx.botCtx)
-  const block = world.getNearestBlock(worldCtx, blockType, range)
+  const block = world.getNearestBlock(mineflayer, blockType, range)
   if (!block) {
-    log(ctx, `Could not find any ${blockType} in ${range} blocks.`)
+    log(mineflayer, `Could not find any ${blockType} in ${range} blocks.`)
     return false
   }
 
-  log(ctx, `Found ${blockType} at ${block.position}.`)
-  await goToPosition(ctx, block.position.x, block.position.y, block.position.z, minDistance)
+  log(mineflayer, `Found ${blockType} at ${block.position}.`)
+  await goToPosition(mineflayer, block.position.x, block.position.y, block.position.z, minDistance)
   return true
 }
 
 export async function goToNearestEntity(
-  ctx: SkillContext,
+  mineflayer: Mineflayer,
   entityType: string,
   minDistance = 2,
   range = 64,
 ): Promise<boolean> {
-  const worldCtx = world.createWorldContext(ctx.botCtx)
   const entity = world.getNearestEntityWhere(
-    worldCtx,
+    mineflayer,
     entity => entity.name === entityType,
     range,
   )
 
   if (!entity) {
-    log(ctx, `Could not find any ${entityType} in ${range} blocks.`)
+    log(mineflayer, `Could not find any ${entityType} in ${range} blocks.`)
     return false
   }
 
-  const distance = ctx.bot.entity.position.distanceTo(entity.position)
-  log(ctx, `Found ${entityType} ${distance} blocks away.`)
+  const distance = mineflayer.bot.entity.position.distanceTo(entity.position)
+  log(mineflayer, `Found ${entityType} ${distance} blocks away.`)
   await goToPosition(
-    ctx,
+    mineflayer,
     entity.position.x,
     entity.position.y,
     entity.position.z,
@@ -84,174 +83,174 @@ export async function goToNearestEntity(
 }
 
 export async function goToPlayer(
-  ctx: SkillContext,
+  mineflayer: Mineflayer,
   username: string,
   distance = 3,
 ): Promise<boolean> {
-  if (ctx.allowCheats) {
-    ctx.bot.chat(`/tp @s ${username}`)
-    log(ctx, `Teleported to ${username}.`)
+  if (mineflayer.allowCheats) {
+    mineflayer.bot.chat(`/tp @s ${username}`)
+    log(mineflayer, `Teleported to ${username}.`)
     return true
   }
 
-  const player = ctx.bot.players[username]?.entity
+  const player = mineflayer.bot.players[username]?.entity
   if (!player) {
-    log(ctx, `Could not find ${username}.`)
+    log(mineflayer, `Could not find ${username}.`)
     return false
   }
 
-  await ctx.bot.pathfinder.goto(new goals.GoalFollow(player, distance))
-  log(ctx, `You have reached ${username}.`)
+  await mineflayer.bot.pathfinder.goto(new goals.GoalFollow(player, distance))
+  log(mineflayer, `You have reached ${username}.`)
   return true
 }
 
 export async function followPlayer(
-  ctx: SkillContext,
+  mineflayer: Mineflayer,
   username: string,
   distance = 4,
 ): Promise<boolean> {
-  // const player = ctx.bot.players[username]?.entity
+  // const player = mineflayer.bot.players[username]?.entity
   // if (!player) {
-  //   log(ctx, `Could not find player ${username}`)
+  //   log(mineflayer, `Could not find player ${username}`)
   //   return false
   // }
 
-  // const movements = new Movements(ctx.bot)
-  // ctx.bot.pathfinder.setMovements(movements)
-  // ctx.bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
+  // const movements = new Movements(mineflayer.bot)
+  // mineflayer.bot.pathfinder.setMovements(movements)
+  // mineflayer.bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
 
-  // log(ctx, `Started following ${username}`)
+  // log(mineflayer, `Started following ${username}`)
 
   // const followInterval = setInterval(() => {
-  //   const target = ctx.bot.players[username]?.entity
+  //   const target = mineflayer.bot.players[username]?.entity
   //   if (!target) {
-  //     log(ctx, 'Lost sight of player')
+  //     log(mineflayer, 'Lost sight of player')
   //     clearInterval(followInterval)
   //     return
   //   }
 
   //   const { x, y, z } = target.position
-  //   ctx.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
+  //   mineflayer.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
   // }, 1000)
 
   // while (!ctx.shouldInterrupt) {
   //   await new Promise(resolve => setTimeout(resolve, 500))
 
-  //   if (ctx.allowCheats && ctx.bot.entity.position.distanceTo(player.position) > 100) {
+  //   if (mineflayer.allowCheats && mineflayer.bot.entity.position.distanceTo(player.position) > 100) {
   //     await goToPlayer(ctx, username)
   //   }
   // }
 
   // // TODO: need global status management
   // clearInterval(followInterval)
-  // ctx.bot.pathfinder.stop()
+  // mineflayer.bot.pathfinder.stop()
   // return true
 
-  const player = ctx.bot.players[username]?.entity
+  const player = mineflayer.bot.players[username]?.entity
   if (!player) {
     return false
   }
 
-  const movements = new Movements(ctx.bot)
-  ctx.bot.pathfinder.setMovements(movements)
-  ctx.bot.pathfinder.setGoal(new goals.GoalFollow(player, distance), true)
-  log(ctx, `You are now actively following player ${username}.`)
+  const movements = new Movements(mineflayer.bot)
+  mineflayer.bot.pathfinder.setMovements(movements)
+  mineflayer.bot.pathfinder.setGoal(new goals.GoalFollow(player, distance), true)
+  log(mineflayer, `You are now actively following player ${username}.`)
 
-  while (!ctx.shouldInterrupt) {
+  while (!mineflayer.shouldInterrupt) {
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    if (ctx.allowCheats && ctx.bot.entity.position.distanceTo(player.position) > 100 && player.onGround) {
-      await goToPlayer(ctx, username)
+    if (mineflayer.allowCheats && mineflayer.bot.entity.position.distanceTo(player.position) > 100 && player.onGround) {
+      await goToPlayer(mineflayer, username)
     }
 
-    // if (ctx.bot.modes?.isOn('unstuck')) {
-    //   const isNearby = ctx.bot.entity.position.distanceTo(player.position) <= distance + 1
+    // if (mineflayer.bot.modes?.isOn('unstuck')) {
+    //   const isNearby = mineflayer.bot.entity.position.distanceTo(player.position) <= distance + 1
     //   if (isNearby) {
-    //     ctx.bot.modes.pause('unstuck')
+    //     mineflayer.bot.modes.pause('unstuck')
     //   } else {
-    //     ctx.bot.modes.unpause('unstuck')
+    //     mineflayer.bot.modes.unpause('unstuck')
     //   }
     // }
   }
   return true
 }
 
-export async function moveAway(ctx: SkillContext, distance: number): Promise<boolean> {
-  const pos = ctx.bot.entity.position
+export async function moveAway(mineflayer: Mineflayer, distance: number): Promise<boolean> {
+  const pos = mineflayer.bot.entity.position
   const goal = new goals.GoalNear(pos.x, pos.y, pos.z, distance)
   const invertedGoal = new goals.GoalInvert(goal)
 
-  if (ctx.allowCheats) {
-    const move = new Movements(ctx.bot)
-    const path = await ctx.bot.pathfinder.getPathTo(move, invertedGoal, 10000)
+  if (mineflayer.allowCheats) {
+    const move = new Movements(mineflayer.bot)
+    const path = await mineflayer.bot.pathfinder.getPathTo(move, invertedGoal, 10000)
     const lastMove = path.path[path.path.length - 1]
 
     if (lastMove) {
       const x = Math.floor(lastMove.x)
       const y = Math.floor(lastMove.y)
       const z = Math.floor(lastMove.z)
-      ctx.bot.chat(`/tp @s ${x} ${y} ${z}`)
+      mineflayer.bot.chat(`/tp @s ${x} ${y} ${z}`)
       return true
     }
   }
 
-  await ctx.bot.pathfinder.goto(invertedGoal)
-  const newPos = ctx.bot.entity.position
-  log(ctx, `Moved away from nearest entity to ${newPos}.`)
+  await mineflayer.bot.pathfinder.goto(invertedGoal)
+  const newPos = mineflayer.bot.entity.position
+  log(mineflayer, `Moved away from nearest entity to ${newPos}.`)
   return true
 }
 
 export async function moveAwayFromEntity(
-  ctx: SkillContext,
+  mineflayer: Mineflayer,
   entity: Entity,
   distance = 16,
 ): Promise<boolean> {
   const goal = new goals.GoalFollow(entity, distance)
   const invertedGoal = new goals.GoalInvert(goal)
-  await ctx.bot.pathfinder.goto(invertedGoal)
+  await mineflayer.bot.pathfinder.goto(invertedGoal)
   return true
 }
 
-export async function stay(ctx: SkillContext, seconds = 30): Promise<boolean> {
+export async function stay(mineflayer: Mineflayer, seconds = 30): Promise<boolean> {
   const start = Date.now()
   const targetTime = seconds === -1 ? Infinity : start + seconds * 1000
 
-  while (!ctx.shouldInterrupt && Date.now() < targetTime) {
+  while (!mineflayer.shouldInterrupt && Date.now() < targetTime) {
     await new Promise(resolve => setTimeout(resolve, 500))
   }
 
-  log(ctx, `Stayed for ${(Date.now() - start) / 1000} seconds.`)
+  log(mineflayer, `Stayed for ${(Date.now() - start) / 1000} seconds.`)
   return true
 }
 
-export async function goToBed(ctx: SkillContext): Promise<boolean> {
-  const beds = ctx.bot.findBlocks({
+export async function goToBed(mineflayer: Mineflayer): Promise<boolean> {
+  const beds = mineflayer.bot.findBlocks({
     matching: block => block.name.includes('bed'),
     maxDistance: 32,
     count: 1,
   })
 
   if (beds.length === 0) {
-    log(ctx, 'Could not find a bed to sleep in.')
+    log(mineflayer, 'Could not find a bed to sleep in.')
     return false
   }
 
   const loc = beds[0]
-  await goToPosition(ctx, loc.x, loc.y, loc.z)
+  await goToPosition(mineflayer, loc.x, loc.y, loc.z)
 
-  const bed = ctx.bot.blockAt(loc)
+  const bed = mineflayer.bot.blockAt(loc)
   if (!bed) {
-    log(ctx, 'Could not find bed block.')
+    log(mineflayer, 'Could not find bed block.')
     return false
   }
 
-  await ctx.bot.sleep(bed)
-  log(ctx, 'You are in bed.')
+  await mineflayer.bot.sleep(bed)
+  log(mineflayer, 'You are in bed.')
 
-  while (ctx.bot.isSleeping) {
+  while (mineflayer.bot.isSleeping) {
     await new Promise(resolve => setTimeout(resolve, 500))
   }
 
-  log(ctx, 'You have woken up.')
+  log(mineflayer, 'You have woken up.')
   return true
 }

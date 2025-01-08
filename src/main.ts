@@ -1,42 +1,47 @@
 import process, { exit } from 'node:process'
 
 import { useLogg } from '@guiiai/logg'
+import MineflayerArmorManager from 'mineflayer-armor-manager'
+import { loader as MineflayerAutoEat } from 'mineflayer-auto-eat'
+import { plugin as MineflayerCollectBlock } from 'mineflayer-collectblock'
+import { pathfinder as MineflayerPathfinder } from 'mineflayer-pathfinder'
+import { plugin as MineflayerPVP } from 'mineflayer-pvp'
+import { plugin as MineflayerTool } from 'mineflayer-tool'
 
 import { initAgent } from './agents/openai'
-import { createAiChatComponent } from './components/aichat'
-import { createCommandComponent } from './components/command'
-import { createFollowComponent } from './components/follow'
-import { createPathFinderComponent } from './components/pathfinder'
-import { createStatusComponent } from './components/status'
-import { createBot, useBot } from './composables/bot'
+import { initBot, useBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
+import { wrapPlugin } from './libs/mineflayer/plugin'
+import { Echo, FollowCommand, PathFinder, Status } from './mineflayer'
 import { initLogger } from './utils/logger'
-import { createTicker } from './utils/ticker'
 
 const logger = useLogg('main').useGlobalConfig()
 
 async function main() {
   initLogger() // todo: save logs to file
   initEnv()
-
-  createBot(botConfig)
-  const { cleanup, registerComponent, ctx } = useBot()
-
-  ctx.bot.once('spawn', () => {
-    registerComponent('status', createStatusComponent)
-    // registerComponent('echo', createEchoComponent)
-    registerComponent('pathfinder', createPathFinderComponent)
-    registerComponent('follow', createFollowComponent)
-    registerComponent('command', createCommandComponent)
-    registerComponent('aichat', createAiChatComponent)
+  initBot({
+    botConfig,
+    plugins: [
+      wrapPlugin(MineflayerArmorManager),
+      wrapPlugin(MineflayerAutoEat),
+      wrapPlugin(MineflayerCollectBlock),
+      wrapPlugin(MineflayerPathfinder),
+      wrapPlugin(MineflayerPVP),
+      wrapPlugin(MineflayerTool),
+      Echo(),
+      FollowCommand(),
+      Status(),
+      PathFinder(),
+    ],
   })
 
-  await initAgent(ctx)
+  const { bot } = useBot()
 
-  createTicker()
+  await initAgent(bot)
 
   process.on('SIGINT', () => {
-    cleanup()
+    bot.stop()
     exit(0)
   })
 }

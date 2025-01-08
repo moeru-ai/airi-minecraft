@@ -1,9 +1,8 @@
 import type { Agent, Neuri } from 'neuri'
-import type { BotContext } from '../composables/bot'
+import type { Mineflayer } from '../libs/mineflayer'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../composables/config'
-import { useSkillContext } from '../skills'
 import { actionsList } from './actions'
 
 let neuriAgent: Neuri | undefined
@@ -11,11 +10,11 @@ const agents = new Set<Agent | Promise<Agent>>()
 
 const logger = useLogg('openai').useGlobalConfig()
 
-export async function initAgent(ctx: BotContext): Promise<Neuri> {
+export async function initAgent(mineflayer: Mineflayer): Promise<Neuri> {
   logger.log('Initializing agent')
   let n = neuri()
 
-  agents.add(initActionAgent(ctx))
+  agents.add(initActionAgent(mineflayer))
 
   agents.forEach(agent => n = n.agent(agent))
 
@@ -36,7 +35,7 @@ export function getAgent(): Neuri {
   return neuriAgent
 }
 
-export async function initActionAgent(ctx: BotContext): Promise<Agent> {
+export async function initActionAgent(mineflayer: Mineflayer): Promise<Agent> {
   logger.log('Initializing action agent')
   let actionAgent = agent('action')
 
@@ -46,8 +45,8 @@ export async function initActionAgent(ctx: BotContext): Promise<Agent> {
       action.schema,
       async ({ parameters }) => {
         logger.withFields({ name: action.name, parameters }).log('Calling action')
-        ctx.memory.actions.push(action)
-        return action.perform(useSkillContext(ctx))(...Object.values(parameters))
+        mineflayer.memory.actions.push(action)
+        return action.perform(mineflayer)(...Object.values(parameters))
       },
       { description: action.description },
     )
