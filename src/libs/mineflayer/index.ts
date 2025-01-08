@@ -140,6 +140,7 @@ export class Mineflayer {
   public ready: boolean = false
   public components: Components = new Components()
   public status: Status = new Status()
+  public memory: Memory = new Memory()
 
   public isCreative: boolean = false
   public shouldInterrupt: boolean = false
@@ -156,109 +157,115 @@ export class Mineflayer {
     this.bot = mineflayer.createBot(options.botConfig)
     this.username = options.botConfig.username
     this.logger = useLogg(`Bot:${this.username}`).useGlobalConfig()
+  }
 
-    this.bot.on('messagestr', async (message, _, jsonMsg) => {
+  static async asyncBuild(options: MineflayerOptions) {
+    const mineflayer = new Mineflayer(options)
+
+    mineflayer.bot.on('messagestr', async (message, _, jsonMsg) => {
       // jsonMsg.translate:
       // - death.attack.player
       // message:
       // - <bot username> was slain by <player / entity>
       // - <bot username> drowned
-      if (jsonMsg.translate && jsonMsg.translate.startsWith('death') && message.startsWith(this.username)) {
-        const deathPos = this.bot.entity.position
+      if (jsonMsg.translate && jsonMsg.translate.startsWith('death') && message.startsWith(mineflayer.username)) {
+        const deathPos = mineflayer.bot.entity.position
 
-        // this.memory_bank.rememberPlace('last_death_position', deathPos.x, deathPos.y, deathPos.z)
+        // mineflayer.memory_bank.rememberPlace('last_death_position', deathPos.x, deathPos.y, deathPos.z)
         let deathPosStr: string | undefined
         if (deathPos) {
           deathPosStr = `x: ${deathPos.x.toFixed(2)}, y: ${deathPos.y.toFixed(2)}, z: ${deathPos.x.toFixed(2)}`
         }
 
-        const dimension = this.bot.game.dimension
-        await this.handleMessage('system', `You died at position ${deathPosStr || 'unknown'} in the ${dimension} dimension with the final message: '${message}'. Your place of death has been saved as 'last_death_position' if you want to return. Previous actions were stopped and you have re-spawned.`)
+        const dimension = mineflayer.bot.game.dimension
+        await mineflayer.handleMessage('system', `You died at position ${deathPosStr || 'unknown'} in the ${dimension} dimension with the final message: '${message}'. Your place of death has been saved as 'last_death_position' if you want to return. Previous actions were stopped and you have re-spawned.`)
       }
     })
 
-    this.bot.once('resourcePack', () => {
-      this.bot.acceptResourcePack()
+    mineflayer.bot.once('resourcePack', () => {
+      mineflayer.bot.acceptResourcePack()
     })
 
-    this.bot.on('time', () => {
-      if (this.bot.time.timeOfDay === 0)
-        this.emit('time:sunrise', { time: this.bot.time.timeOfDay })
-      else if (this.bot.time.timeOfDay === 6000)
-        this.emit('time:noon', { time: this.bot.time.timeOfDay })
-      else if (this.bot.time.timeOfDay === 12000)
-        this.emit('time:sunset', { time: this.bot.time.timeOfDay })
-      else if (this.bot.time.timeOfDay === 18000)
-        this.emit('time:midnight', { time: this.bot.time.timeOfDay })
+    mineflayer.bot.on('time', () => {
+      if (mineflayer.bot.time.timeOfDay === 0)
+        mineflayer.emit('time:sunrise', { time: mineflayer.bot.time.timeOfDay })
+      else if (mineflayer.bot.time.timeOfDay === 6000)
+        mineflayer.emit('time:noon', { time: mineflayer.bot.time.timeOfDay })
+      else if (mineflayer.bot.time.timeOfDay === 12000)
+        mineflayer.emit('time:sunset', { time: mineflayer.bot.time.timeOfDay })
+      else if (mineflayer.bot.time.timeOfDay === 18000)
+        mineflayer.emit('time:midnight', { time: mineflayer.bot.time.timeOfDay })
     })
 
-    this.bot.on('health', () => {
-      this.logger.withFields({
-        health: this.health.value,
-        lastDamageTime: this.health.lastDamageTime,
-        lastDamageTaken: this.health.lastDamageTaken,
-        previousHealth: this.bot.health,
+    mineflayer.bot.on('health', () => {
+      mineflayer.logger.withFields({
+        health: mineflayer.health.value,
+        lastDamageTime: mineflayer.health.lastDamageTime,
+        lastDamageTaken: mineflayer.health.lastDamageTaken,
+        previousHealth: mineflayer.bot.health,
       }).log('Health updated')
 
-      if (this.bot.health < this.health.value) {
-        this.health.lastDamageTime = Date.now()
-        this.health.lastDamageTaken = this.health.value - this.bot.health
+      if (mineflayer.bot.health < mineflayer.health.value) {
+        mineflayer.health.lastDamageTime = Date.now()
+        mineflayer.health.lastDamageTaken = mineflayer.health.value - mineflayer.bot.health
       }
 
-      this.health.value = this.bot.health
+      mineflayer.health.value = mineflayer.bot.health
     })
 
-    this.bot.once('spawn', () => {
-      this.ready = true
-      this.logger.log('Bot ready')
+    mineflayer.bot.once('spawn', () => {
+      mineflayer.ready = true
+      mineflayer.logger.log('Bot ready')
     })
 
-    this.bot.on('death', () => {
-      this.logger.error('Bot died')
+    mineflayer.bot.on('death', () => {
+      mineflayer.logger.error('Bot died')
     })
 
-    this.bot.on('kicked', (reason: string) => {
-      this.logger.withFields({ reason }).error('Bot was kicked')
+    mineflayer.bot.on('kicked', (reason: string) => {
+      mineflayer.logger.withFields({ reason }).error('Bot was kicked')
     })
 
-    this.bot.on('end', (reason) => {
-      this.logger.withFields({ reason }).log('Bot ended')
+    mineflayer.bot.on('end', (reason) => {
+      mineflayer.logger.withFields({ reason }).log('Bot ended')
     })
 
-    this.bot.on('error', (err: Error) => {
-      this.logger.errorWithError('Bot error:', err)
+    mineflayer.bot.on('error', (err: Error) => {
+      mineflayer.logger.errorWithError('Bot error:', err)
     })
 
-    this.bot.on('spawn', () => {
-      this.bot.on('chat', this.handleCommand())
+    mineflayer.bot.on('spawn', () => {
+      mineflayer.bot.on('chat', mineflayer.handleCommand())
     })
 
-    this.bot.on('spawn', () => {
+    mineflayer.bot.on('spawn', async () => {
       for (const plugin of options?.plugins || []) {
         if (plugin.spawned) {
-          plugin.spawned(this)
+          await plugin.spawned(mineflayer)
         }
       }
     })
 
     for (const plugin of options?.plugins || []) {
       if (plugin.created) {
-        plugin.created(this)
+        await plugin.created(mineflayer)
       }
     }
 
     // Load Plugins
     for (const plugin of options?.plugins || []) {
       if (plugin.loadPlugin) {
-        this.bot.loadPlugin(plugin.loadPlugin(this, this.bot, options.botConfig))
+        mineflayer.bot.loadPlugin(await plugin.loadPlugin(mineflayer, mineflayer.bot, options.botConfig))
       }
     }
 
-    this.ticker.on('tick', () => {
-      this.isCreative = this.bot.game?.gameMode === 'creative'
-      this.allowCheats = false
-      this.shouldInterrupt = false
+    mineflayer.ticker.on('tick', () => {
+      mineflayer.isCreative = mineflayer.bot.game?.gameMode === 'creative'
+      mineflayer.allowCheats = false
+      mineflayer.shouldInterrupt = false
     })
+
+    return mineflayer
   }
 
   public onCommand(commandName: string, cb: EventsHandler<'command'>) {
@@ -276,10 +283,10 @@ export class Mineflayer {
     }
   }
 
-  public stop() {
+  public async stop() {
     for (const plugin of this.options?.plugins || []) {
       if (plugin.beforeCleanup) {
-        plugin.beforeCleanup(this)
+        await plugin.beforeCleanup(this)
       }
     }
     this.components.cleanup()

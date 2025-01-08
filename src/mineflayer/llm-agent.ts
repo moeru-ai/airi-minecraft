@@ -6,9 +6,11 @@ import { assistant, system, user } from 'neuri/openai'
 import { formBotChat } from '../libs/mineflayer/message'
 import { genActionAgentPrompt } from '../prompts/agent'
 
-export function LLMAgent(agent: Neuri): MineflayerPlugin {
+export function LLMAgent(options: { agent: () => Promise<Neuri> }): MineflayerPlugin {
   return {
-    created(bot) {
+    async created(bot) {
+      const agent = await options.agent()
+
       const logger = useLogg('aichat').useGlobalConfig()
       logger.log('Loading aichat plugin')
 

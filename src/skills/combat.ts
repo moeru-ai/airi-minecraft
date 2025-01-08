@@ -72,12 +72,10 @@ export async function attackEntity(
     return true
   }
 
-  // @ts-expect-error -- ?
   mineflayer.bot.pvp.attack(entity)
   while (world.getNearbyEntities(mineflayer, 24).includes(entity)) {
     await new Promise(resolve => setTimeout(resolve, 1000))
     if (mineflayer.shouldInterrupt) {
-      // @ts-expect-error -- ?
       mineflayer.bot.pvp.stop()
       return false
     }
@@ -112,20 +110,17 @@ export async function defendSelf(mineflayer: Mineflayer, range = 9): Promise<boo
       catch { /* might error if entity dies, ignore */ }
     }
 
-    // @ts-expect-error -- ?
     mineflayer.bot.pvp.attack(enemy)
     attacked = true
     await new Promise(resolve => setTimeout(resolve, 500))
     enemy = world.getNearestEntityWhere(mineflayer, entity => mc.isHostile(entity), range)
 
     if (mineflayer.shouldInterrupt) {
-      // @ts-expect-error -- ?
       mineflayer.bot.pvp.stop()
       return false
     }
   }
 
-  // @ts-expect-error -- ?
   mineflayer.bot.pvp.stop()
   if (attacked) {
     log(mineflayer, 'Successfully defended self.')

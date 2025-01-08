@@ -13,6 +13,7 @@ import { initBot, useBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
 import { wrapPlugin } from './libs/mineflayer/plugin'
 import { Echo, FollowCommand, PathFinder, Status } from './mineflayer'
+import { LLMAgent } from './mineflayer/llm-agent'
 import { initLogger } from './utils/logger'
 
 const logger = useLogg('main').useGlobalConfig()
@@ -20,7 +21,9 @@ const logger = useLogg('main').useGlobalConfig()
 async function main() {
   initLogger() // todo: save logs to file
   initEnv()
-  initBot({
+  const { bot } = useBot()
+
+  await initBot({
     botConfig,
     plugins: [
       wrapPlugin(MineflayerArmorManager),
@@ -29,16 +32,15 @@ async function main() {
       wrapPlugin(MineflayerPathfinder),
       wrapPlugin(MineflayerPVP),
       wrapPlugin(MineflayerTool),
-      Echo(),
+      // Echo(),
       FollowCommand(),
       Status(),
       PathFinder(),
+      LLMAgent({
+        agent: async () => await initAgent(bot),
+      }),
     ],
   })
-
-  const { bot } = useBot()
-
-  await initAgent(bot)
 
   process.on('SIGINT', () => {
     bot.stop()
