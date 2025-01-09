@@ -111,44 +111,44 @@ export async function followPlayer(
   distance = 4,
 ): Promise<boolean> {
   const player = mineflayer.bot.players[username]?.entity
-  const movements = new Movements(mineflayer.bot)
-
   if (!player) {
-    log(mineflayer, `Could not find ${username}.`)
     return false
   }
 
-  log(mineflayer, `I am now following ${username}.`)
+  const movements = new Movements(mineflayer.bot)
+  mineflayer.bot.pathfinder.setMovements(movements)
+  mineflayer.bot.pathfinder.setGoal(new goals.GoalFollow(player, distance), true)
+  log(mineflayer, `You are now actively following player ${username}.`)
 
-  return new Promise<boolean>((resolve) => {
-    let isFollowing = true
+  let shouldInterrupt = false
 
-    // Stop following when interrupted
-    mineflayer.once('interrupt', () => {
-      isFollowing = false
-      resolve(true)
-    })
-
-    // Follow player at regular intervals
-    const follow = async (): Promise<void> => {
-      while (isFollowing) {
-        const target = mineflayer.bot.players[username]?.entity
-        if (!target) {
-          log(mineflayer, 'I lost sight of you!')
-          isFollowing = false
-          resolve(false)
-          return
-        }
-
-        const { x, y, z } = target.position
-        mineflayer.bot.pathfinder.setMovements(movements)
-        mineflayer.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
-        // await sleep(500)
-      }
-    }
-
-    follow()
+  mineflayer.on('interrupt', () => {
+    shouldInterrupt = true
   })
+
+  async function follow() {
+    // eslint-disable-next-line no-unmodified-loop-condition
+    while (!shouldInterrupt) {
+      await sleep(500)
+
+      if (mineflayer.allowCheats && mineflayer.bot.entity.position.distanceTo(player.position) > 100 && player.onGround) {
+        await goToPlayer(mineflayer, username)
+      }
+
+      // if (mineflayer.bot.modes?.isOn('unstuck')) {
+      //   const isNearby = mineflayer.bot.entity.position.distanceTo(player.position) <= distance + 1
+      //   if (isNearby) {
+      //     mineflayer.bot.modes.pause('unstuck')
+      //   } else {
+      //     mineflayer.bot.modes.unpause('unstuck')
+      //   }
+      // }
+    }
+  }
+
+  follow()
+
+  return true
 }
 
 export async function moveAway(mineflayer: Mineflayer, distance: number): Promise<boolean> {

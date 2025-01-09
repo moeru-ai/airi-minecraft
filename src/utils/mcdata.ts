@@ -3,12 +3,6 @@
  */
 import type { Bot } from 'mineflayer'
 import minecraftData from 'minecraft-data'
-import { createBot } from 'mineflayer'
-import armorManager from 'mineflayer-armor-manager'
-import { loader as autoEat } from 'mineflayer-auto-eat'
-import { plugin as collectblock } from 'mineflayer-collectblock'
-import { pathfinder } from 'mineflayer-pathfinder'
-import { plugin as pvp } from 'mineflayer-pvp'
 import prismarine_items from 'prismarine-item'
 import { botConfig } from '../composables/config'
 
