@@ -10,9 +10,11 @@ const mc_version = botConfig.version!
 const mcdata = minecraftData(mc_version)
 const Item = prismarine_items(mc_version)
 
-interface Recipe {
+interface MinecraftRecipe {
+  result: { id: number, count: number }
   inShape?: Array<Array<{ id: number, count: number }>>
   ingredients?: Array<{ id: number, count: number }>
+  requiresTable?: boolean
 }
 
 export const WOOD_TYPES: string[] = ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak']
@@ -144,24 +146,24 @@ export function getItemCraftingRecipes(itemName: string): Record<string, number>
     return null
   }
 
-  // todo: fix this
   const recipes: Record<string, number>[] = []
-  for (const r of mcdata.recipes[itemId]) {
+  for (const r of mcdata.recipes[itemId] as MinecraftRecipe[]) {
     const recipe: Record<string, number> = {}
-    let ingredients = []
+    let ingredients: Array<{ id: number, count: number }> = []
+
     if (r.ingredients) {
       ingredients = r.ingredients
     }
     else if (r.inShape) {
       ingredients = r.inShape.flat()
     }
+
     for (const ingredient of ingredients) {
-      const ingredientName = getItemName(ingredient)
+      const ingredientName = getItemName(ingredient.id)
       if (ingredientName === null)
         continue
-      if (!recipe[ingredientName])
-        recipe[ingredientName] = 0
-      recipe[ingredientName]++
+      recipe[ingredientName] ??= 0
+      recipe[ingredientName] += ingredient.count
     }
     recipes.push(recipe)
   }
@@ -244,14 +246,18 @@ export function getBlockTool(blockName: string): string | null {
   if (!block || !block.harvestTools) {
     return null
   }
-  return getItemName(Object.keys(block.harvestTools)[0]) // Double check first tool is always simplest
+  const toolId = Number(Object.keys(block.harvestTools)[0])
+  return getItemName(toolId)
 }
 
 export function makeItem(name: string, amount: number = 1): any {
-  return new Item(getItemId(name), amount)
+  const itemId = getItemId(name)
+  if (itemId === null)
+    throw new Error(`Unknown item: ${name}`)
+  return new Item(itemId, amount)
 }
 
-export function ingredientsFromPrismarineRecipe(recipe: Recipe): Record<string, number> {
+export function ingredientsFromPrismarineRecipe(recipe: MinecraftRecipe): Record<string, number> {
   const requiredIngredients: Record<string, number> = {}
   if (recipe.inShape) {
     for (const ingredient of recipe.inShape.flat()) {
