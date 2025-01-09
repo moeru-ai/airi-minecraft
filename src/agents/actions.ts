@@ -19,7 +19,10 @@ export const actionsList: Action[] = [
     name: 'stats',
     description: 'Get your bot\'s location, health, hunger, and time of day.',
     schema: z.object({}),
-    perform: mineflayer => (): string => mineflayer.status.toOneLiner(),
+    perform: mineflayer => (): string => {
+      const status = mineflayer.status.toOneLiner()
+      return status
+    },
   },
   {
     name: 'inventory',

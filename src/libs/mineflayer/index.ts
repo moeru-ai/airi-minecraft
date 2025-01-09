@@ -54,19 +54,30 @@ export class Status implements OneLinerable {
     this.timeOfDay = ''
   }
 
-  static from(mineflayer: Mineflayer) {
+  public update(mineflayer: Mineflayer) {
+    if (!mineflayer.ready)
+      return
+
+    Object.assign(this, Status.from(mineflayer))
+  }
+
+  static from(mineflayer: Mineflayer): Status {
+    if (!mineflayer.ready)
+      return new Status()
+
     const pos = mineflayer.bot.entity.position
     const weather = mineflayer.bot.isRaining ? 'Rain' : mineflayer.bot.thunderState ? 'Thunderstorm' : 'Clear'
     const timeOfDay = mineflayer.bot.time.timeOfDay < 6000
       ? 'Morning'
       : mineflayer.bot.time.timeOfDay < 12000 ? 'Afternoon' : 'Night'
 
-    return {
-      position: `x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)}`,
-      health: `${Math.round(mineflayer.bot.health)} / 20`,
-      weather,
-      timeOfDay,
-    }
+    const status = new Status()
+    status.position = `x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)}`
+    status.health = `${Math.round(mineflayer.bot.health)} / 20`
+    status.weather = weather
+    status.timeOfDay = timeOfDay
+
+    return status
   }
 
   public toOneLiner(): string {
@@ -219,6 +230,17 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
 
     mineflayer.bot.on('end', (reason) => {
       mineflayer.logger.withFields({ reason }).log('Bot ended')
+
+      // Try to reconnect after 5 seconds
+      setTimeout(async () => {
+        try {
+          await mineflayer.bot.connect(options.botConfig)
+          mineflayer.logger.log('Reconnected successfully')
+        }
+        catch (err) {
+          mineflayer.logger.errorWithError('Failed to reconnect:', err)
+        }
+      }, 5000)
     })
 
     mineflayer.bot.on('error', (err: Error) => {
@@ -235,6 +257,10 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
           await plugin.spawned(mineflayer)
         }
       }
+    })
+
+    mineflayer.ticker.on('tick', () => {
+      mineflayer.status.update(mineflayer)
     })
 
     for (const plugin of options?.plugins || []) {
