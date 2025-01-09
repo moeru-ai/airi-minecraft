@@ -1,12 +1,16 @@
 import type { Entity } from 'prismarine-entity'
 import type { Mineflayer } from '../libs/mineflayer'
 
-import pathfinderModel from 'mineflayer-pathfinder'
+import { useLogg } from '@guiiai/logg'
+import { randomInt } from 'es-toolkit'
+import pathfinder from 'mineflayer-pathfinder'
+import { Vec3 } from 'vec3'
 import * as world from '../composables/world'
 import { sleep } from '../utils/helper'
 import { log } from './base'
 
-const { goals, Movements } = pathfinderModel
+const logger = useLogg('Skill:Movement').useGlobalConfig()
+const { goals, Movements } = pathfinder
 
 export async function goToPosition(
   mineflayer: Mineflayer,
@@ -152,28 +156,44 @@ export async function followPlayer(
 }
 
 export async function moveAway(mineflayer: Mineflayer, distance: number): Promise<boolean> {
-  const pos = mineflayer.bot.entity.position
-  const goal = new goals.GoalNear(pos.x, pos.y, pos.z, distance)
-  const invertedGoal = new goals.GoalInvert(goal)
+  try {
+    const pos = mineflayer.bot.entity.position
+    let newX: number = 0
+    let newZ: number = 0
+    let suitableGoal = false
 
-  if (mineflayer.allowCheats) {
-    const move = new Movements(mineflayer.bot)
-    const path = await mineflayer.bot.pathfinder.getPathTo(move, invertedGoal, 10000)
-    const lastMove = path.path[path.path.length - 1]
+    while (!suitableGoal) {
+      const rand1 = randomInt(0, 2)
+      const rand2 = randomInt(0, 2)
+      const bigRand1 = randomInt(0, 101)
+      const bigRand2 = randomInt(0, 101)
 
-    if (lastMove) {
-      const x = Math.floor(lastMove.x)
-      const y = Math.floor(lastMove.y)
-      const z = Math.floor(lastMove.z)
-      mineflayer.bot.chat(`/tp @s ${x} ${y} ${z}`)
-      return true
+      newX = Math.floor(
+        pos.x + ((distance * bigRand1) / 100) * (rand1 ? 1 : -1),
+      )
+      newZ = Math.floor(
+        pos.z + ((distance * bigRand2) / 100) * (rand2 ? 1 : -1),
+      )
+
+      const block = mineflayer.bot.blockAt(new Vec3(newX, pos.y - 1, newZ))
+
+      if (block?.name !== 'water' && block?.name !== 'lava') {
+        suitableGoal = true
+      }
     }
-  }
 
-  await mineflayer.bot.pathfinder.goto(invertedGoal)
-  const newPos = mineflayer.bot.entity.position
-  log(mineflayer, `Moved away from nearest entity to ${newPos}.`)
-  return true
+    const farGoal = new pathfinder.goals.GoalXZ(newX, newZ)
+
+    await mineflayer.bot.pathfinder.goto(farGoal)
+    const newPos = mineflayer.bot.entity.position
+    logger.log(`Moved away from nearest entity to ${newPos}.`)
+    await sleep(500)
+    return true
+  }
+  catch (err) {
+    logger.log(`Failed to move away: ${(err as Error).message}`)
+    return false
+  }
 }
 
 export async function moveAwayFromEntity(

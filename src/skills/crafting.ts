@@ -1,281 +1,343 @@
+import type { Block } from 'prismarine-block'
+import type { Item } from 'prismarine-item'
+import type { Recipe } from 'prismarine-recipe'
 import type { Mineflayer } from '../libs/mineflayer'
+import { useLogg } from '@guiiai/logg'
 import * as world from '../composables/world'
+import { getInventoryCounts, getNearestBlock, getNearestFreeSpace } from '../composables/world'
 import * as mc from '../utils/mcdata'
-import { log } from './base'
+import { ensureCraftingTable } from './actions/ensure'
 import { collectBlock, placeBlock } from './blocks'
-import { goToPosition } from './movement'
+import { goToNearestBlock, goToPosition, moveAway } from './movement'
 
-export async function craftRecipe(mineflayer: Mineflayer, itemName: string, num = 1): Promise<boolean> {
-  let placedTable = false
+const logger = useLogg('Skill:Crafting').useGlobalConfig()
 
-  if (mc.getItemCraftingRecipes(itemName)?.length === 0) {
-    log(mineflayer, `${itemName} is either not an item, or it does not have a crafting recipe!`)
-    return false
-  }
+/*
+Possible Scenarios:
 
-  // Get recipes that don't require a crafting table
+1. **Successful Craft Without Crafting Table**:
+   - The bot attempts to craft the item without a crafting table and succeeds. The function returns `true`.
+
+2. **Crafting Table Nearby**:
+   - The bot tries to craft without a crafting table but fails.
+   - The bot then checks for a nearby crafting table.
+   - If a crafting table is found, the bot moves to it and successfully crafts the item, returning `true`.
+
+3. **No Crafting Table Nearby, Place Crafting Table**:
+   - The bot fails to craft without a crafting table and does not find a nearby crafting table.
+   - The bot checks inventory for a crafting table, places it at a suitable location, and attempts crafting again.
+   - If successful, the function returns `true`. If the bot cannot find a suitable position or fails to craft, it returns `false`.
+
+4. **Insufficient Resources**:
+   - At any point, if the bot does not have the required resources to craft the item, it logs an appropriate message and returns `false`.
+
+5. **No Crafting Table and No Suitable Position**:
+   - If the bot does not find a crafting table and cannot find a suitable position to place one, it moves away and returns `false`.
+
+6. **Invalid Item Name**:
+   - If the provided item name is invalid, the function logs the error and returns `false`.
+*/
+export async function craftRecipe(
+  mineflayer: Mineflayer,
+  incomingItemName: string,
+  num = 1,
+): Promise<boolean> {
+  let itemName = incomingItemName.replace(' ', '_').toLowerCase()
+
+  if (itemName.endsWith('plank'))
+    itemName += 's' // Correct common mistakes
+
   const itemId = mc.getItemId(itemName)
   if (itemId === null) {
-    log(mineflayer, `Invalid item name: ${itemName}`)
+    logger.log(`Invalid item name: ${itemName}`)
     return false
   }
 
-  let recipes = mineflayer.bot.recipesFor(itemId, null, 1, null)
-  let craftingTable = null
-  const craftingTableRange = 32
-
-  if (!recipes || recipes.length === 0) {
-    recipes = mineflayer.bot.recipesFor(itemId, null, 1, true)
-    if (!recipes || recipes.length === 0) {
-      log(mineflayer, `You do not have the resources to craft a ${itemName}.`)
-      return false
-    }
-
-    // Look for crafting table
-    craftingTable = world.getNearestBlock(mineflayer, 'crafting_table', craftingTableRange)
-    if (!craftingTable) {
-      // Try to place crafting table
-      const inventory = world.getInventoryCounts(mineflayer)
-      const hasTable = inventory.crafting_table > 0
-      if (hasTable) {
-        const pos = world.getNearestFreeSpace(mineflayer, 1, 6)
-        if (pos) {
-          await placeBlock(mineflayer, 'crafting_table', pos.x, pos.y, pos.z)
-          craftingTable = world.getNearestBlock(mineflayer, 'crafting_table', craftingTableRange)
-          if (craftingTable) {
-            recipes = mineflayer.bot.recipesFor(itemId, null, 1, craftingTable)
-            placedTable = true
-          }
-        }
+  // Helper function to attempt crafting
+  async function attemptCraft(
+    recipes: Recipe[] | null,
+    craftingTable: Block | null = null,
+  ): Promise<boolean> {
+    if (recipes && recipes.length > 0) {
+      const recipe = recipes[0]
+      try {
+        await mineflayer.bot.craft(recipe, num, craftingTable ?? undefined)
+        logger.log(
+          `Successfully crafted ${num} ${itemName}${
+            craftingTable ? ' using crafting table' : ''
+          }.`,
+        )
+        return true
       }
-      else {
-        log(mineflayer, `Crafting ${itemName} requires a crafting table.`)
+      catch (err) {
+        logger.log(`Failed to craft ${itemName}: ${(err as Error).message}`)
         return false
       }
     }
-    else {
-      recipes = mineflayer.bot.recipesFor(itemId, null, 1, craftingTable)
-    }
-  }
-
-  if (!recipes || recipes.length === 0) {
-    log(mineflayer, `You do not have the resources to craft a ${itemName}. It requires: ${
-      Object.entries(mc.getItemCraftingRecipes(itemName)?.[0] ?? {})
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(', ')
-    }.`)
-    if (placedTable && craftingTable) {
-      await collectBlock(mineflayer, 'crafting_table', 1)
-    }
     return false
   }
 
-  if (craftingTable && mineflayer.bot.entity.position.distanceTo(craftingTable.position) > 4) {
-    await goToPosition(mineflayer, craftingTable.position.x, craftingTable.position.y, craftingTable.position.z, 4)
+  // Helper function to move to a crafting table and attempt crafting with retry logic
+  async function moveToAndCraft(craftingTable: Block): Promise<boolean> {
+    logger.log(`Crafting table found, moving to it.`)
+    const maxRetries = 2
+    let attempts = 0
+    let success = false
+
+    while (attempts < maxRetries && !success) {
+      try {
+        await goToPosition(
+          mineflayer,
+          craftingTable.position.x,
+          craftingTable.position.y,
+          craftingTable.position.z,
+          1,
+        )
+        const recipes = mineflayer.bot.recipesFor(itemId, null, 1, craftingTable)
+        success = await attemptCraft(recipes, craftingTable)
+      }
+      catch (err) {
+        logger.log(
+          `Attempt ${attempts + 1} to move to crafting table failed: ${
+            (err as Error).message
+          }`,
+        )
+      }
+      attempts++
+    }
+
+    return success
   }
 
-  const recipe = recipes[0]
-  // Check that the agent has sufficient items to use the recipe `num` times
-  const inventory = world.getInventoryCounts(mineflayer) // Items in the agents inventory
-  const requiredIngredients = mc.ingredientsFromPrismarineRecipe(recipe) // Items required to use the recipe once
-  const craftLimit = mc.calculateLimitingResource(inventory, requiredIngredients)
+  // Helper function to find and use or place a crafting table
+  async function findAndUseCraftingTable(
+    craftingTableRange: number,
+  ): Promise<boolean> {
+    let craftingTable = world.getNearestBlock(mineflayer, 'crafting_table', craftingTableRange)
+    if (craftingTable) {
+      return await moveToAndCraft(craftingTable)
+    }
 
-  await mineflayer.bot.craft(recipe, Math.min(craftLimit.num, num), craftingTable ?? undefined)
+    logger.log(`No crafting table nearby, attempting to place one.`)
+    const hasCraftingTable = await ensureCraftingTable(mineflayer)
+    if (!hasCraftingTable) {
+      logger.log(`Failed to ensure a crafting table to craft ${itemName}.`)
+      return false
+    }
 
-  if (craftLimit.num < num) {
-    log(mineflayer, `Not enough ${craftLimit.limitingResource} to craft ${num}, crafted ${craftLimit.num}. You now have ${world.getInventoryCounts(mineflayer)[itemName]} ${itemName}.`)
+    const pos = getNearestFreeSpace(mineflayer, 1, 10)
+    if (pos) {
+      moveAway(mineflayer, 4)
+      logger.log(
+        `Placing crafting table at position (${pos.x}, ${pos.y}, ${pos.z}).`,
+      )
+      await placeBlock(mineflayer, 'crafting_table', pos.x, pos.y, pos.z)
+      craftingTable = getNearestBlock(mineflayer, 'crafting_table', craftingTableRange)
+      if (craftingTable) {
+        return await moveToAndCraft(craftingTable)
+      }
+    }
+    else {
+      logger.log('No suitable position found to place the crafting table.')
+      moveAway(mineflayer, 5)
+      return false
+    }
+
+    return false
   }
-  else {
-    log(mineflayer, `Successfully crafted ${itemName}, you now have ${world.getInventoryCounts(mineflayer)[itemName]} ${itemName}.`)
+
+  // Step 1: Try to craft without a crafting table
+  logger.log(`Step 1: Try to craft without a crafting table`)
+  const recipes = mineflayer.bot.recipesFor(itemId, null, 1, null)
+  if (recipes && (await attemptCraft(recipes))) {
+    return true
   }
 
-  if (placedTable && craftingTable) {
-    await collectBlock(mineflayer, 'crafting_table', 1)
+  // Step 2: Find and use a crafting table
+  logger.log(`Step 2: Find and use a crafting table`)
+  const craftingTableRange = 32
+  if (await findAndUseCraftingTable(craftingTableRange)) {
+    return true
   }
 
-  // Equip any armor the bot may have crafted
-  mineflayer.bot.armorManager.equipAll()
-
-  return true
+  return false
 }
 
 export async function smeltItem(mineflayer: Mineflayer, itemName: string, num = 1): Promise<boolean> {
-  if (!mc.isSmeltable(itemName)) {
-    log(mineflayer, `Cannot smelt ${itemName}. Hint: make sure you are smelting the 'raw' item.`)
+  const foods = [
+    'beef',
+    'chicken',
+    'cod',
+    'mutton',
+    'porkchop',
+    'rabbit',
+    'salmon',
+    'tropical_fish',
+  ]
+  if (!itemName.includes('raw') && !foods.includes(itemName)) {
+    logger.log(
+      `Cannot smelt ${itemName}, must be a "raw" item, like "raw_iron".`,
+    )
     return false
-  }
+  } // TODO: allow cobblestone, sand, clay, etc.
 
   let placedFurnace = false
-  const furnaceRange = 32
-  let furnaceBlock = world.getNearestBlock(mineflayer, 'furnace', furnaceRange)
-
+  let furnaceBlock = getNearestBlock(mineflayer, 'furnace', 32)
   if (!furnaceBlock) {
     // Try to place furnace
-    const inventory = world.getInventoryCounts(mineflayer)
-    const hasFurnace = inventory.furnace > 0
+    const hasFurnace = getInventoryCounts(mineflayer).furnace > 0
     if (hasFurnace) {
-      const pos = world.getNearestFreeSpace(mineflayer, 1, furnaceRange)
+      const pos = getNearestFreeSpace(mineflayer, 1, 32)
       if (pos) {
         await placeBlock(mineflayer, 'furnace', pos.x, pos.y, pos.z)
-        furnaceBlock = world.getNearestBlock(mineflayer, 'furnace', furnaceRange)
-        placedFurnace = true
       }
+      else {
+        logger.log('No suitable position found to place the furnace.')
+        return false
+      }
+      furnaceBlock = getNearestBlock(mineflayer, 'furnace', 32)
+      placedFurnace = true
     }
   }
-
   if (!furnaceBlock) {
-    log(mineflayer, 'There is no furnace nearby and you have no furnace.')
+    logger.log(`There is no furnace nearby and I have no furnace.`)
     return false
   }
-
   if (mineflayer.bot.entity.position.distanceTo(furnaceBlock.position) > 4) {
-    await goToPosition(mineflayer, furnaceBlock.position.x, furnaceBlock.position.y, furnaceBlock.position.z, 4)
+    await goToNearestBlock(mineflayer, 'furnace', 4, 32)
   }
-
   await mineflayer.bot.lookAt(furnaceBlock.position)
 
+  logger.log('smelting...')
   const furnace = await mineflayer.bot.openFurnace(furnaceBlock)
-
   // Check if the furnace is already smelting something
   const inputItem = furnace.inputItem()
-  const itemId = mc.getItemId(itemName)
-  if (itemId === null) {
-    log(mineflayer, `Invalid item name: ${itemName}`)
-    return false
-  }
-
-  if (inputItem && inputItem.type !== itemId && inputItem.count > 0) {
-    log(mineflayer, `The furnace is currently smelting ${mc.getItemName(inputItem.type) ?? 'unknown'}.`)
-    if (placedFurnace) {
+  if (
+    inputItem
+    && inputItem.type !== mc.getItemId(itemName)
+    && inputItem.count > 0
+  ) {
+    logger.log(
+      `The furnace is currently smelting ${mc.getItemName(
+        inputItem.type,
+      )}.`,
+    )
+    if (placedFurnace)
       await collectBlock(mineflayer, 'furnace', 1)
-    }
     return false
   }
-
   // Check if the bot has enough items to smelt
-  const invCounts = world.getInventoryCounts(mineflayer)
+  const invCounts = getInventoryCounts(mineflayer)
   if (!invCounts[itemName] || invCounts[itemName] < num) {
-    log(mineflayer, `You do not have enough ${itemName} to smelt.`)
-    if (placedFurnace) {
+    logger.log(`I do not have enough ${itemName} to smelt.`)
+    if (placedFurnace)
       await collectBlock(mineflayer, 'furnace', 1)
-    }
     return false
   }
 
   // Fuel the furnace
   if (!furnace.fuelItem()) {
-    const fuel = mc.getSmeltingFuel(mineflayer.bot)
-    if (!fuel) {
-      log(mineflayer, `You have no fuel to smelt ${itemName}, you need coal, charcoal, or wood.`)
-      if (placedFurnace) {
+    const fuel = mineflayer.bot.inventory
+      .items()
+      .find(item => item.name === 'coal' || item.name === 'charcoal')
+    const putFuel = Math.ceil(num / 8)
+    if (!fuel || fuel.count < putFuel) {
+      logger.log(
+        `I do not have enough coal or charcoal to smelt ${num} ${itemName}, I need ${putFuel} coal or charcoal`,
+      )
+      if (placedFurnace)
         await collectBlock(mineflayer, 'furnace', 1)
-      }
       return false
     }
-
-    log(mineflayer, `Using ${fuel.name} as fuel.`)
-    const putFuel = Math.ceil(num / mc.getFuelSmeltOutput(fuel.name))
-
-    if (fuel.count < putFuel) {
-      log(mineflayer, `You don't have enough ${fuel.name} to smelt ${num} ${itemName}; you need ${putFuel}.`)
-      if (placedFurnace) {
-        await collectBlock(mineflayer, 'furnace', 1)
-      }
-      return false
-    }
-
     await furnace.putFuel(fuel.type, null, putFuel)
-    log(mineflayer, `Added ${putFuel} ${mc.getItemName(fuel.type) ?? 'unknown'} to furnace fuel.`)
+    logger.log(
+      `Added ${putFuel} ${mc.getItemName(fuel.type)} to furnace fuel.`,
+    )
   }
-
   // Put the items in the furnace
+  const itemId = mc.getItemId(itemName)
+  if (itemId === null) {
+    logger.log(`Invalid item name: ${itemName}`)
+    return false
+  }
   await furnace.putInput(itemId, null, num)
-
   // Wait for the items to smelt
   let total = 0
   let collectedLast = true
-  let smeltedItem = null
+  let smeltedItem: Item | null = null
   await new Promise(resolve => setTimeout(resolve, 200))
-
-  mineflayer.once('interrupt', () => {
-    total = num // Force loop to end
-  })
-
   while (total < num) {
     await new Promise(resolve => setTimeout(resolve, 10000))
+    logger.log('checking...')
     let collected = false
-
-    const outputItem = furnace.outputItem()
-    if (outputItem) {
+    if (furnace.outputItem()) {
       smeltedItem = await furnace.takeOutput()
       if (smeltedItem) {
         total += smeltedItem.count
         collected = true
       }
     }
-
     if (!collected && !collectedLast) {
-      break // If nothing was collected this time or last time
+      break // if nothing was collected this time or last time
     }
-
     collectedLast = collected
   }
-
   await mineflayer.bot.closeWindow(furnace)
 
   if (placedFurnace) {
     await collectBlock(mineflayer, 'furnace', 1)
   }
-
   if (total === 0) {
-    log(mineflayer, `Failed to smelt ${itemName}.`)
+    logger.log(`Failed to smelt ${itemName}.`)
     return false
   }
-
   if (total < num) {
-    log(mineflayer, `Only smelted ${total} ${mc.getItemName(smeltedItem?.type ?? 0) ?? 'unknown'}.`)
+    logger.log(
+      `Only smelted ${total} ${mc.getItemName(smeltedItem?.type || 0)}.`,
+    )
     return false
   }
-
-  log(mineflayer, `Successfully smelted ${itemName}, got ${total} ${mc.getItemName(smeltedItem?.type ?? 0) ?? 'unknown'}.`)
+  logger.log(
+    `Successfully smelted ${itemName}, got ${total} ${mc.getItemName(
+      smeltedItem?.type || 0,
+    )}.`,
+  )
   return true
 }
 
 export async function clearNearestFurnace(mineflayer: Mineflayer): Promise<boolean> {
-  const furnaceBlock = world.getNearestBlock(mineflayer, 'furnace', 32)
+  const furnaceBlock = getNearestBlock(mineflayer, 'furnace', 6)
   if (!furnaceBlock) {
-    log(mineflayer, 'No furnace nearby to clear.')
+    logger.log(`There is no furnace nearby.`)
     return false
   }
 
-  if (mineflayer.bot.entity.position.distanceTo(furnaceBlock.position) > 4) {
-    await goToPosition(mineflayer, furnaceBlock.position.x, furnaceBlock.position.y, furnaceBlock.position.z, 4)
-  }
-
+  logger.log('clearing furnace...')
   const furnace = await mineflayer.bot.openFurnace(furnaceBlock)
-
+  logger.log('opened furnace...')
   // Take the items out of the furnace
-  let smeltedItem, inputItem, fuelItem
-
-  const outputItem = furnace.outputItem()
-  if (outputItem) {
+  let smeltedItem: Item | null = null
+  let inputItem: Item | null = null
+  let fuelItem: Item | null = null
+  if (furnace.outputItem())
     smeltedItem = await furnace.takeOutput()
-  }
-
-  const furnaceInput = furnace.inputItem()
-  if (furnaceInput) {
+  if (furnace.inputItem())
     inputItem = await furnace.takeInput()
-  }
-
-  const furnaceFuel = furnace.fuelItem()
-  if (furnaceFuel) {
+  if (furnace.fuelItem())
     fuelItem = await furnace.takeFuel()
-  }
-
-  const smeltedName = smeltedItem ? `${smeltedItem.count} ${smeltedItem.name}` : '0 smelted items'
-  const inputName = inputItem ? `${inputItem.count} ${inputItem.name}` : '0 input items'
-  const fuelName = fuelItem ? `${fuelItem.count} ${fuelItem.name}` : '0 fuel items'
-
-  log(mineflayer, `Cleared furnace, received ${smeltedName}, ${inputName}, and ${fuelName}.`)
+  logger.log(smeltedItem, inputItem, fuelItem)
+  const smeltedName = smeltedItem
+    ? `${smeltedItem.count} ${smeltedItem.name}`
+    : `0 smelted items`
+  const inputName = inputItem
+    ? `${inputItem.count} ${inputItem.name}`
+    : `0 input items`
+  const fuelName = fuelItem
+    ? `${fuelItem.count} ${fuelItem.name}`
+    : `0 fuel items`
+  logger.log(
+    `Cleared furnace, received ${smeltedName}, ${inputName}, and ${fuelName}.`,
+  )
+  await mineflayer.bot.closeWindow(furnace)
   return true
 }

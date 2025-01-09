@@ -6,25 +6,52 @@ import type { Mineflayer } from '../libs/mineflayer'
 import pf from 'mineflayer-pathfinder'
 import * as mc from '../utils/mcdata'
 
-export function getNearestFreeSpace(mineflayer: Mineflayer, size: number = 1, distance: number = 8): Vec3 | undefined {
-  const emptyPositions = mineflayer.bot.findBlocks({
-    matching: (block: Block) => block?.name === 'air',
+export function getNearestFreeSpace(
+  mineflayer: Mineflayer,
+  size: number = 1,
+  distance: number = 8,
+): Vec3 | undefined {
+  /**
+   * Get the nearest empty space with solid blocks beneath it of the given size.
+   * @param {number} size - The (size x size) of the space to find, default 1.
+   * @param {number} distance - The maximum distance to search, default 8.
+   * @returns {Vec3} - The south west corner position of the nearest free space.
+   * @example
+   * let position = world.getNearestFreeSpace( 1, 8);
+   */
+  const empty_pos = mineflayer.bot.findBlocks({
+    matching: (block: Block | null) => {
+      return block !== null && block.name === 'air'
+    },
     maxDistance: distance,
     count: 1000,
   })
 
-  return emptyPositions.find((pos) => {
+  for (let i = 0; i < empty_pos.length; i++) {
+    let empty = true
     for (let x = 0; x < size; x++) {
       for (let z = 0; z < size; z++) {
-        const top = mineflayer.bot.blockAt(pos.offset(x, 0, z))
-        const bottom = mineflayer.bot.blockAt(pos.offset(x, -1, z))
-        if (!top || top.name !== 'air' || !bottom?.drops?.length || !bottom.diggable) {
-          return false
+        const top = mineflayer.bot.blockAt(empty_pos[i].offset(x, 0, z))
+        const bottom = mineflayer.bot.blockAt(empty_pos[i].offset(x, -1, z))
+        if (
+          !top
+          || top.name !== 'air'
+          || !bottom
+          || (bottom.drops?.length ?? 0) === 0
+          || !bottom.diggable
+        ) {
+          empty = false
+          break
         }
       }
+      if (!empty)
+        break
     }
-    return true
-  })
+    if (empty) {
+      return empty_pos[i]
+    }
+  }
+  return undefined
 }
 
 export function getNearestBlocks(mineflayer: Mineflayer, blockTypes: string[] | string | null = null, distance: number = 16, count: number = 10000): Block[] {

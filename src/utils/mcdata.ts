@@ -1,23 +1,28 @@
-/**
- * @source https://github.com/kolbytn/mindcraft
- */
+// src/utils/minecraftData.ts
+
 import type { Bot } from 'mineflayer'
-import minecraftData from 'minecraft-data'
-import prismarine_items from 'prismarine-item'
-import { botConfig } from '../composables/config'
+import type { Entity } from 'prismarine-entity'
+import minecraftData, {
+  type Biome,
+  type ShapedRecipe,
+  type ShapelessRecipe,
+} from 'minecraft-data'
+import prismarineItem from 'prismarine-item'
 
-const mc_version = botConfig.version!
-const mcdata = minecraftData(mc_version)
-const Item = prismarine_items(mc_version)
+const GAME_VERSION = '1.20'
 
-interface MinecraftRecipe {
-  result: { id: number, count: number }
-  inShape?: Array<Array<{ id: number, count: number }>>
-  ingredients?: Array<{ id: number, count: number }>
-  requiresTable?: boolean
-}
+export const gameData = minecraftData(GAME_VERSION)
+export const Item = prismarineItem(GAME_VERSION)
 
-export const WOOD_TYPES: string[] = ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak']
+export const WOOD_TYPES: string[] = [
+  'oak',
+  'spruce',
+  'birch',
+  'jungle',
+  'acacia',
+  'dark_oak',
+]
+
 export const MATCHING_WOOD_BLOCKS: string[] = [
   'log',
   'planks',
@@ -32,6 +37,7 @@ export const MATCHING_WOOD_BLOCKS: string[] = [
   'pressure_plate',
   'trapdoor',
 ]
+
 export const WOOL_COLORS: string[] = [
   'white',
   'orange',
@@ -51,55 +57,56 @@ export const WOOL_COLORS: string[] = [
   'black',
 ]
 
-export function isHuntable(mob: { name?: string, metadata: any[] }): boolean {
+export function isHuntable(mob: Entity): boolean {
   if (!mob || !mob.name)
     return false
-  const animals = ['chicken', 'cow', 'llama', 'mooshroom', 'pig', 'rabbit', 'sheep']
-  return animals.includes(mob.name.toLowerCase()) && !mob.metadata[16] // metadata 16 is not baby
+  const animals: string[] = [
+    'chicken',
+    'cow',
+    'llama',
+    'mooshroom',
+    'pig',
+    'rabbit',
+    'sheep',
+  ]
+  return animals.includes(mob.name.toLowerCase()) && !mob.metadata[16] // metadata[16] indicates baby status
 }
 
-export function isHostile(mob: { name?: string, type?: string }): boolean {
+export function isHostile(mob: Entity): boolean {
   if (!mob || !mob.name)
     return false
-  return (mob.type === 'mob' || mob.type === 'hostile') && mob.name !== 'iron_golem' && mob.name !== 'snow_golem'
+  return (
+    (mob.type === 'mob' || mob.type === 'hostile')
+    && mob.name !== 'iron_golem'
+    && mob.name !== 'snow_golem'
+  )
 }
 
-export function getItemId(itemName: string): number | null {
-  const item = mcdata.itemsByName[itemName]
-  if (item) {
-    return item.id
-  }
-  return null
+export function getItemId(itemName: string): number {
+  const item = gameData.itemsByName[itemName]
+
+  return item?.id || 0
 }
 
-export function getItemName(itemId: number): string | null {
-  const item = mcdata.items[itemId]
-  if (item) {
-    return item.name
-  }
-  return null
+export function getItemName(itemId: number): string {
+  const item = gameData.items[itemId]
+  return item.name || ''
 }
 
-export function getBlockId(blockName: string): number | null {
-  const block = mcdata.blocksByName[blockName]
-  if (block) {
-    return block.id
-  }
-  return null
+export function getBlockId(blockName: string): number {
+  const block = gameData.blocksByName?.[blockName]
+  return block?.id || 0
 }
 
-export function getBlockName(blockId: number): string | null {
-  const block = mcdata.blocks[blockId]
-  if (block) {
-    return block.name
-  }
-  return null
+export function getBlockName(blockId: number): string {
+  const block = gameData.blocks[blockId]
+  return block.name || ''
 }
 
 export function getAllItems(ignore: string[] = []): any[] {
-  const items = []
-  for (const itemId in mcdata.items) {
-    const item = mcdata.items[itemId]
+  const items: any[] = []
+  for (const itemId in gameData.items) {
+    const item = gameData.items[itemId]
     if (!ignore.includes(item.name)) {
       items.push(item)
     }
@@ -109,7 +116,7 @@ export function getAllItems(ignore: string[] = []): any[] {
 
 export function getAllItemIds(ignore: string[] = []): number[] {
   const items = getAllItems(ignore)
-  const itemIds = []
+  const itemIds: number[] = []
   for (const item of items) {
     itemIds.push(item.id)
   }
@@ -117,9 +124,9 @@ export function getAllItemIds(ignore: string[] = []): number[] {
 }
 
 export function getAllBlocks(ignore: string[] = []): any[] {
-  const blocks = []
-  for (const blockId in mcdata.blocks) {
-    const block = mcdata.blocks[blockId]
+  const blocks: any[] = []
+  for (const blockId in gameData.blocks) {
+    const block = gameData.blocks[blockId]
     if (!ignore.includes(block.name)) {
       blocks.push(block)
     }
@@ -129,76 +136,67 @@ export function getAllBlocks(ignore: string[] = []): any[] {
 
 export function getAllBlockIds(ignore: string[] = []): number[] {
   const blocks = getAllBlocks(ignore)
-  const blockIds = []
+  const blockIds: number[] = []
   for (const block of blocks) {
     blockIds.push(block.id)
   }
   return blockIds
 }
 
-export function getAllBiomes(): any {
-  return mcdata.biomes
+export function getAllBiomes(): Record<number, Biome> {
+  return gameData.biomes
 }
 
-export function getItemCraftingRecipes(itemName: string): Record<string, number>[] | null {
+export function getItemCraftingRecipes(itemName: string): any[] | null {
   const itemId = getItemId(itemName)
-  if (!itemId || !mcdata.recipes[itemId]) {
+  if (!itemId || !gameData.recipes[itemId]) {
     return null
   }
 
   const recipes: Record<string, number>[] = []
-  for (const r of mcdata.recipes[itemId] as MinecraftRecipe[]) {
+  for (const r of gameData.recipes[itemId]) {
     const recipe: Record<string, number> = {}
-    let ingredients: Array<{ id: number, count: number }> = []
+    let ingredients: number[] = []
 
-    if (r.ingredients) {
-      ingredients = r.ingredients
+    if (isShapelessRecipe(r)) {
+      // Handle shapeless recipe
+      ingredients = r.ingredients.map((ing: any) => ing.id)
     }
-    else if (r.inShape) {
-      ingredients = r.inShape.flat()
+    else if (isShapedRecipe(r)) {
+      // Handle shaped recipe
+      ingredients = r.inShape
+        .flat()
+        .map((ing: any) => ing?.id)
+        .filter(Boolean)
     }
 
-    for (const ingredient of ingredients) {
-      const ingredientName = getItemName(ingredient.id)
+    for (const ingredientId of ingredients) {
+      const ingredientName = getItemName(ingredientId)
       if (ingredientName === null)
         continue
-      recipe[ingredientName] ??= 0
-      recipe[ingredientName] += ingredient.count
+      if (!recipe[ingredientName])
+        recipe[ingredientName] = 0
+      recipe[ingredientName]++
     }
+
     recipes.push(recipe)
   }
 
   return recipes
 }
 
-export function isSmeltable(itemName: string): boolean {
-  const misc_smeltables = ['beef', 'chicken', 'cod', 'mutton', 'porkchop', 'rabbit', 'salmon', 'tropical_fish', 'potato', 'kelp', 'sand', 'cobblestone', 'clay_ball']
-  return itemName.includes('raw') || itemName.includes('log') || misc_smeltables.includes(itemName)
+// Type guards
+function isShapelessRecipe(recipe: any): recipe is ShapelessRecipe {
+  return 'ingredients' in recipe
 }
 
-export function getSmeltingFuel(bot: Bot): any {
-  let fuel = bot.inventory.items().find(i => i.name === 'coal' || i.name === 'charcoal')
-  if (fuel)
-    return fuel
-  fuel = bot.inventory.items().find(i => i.name.includes('log') || i.name.includes('planks'))
-  if (fuel)
-    return fuel
-  return bot.inventory.items().find(i => i.name === 'coal_block' || i.name === 'lava_bucket')
+function isShapedRecipe(recipe: any): recipe is ShapedRecipe {
+  return 'inShape' in recipe
 }
 
-export function getFuelSmeltOutput(fuelName: string): number {
-  if (fuelName === 'coal' || fuelName === 'charcoal')
-    return 8
-  if (fuelName.includes('log') || fuelName.includes('planks'))
-    return 1.5
-  if (fuelName === 'coal_block')
-    return 80
-  if (fuelName === 'lava_bucket')
-    return 100
-  return 0
-}
-
-export function getItemSmeltingIngredient(itemName: string): string | undefined {
+export function getItemSmeltingIngredient(
+  itemName: string,
+): string | undefined {
   return {
     baked_potato: 'potato',
     steak: 'raw_beef',
@@ -219,8 +217,10 @@ export function getItemSmeltingIngredient(itemName: string): string | undefined 
 export function getItemBlockSources(itemName: string): string[] {
   const itemId = getItemId(itemName)
   const sources: string[] = []
+  if (!itemId)
+    return sources
   for (const block of getAllBlocks()) {
-    if (block.drops.includes(itemId)) {
+    if (block.drops && block.drops.includes(itemId)) {
       sources.push(block.name)
     }
   }
@@ -242,65 +242,37 @@ export function getItemAnimalSource(itemName: string): string | undefined {
 }
 
 export function getBlockTool(blockName: string): string | null {
-  const block = mcdata.blocksByName[blockName]
+  const block = gameData.blocksByName[blockName]
   if (!block || !block.harvestTools) {
     return null
   }
-  const toolId = Number(Object.keys(block.harvestTools)[0])
-  return getItemName(toolId)
+  const toolIds = Object.keys(block.harvestTools).map(id => Number.parseInt(id))
+  const toolName = getItemName(toolIds[0])
+  return toolName || null // Assuming the first tool is the simplest
 }
 
-export function makeItem(name: string, amount: number = 1): any {
+export function makeItem(name: string, amount = 1): InstanceType<typeof Item> {
   const itemId = getItemId(name)
   if (itemId === null)
-    throw new Error(`Unknown item: ${name}`)
+    throw new Error(`Item ${name} not found.`)
   return new Item(itemId, amount)
 }
 
-export function ingredientsFromPrismarineRecipe(recipe: MinecraftRecipe): Record<string, number> {
-  const requiredIngredients: Record<string, number> = {}
-  if (recipe.inShape) {
-    for (const ingredient of recipe.inShape.flat()) {
-      if (ingredient.id < 0)
-        continue // prismarine-recipe uses id -1 as an empty crafting slot
-      const ingredientName = getItemName(ingredient.id)
-      if (ingredientName) {
-        requiredIngredients[ingredientName] ??= 0
-        requiredIngredients[ingredientName] += ingredient.count
-      }
-    }
-  }
-  if (recipe.ingredients) {
-    for (const ingredient of recipe.ingredients) {
-      if (ingredient.id < 0)
-        continue
-      const ingredientName = getItemName(ingredient.id)
-      if (ingredientName) {
-        requiredIngredients[ingredientName] ??= 0
-        requiredIngredients[ingredientName] -= ingredient.count
-      }
-      // Yes, the `-=` is intended.
-      // prismarine-recipe uses positive numbers for the shaped ingredients but negative for unshaped.
-      // Why this is the case is beyond my understanding.
-    }
-  }
-  return requiredIngredients
-}
+// Function to get the nearest block of a specific type using Mineflayer
+export function getNearestBlock(
+  bot: Bot,
+  blockType: string,
+  maxDistance: number,
+) {
+  const blocks = bot.findBlocks({
+    matching: block => block.name === blockType,
+    maxDistance,
+    count: 1,
+  })
 
-export function calculateLimitingResource<T extends string>(
-  availableItems: Record<T, number>,
-  requiredItems: Record<T, number>,
-  discrete: boolean = true,
-): { num: number, limitingResource: T | null } {
-  let limitingResource: T | null = null
-  let num = Infinity
-  for (const itemType in requiredItems) {
-    if (availableItems[itemType] < requiredItems[itemType] * num) {
-      limitingResource = itemType
-      num = availableItems[itemType] / requiredItems[itemType]
-    }
-  }
-  if (discrete)
-    num = Math.floor(num)
-  return { num, limitingResource }
+  if (blocks.length === 0)
+    return null
+
+  const nearestBlockPosition = blocks[0]
+  return bot.blockAt(nearestBlockPosition)
 }

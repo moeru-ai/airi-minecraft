@@ -1,38 +1,7 @@
-import type { Bot } from 'mineflayer'
 import type { Mineflayer } from '../libs/mineflayer'
-import pathfinderModel from 'mineflayer-pathfinder'
 import * as world from '../composables/world'
 import { log } from './base'
 import { goToPlayer, goToPosition } from './movement'
-
-const { goals } = pathfinderModel
-
-export async function pickupNearbyItems(mineflayer: Mineflayer): Promise<boolean> {
-  const distance = 8
-  const getNearestItem = (bot: Bot) =>
-    bot.nearestEntity(entity =>
-      entity.name === 'item'
-      && bot.entity.position.distanceTo(entity.position) < distance,
-    )
-
-  let nearestItem = getNearestItem(mineflayer.bot)
-  let pickedUp = 0
-
-  while (nearestItem) {
-    await mineflayer.bot.pathfinder.goto(new goals.GoalFollow(nearestItem, 0.8))
-    await new Promise(resolve => setTimeout(resolve, 200))
-
-    const prev = nearestItem
-    nearestItem = getNearestItem(mineflayer.bot)
-    if (prev === nearestItem) {
-      break
-    }
-    pickedUp++
-  }
-
-  log(mineflayer, `Picked up ${pickedUp} items.`)
-  return true
-}
 
 export async function equip(mineflayer: Mineflayer, itemName: string): Promise<boolean> {
   const item = mineflayer.bot.inventory.slots.find(slot => slot && slot.name === itemName)
