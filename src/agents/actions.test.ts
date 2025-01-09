@@ -22,7 +22,7 @@ describe('actions agent', { timeout: 0 }, () => {
       bot.bot.once('spawn', async () => {
         const text = await agent.handle(messages(
           system(genQueryAgentPrompt(bot)),
-          user('What are you status?'),
+          user('What\'s your status?'),
         ), async (c) => {
           const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
           console.log(JSON.stringify(completion, null, 2))

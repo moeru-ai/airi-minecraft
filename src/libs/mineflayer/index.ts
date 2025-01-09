@@ -259,6 +259,18 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
     return mineflayer
   }
 
+  public async loadPlugin(plugin: MineflayerPlugin) {
+    if (plugin.created)
+      await plugin.created(this)
+
+    if (plugin.loadPlugin) {
+      this.bot.loadPlugin(await plugin.loadPlugin(this, this.bot, this.options.botConfig))
+    }
+
+    if (plugin.spawned)
+      this.bot.once('spawn', () => plugin.spawned?.(this))
+  }
+
   public onCommand(commandName: string, cb: EventsHandler<'command'>) {
     this.commands.set(commandName, cb)
   }

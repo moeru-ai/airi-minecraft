@@ -109,43 +109,6 @@ export async function followPlayer(
   username: string,
   distance = 4,
 ): Promise<boolean> {
-  // const player = mineflayer.bot.players[username]?.entity
-  // if (!player) {
-  //   log(mineflayer, `Could not find player ${username}`)
-  //   return false
-  // }
-
-  // const movements = new Movements(mineflayer.bot)
-  // mineflayer.bot.pathfinder.setMovements(movements)
-  // mineflayer.bot.pathfinder.setGoal(new goals.GoalNear(player.position.x, player.position.y, player.position.z, distance))
-
-  // log(mineflayer, `Started following ${username}`)
-
-  // const followInterval = setInterval(() => {
-  //   const target = mineflayer.bot.players[username]?.entity
-  //   if (!target) {
-  //     log(mineflayer, 'Lost sight of player')
-  //     clearInterval(followInterval)
-  //     return
-  //   }
-
-  //   const { x, y, z } = target.position
-  //   mineflayer.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
-  // }, 1000)
-
-  // while (!ctx.shouldInterrupt) {
-  //   await new Promise(resolve => setTimeout(resolve, 500))
-
-  //   if (mineflayer.allowCheats && mineflayer.bot.entity.position.distanceTo(player.position) > 100) {
-  //     await goToPlayer(ctx, username)
-  //   }
-  // }
-
-  // // TODO: need global status management
-  // clearInterval(followInterval)
-  // mineflayer.bot.pathfinder.stop()
-  // return true
-
   const player = mineflayer.bot.players[username]?.entity
   if (!player) {
     return false

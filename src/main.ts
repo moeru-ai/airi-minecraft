@@ -9,10 +9,10 @@ import { plugin as MineflayerPVP } from 'mineflayer-pvp'
 import { plugin as MineflayerTool } from 'mineflayer-tool'
 
 import { initAgent } from './agents/openai'
-import { initBot, useBot } from './composables/bot'
+import { initBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
 import { wrapPlugin } from './libs/mineflayer/plugin'
-import { Echo, FollowCommand, PathFinder, Status } from './mineflayer'
+import { FollowCommand, PathFinder, Status } from './mineflayer'
 import { LLMAgent } from './mineflayer/llm-agent'
 import { initLogger } from './utils/logger'
 
@@ -21,9 +21,8 @@ const logger = useLogg('main').useGlobalConfig()
 async function main() {
   initLogger() // todo: save logs to file
   initEnv()
-  const { bot } = useBot()
 
-  await initBot({
+  const { bot } = await initBot({
     botConfig,
     plugins: [
       wrapPlugin(MineflayerArmorManager),
@@ -32,15 +31,25 @@ async function main() {
       wrapPlugin(MineflayerPathfinder),
       wrapPlugin(MineflayerPVP),
       wrapPlugin(MineflayerTool),
-      // Echo(),
       FollowCommand(),
       Status(),
       PathFinder(),
-      LLMAgent({
-        agent: async () => await initAgent(bot),
-      }),
     ],
   })
+
+  // Dynamically load LLMAgent after bot is initialized
+  // const llmAgent = LLMAgent({
+  //   agent: async () => await initAgent(bot),
+  // })
+
+  // if (llmAgent.created)
+  //   await llmAgent.created(bot)
+  // if (llmAgent.spawned)
+  //   bot.bot.once('spawn', () => llmAgent.spawned?.(bot))
+  // if (llmAgent.loadPlugin)
+  //   bot.bot.loadPlugin(await llmAgent.loadPlugin(bot, bot.bot, botConfig))
+  const agent = await initAgent(bot)
+  await bot.loadPlugin(LLMAgent({ agent }))
 
   process.on('SIGINT', () => {
     bot.stop()

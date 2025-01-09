@@ -46,7 +46,8 @@ export async function initActionAgent(mineflayer: Mineflayer): Promise<Agent> {
       async ({ parameters }) => {
         logger.withFields({ name: action.name, parameters }).log('Calling action')
         mineflayer.memory.actions.push(action)
-        return action.perform(mineflayer)(...Object.values(parameters))
+        const fn = action.perform(mineflayer)
+        return await fn(...Object.values(parameters))
       },
       { description: action.description },
     )
