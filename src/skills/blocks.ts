@@ -570,7 +570,11 @@ export async function collectBlock(
   const blocktypes = getBlockTypes(blockType)
   let collected = 0
 
-  for (let i = 0; i < num; i++) {
+  mineflayer.once('interrupt', () => {
+    collected = -1
+  })
+
+  for (let i = 0; i < num && collected >= 0; i++) {
     const blocks = getValidBlocks(mineflayer, blocktypes, exclude)
 
     if (blocks.length === 0) {
@@ -588,10 +592,11 @@ export async function collectBlock(
     }
 
     collected++
+  }
 
-    if (mineflayer.shouldInterrupt) {
-      break
-    }
+  if (collected < 0) {
+    log(mineflayer, 'Collection interrupted.')
+    return false
   }
 
   log(mineflayer, `Collected ${collected} ${blockType}.`)

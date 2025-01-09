@@ -3,6 +3,7 @@ import type { Mineflayer } from '../libs/mineflayer'
 
 import pathfinderModel from 'mineflayer-pathfinder'
 import * as world from '../composables/world'
+import { sleep } from '../utils/helper'
 import { log } from './base'
 
 const { goals, Movements } = pathfinderModel
@@ -110,32 +111,44 @@ export async function followPlayer(
   distance = 4,
 ): Promise<boolean> {
   const player = mineflayer.bot.players[username]?.entity
+  const movements = new Movements(mineflayer.bot)
+
   if (!player) {
+    log(mineflayer, `Could not find ${username}.`)
     return false
   }
 
-  const movements = new Movements(mineflayer.bot)
-  mineflayer.bot.pathfinder.setMovements(movements)
-  mineflayer.bot.pathfinder.setGoal(new goals.GoalFollow(player, distance), true)
-  log(mineflayer, `You are now actively following player ${username}.`)
+  log(mineflayer, `I am now following ${username}.`)
 
-  while (!mineflayer.shouldInterrupt) {
-    await new Promise(resolve => setTimeout(resolve, 500))
+  return new Promise<boolean>((resolve) => {
+    let isFollowing = true
 
-    if (mineflayer.allowCheats && mineflayer.bot.entity.position.distanceTo(player.position) > 100 && player.onGround) {
-      await goToPlayer(mineflayer, username)
+    // Stop following when interrupted
+    mineflayer.once('interrupt', () => {
+      isFollowing = false
+      resolve(true)
+    })
+
+    // Follow player at regular intervals
+    const follow = async (): Promise<void> => {
+      while (isFollowing) {
+        const target = mineflayer.bot.players[username]?.entity
+        if (!target) {
+          log(mineflayer, 'I lost sight of you!')
+          isFollowing = false
+          resolve(false)
+          return
+        }
+
+        const { x, y, z } = target.position
+        mineflayer.bot.pathfinder.setMovements(movements)
+        mineflayer.bot.pathfinder.setGoal(new goals.GoalNear(x, y, z, distance))
+        // await sleep(500)
+      }
     }
 
-    // if (mineflayer.bot.modes?.isOn('unstuck')) {
-    //   const isNearby = mineflayer.bot.entity.position.distanceTo(player.position) <= distance + 1
-    //   if (isNearby) {
-    //     mineflayer.bot.modes.pause('unstuck')
-    //   } else {
-    //     mineflayer.bot.modes.unpause('unstuck')
-    //   }
-    // }
-  }
-  return true
+    follow()
+  })
 }
 
 export async function moveAway(mineflayer: Mineflayer, distance: number): Promise<boolean> {
@@ -178,8 +191,8 @@ export async function stay(mineflayer: Mineflayer, seconds = 30): Promise<boolea
   const start = Date.now()
   const targetTime = seconds === -1 ? Infinity : start + seconds * 1000
 
-  while (!mineflayer.shouldInterrupt && Date.now() < targetTime) {
-    await new Promise(resolve => setTimeout(resolve, 500))
+  while (Date.now() < targetTime) {
+    await sleep(500)
   }
 
   log(mineflayer, `Stayed for ${(Date.now() - start) / 1000} seconds.`)
@@ -211,7 +224,7 @@ export async function goToBed(mineflayer: Mineflayer): Promise<boolean> {
   log(mineflayer, 'You are in bed.')
 
   while (mineflayer.bot.isSleeping) {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await sleep(500)
   }
 
   log(mineflayer, 'You have woken up.')

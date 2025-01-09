@@ -12,7 +12,6 @@ import { initAgent } from './agents/openai'
 import { initBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
 import { wrapPlugin } from './libs/mineflayer/plugin'
-import { FollowCommand, PathFinder, Status } from './mineflayer'
 import { LLMAgent } from './mineflayer/llm-agent'
 import { initLogger } from './utils/logger'
 
@@ -31,23 +30,10 @@ async function main() {
       wrapPlugin(MineflayerPathfinder),
       wrapPlugin(MineflayerPVP),
       wrapPlugin(MineflayerTool),
-      FollowCommand(),
-      Status(),
-      PathFinder(),
     ],
   })
 
   // Dynamically load LLMAgent after bot is initialized
-  // const llmAgent = LLMAgent({
-  //   agent: async () => await initAgent(bot),
-  // })
-
-  // if (llmAgent.created)
-  //   await llmAgent.created(bot)
-  // if (llmAgent.spawned)
-  //   bot.bot.once('spawn', () => llmAgent.spawned?.(bot))
-  // if (llmAgent.loadPlugin)
-  //   bot.bot.loadPlugin(await llmAgent.loadPlugin(bot, bot.bot, botConfig))
   const agent = await initAgent(bot)
   await bot.loadPlugin(LLMAgent({ agent }))
 

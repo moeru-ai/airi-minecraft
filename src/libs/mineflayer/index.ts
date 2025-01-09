@@ -15,6 +15,7 @@ export interface Context {
 }
 
 export interface EventHandlers {
+  'interrupt': () => void
   'command': (ctx: Context) => void | Promise<void>
   'time:sunrise': (ctx: Context) => void
   'time:noon': (ctx: Context) => void
@@ -145,7 +146,6 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
   public memory: Memory = new Memory()
 
   public isCreative: boolean = false
-  public shouldInterrupt: boolean = false
   public allowCheats: boolean = false
 
   private options: MineflayerOptions
@@ -159,6 +159,11 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
     this.bot = mineflayer.createBot(options.botConfig)
     this.username = options.botConfig.username
     this.logger = useLogg(`Bot:${this.username}`).useGlobalConfig()
+
+    this.on('interrupt', () => {
+      this.logger.log('Interrupted')
+      this.bot.chat('Interrupted')
+    })
   }
 
   static async asyncBuild(options: MineflayerOptions) {
@@ -259,10 +264,6 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
       }
     })
 
-    mineflayer.ticker.on('tick', () => {
-      mineflayer.status.update(mineflayer)
-    })
-
     for (const plugin of options?.plugins || []) {
       if (plugin.created) {
         await plugin.created(mineflayer)
@@ -277,9 +278,9 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
     }
 
     mineflayer.ticker.on('tick', () => {
+      mineflayer.status.update(mineflayer)
       mineflayer.isCreative = mineflayer.bot.game?.gameMode === 'creative'
       mineflayer.allowCheats = false
-      mineflayer.shouldInterrupt = false
     })
 
     return mineflayer
@@ -303,10 +304,6 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
 
   public onTick(event: TickEvents, cb: TickEventsHandler<TickEvents>) {
     this.ticker.on(event, cb)
-  }
-
-  public emit<E extends Events>(event: E, ...args: Parameters<EventsHandler<E>>) {
-    return super.emit(event, ...args)
   }
 
   public async stop() {

@@ -106,7 +106,9 @@ export const actionsList: Action[] = [
       // ctx.clearBotLogs()
       // ctx.actions.cancelResume()
       // ctx.bot.emit('idle')
-      mineflayer.shouldInterrupt = true
+
+      mineflayer.emit('interrupt')
+
       const msg = 'Agent stopped.'
       // if (mineflayer.self_prompter.on)
       //   msg += ' Self-prompting still active.'

@@ -197,6 +197,10 @@ export async function smeltItem(mineflayer: Mineflayer, itemName: string, num = 
   let smeltedItem = null
   await new Promise(resolve => setTimeout(resolve, 200))
 
+  mineflayer.once('interrupt', () => {
+    total = num // Force loop to end
+  })
+
   while (total < num) {
     await new Promise(resolve => setTimeout(resolve, 10000))
     let collected = false
@@ -215,9 +219,6 @@ export async function smeltItem(mineflayer: Mineflayer, itemName: string, num = 
     }
 
     collectedLast = collected
-    if (mineflayer.shouldInterrupt) {
-      break
-    }
   }
 
   await mineflayer.bot.closeWindow(furnace)

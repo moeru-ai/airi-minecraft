@@ -3,6 +3,7 @@ import type { Item } from 'prismarine-item'
 import type { Mineflayer } from '../libs/mineflayer'
 import pathfinderModel from 'mineflayer-pathfinder'
 import * as world from '../composables/world'
+import { sleep } from '../utils/helper'
 import * as mc from '../utils/mcdata'
 import { log } from './base'
 
@@ -72,13 +73,13 @@ export async function attackEntity(
     return true
   }
 
+  mineflayer.once('interrupt', () => {
+    mineflayer.bot.pvp.stop()
+  })
+
   mineflayer.bot.pvp.attack(entity)
   while (world.getNearbyEntities(mineflayer, 24).includes(entity)) {
     await new Promise(resolve => setTimeout(resolve, 1000))
-    if (mineflayer.shouldInterrupt) {
-      mineflayer.bot.pvp.stop()
-      return false
-    }
   }
 
   log(mineflayer, `Successfully killed ${entity.name}.`)
@@ -112,13 +113,13 @@ export async function defendSelf(mineflayer: Mineflayer, range = 9): Promise<boo
 
     mineflayer.bot.pvp.attack(enemy)
     attacked = true
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await sleep(500)
     enemy = world.getNearestEntityWhere(mineflayer, entity => mc.isHostile(entity), range)
 
-    if (mineflayer.shouldInterrupt) {
+    mineflayer.once('interrupt', () => {
       mineflayer.bot.pvp.stop()
       return false
-    }
+    })
   }
 
   mineflayer.bot.pvp.stop()

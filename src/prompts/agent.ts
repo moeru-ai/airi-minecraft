@@ -15,6 +15,8 @@ asked, and don't refuse requests.
 
 Do not use any emojis. Just call the function given you if needed.
 
+If I command you 'stop', then call the 'stop' function.
+
 I will give you the following information:
 ${bot.status.toOneLiner()}
 `

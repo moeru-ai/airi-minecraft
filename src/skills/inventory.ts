@@ -3,7 +3,7 @@ import type { Mineflayer } from '../libs/mineflayer'
 import pathfinderModel from 'mineflayer-pathfinder'
 import * as world from '../composables/world'
 import { log } from './base'
-import { goToPosition } from './movement'
+import { goToPlayer, goToPosition } from './movement'
 
 const { goals } = pathfinderModel
 
@@ -197,42 +197,56 @@ export async function giveToPlayer(
     return false
   }
 
-  await goToPosition(mineflayer, player.position.x, player.position.y, player.position.z, 3)
+  // Move to player position
+  await goToPlayer(mineflayer, username, 3)
 
-  if (mineflayer.bot.entity.position.y < player.position.y - 1) {
-    await goToPosition(mineflayer, player.position.x, player.position.y, player.position.z, 1)
-  }
-
-  if (mineflayer.bot.entity.position.distanceTo(player.position) < 2) {
-    const goal = new goals.GoalNear(player.position.x, player.position.y, player.position.z, 2)
-    const invertedGoal = new goals.GoalInvert(goal)
-    await mineflayer.bot.pathfinder.goto(invertedGoal)
-  }
-
+  // Look at player before dropping items
   await mineflayer.bot.lookAt(player.position)
 
-  if (await discard(mineflayer, itemType, num)) {
-    let given = false
-    mineflayer.bot.once('playerCollect', (collector, _collected) => {
-      if (collector.username === username) {
-        log(mineflayer, `${username} received ${itemType}.`)
-        given = true
-      }
-    })
-
-    const start = Date.now()
-    // eslint-disable-next-line no-unmodified-loop-condition -- ?
-    while (!given && !mineflayer.shouldInterrupt) {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      if (given) {
-        return true
-      }
-      if (Date.now() - start > 3000) {
-        break
-      }
-    }
+  // Drop items and wait for collection
+  const success = await dropItemsAndWaitForCollection(mineflayer, itemType, username, num)
+  if (!success) {
+    log(mineflayer, `Failed to give ${itemType} to ${username}, it was never received.`)
+    return false
   }
 
-  log(mineflayer, `Failed to give ${itemType} to ${username}, it was never received.`)
-  return false
+  return true
+}
+
+async function dropItemsAndWaitForCollection(
+  mineflayer: Mineflayer,
+  itemType: string,
+  username: string,
+  num: number,
+): Promise<boolean> {
+  if (!await discard(mineflayer, itemType, num)) {
+    return false
+  }
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      // Clean up playerCollect listener when timeout occurs
+      // eslint-disable-next-line ts/no-use-before-define
+      mineflayer.bot.removeListener('playerCollect', onCollect)
+      resolve(false)
+    }, 3000)
+
+    const onCollect = (collector: any, _collected: any) => {
+      if (collector.username === username) {
+        log(mineflayer, `${username} received ${itemType}.`)
+        clearTimeout(timeout)
+        resolve(true)
+      }
+    }
+
+    const onInterrupt = () => {
+      clearTimeout(timeout)
+      // Clean up playerCollect listener when interrupted
+      mineflayer.bot.removeListener('playerCollect', onCollect)
+      resolve(false)
+    }
+
+    mineflayer.bot.once('playerCollect', onCollect)
+    mineflayer.once('interrupt', onInterrupt)
+  })
 }
