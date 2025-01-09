@@ -203,7 +203,7 @@ export async function giveToPlayer(
  */
 export async function listInventory(mineflayer: Mineflayer): Promise<{ name: string, count: number }[]> {
   const items = await mineflayer.bot.inventory.items()
-  sayItems(mineflayer, items)
+  // sayItems(mineflayer, items)
 
   return items.map(item => ({
     name: item.name,
@@ -228,7 +228,7 @@ export async function sayItems(mineflayer: Mineflayer, items: Array<Item> | null
     mineflayer.bot.chat(`My inventory contains: ${output}`)
   }
   else {
-    mineflayer.bot.chat('My inventory is empty.`')
+    mineflayer.bot.chat('My inventory is empty.')
   }
 }
 
