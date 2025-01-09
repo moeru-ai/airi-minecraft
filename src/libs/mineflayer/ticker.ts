@@ -1,3 +1,5 @@
+import EventEmitter from 'eventemitter3'
+
 export interface TickContext {
   delta: number
   nextTick: () => Promise<void>
@@ -11,29 +13,23 @@ export type TickEvents = keyof TickEventHandlers
 export type TickEventsHandler<K extends TickEvents> = TickEventHandlers[K]
 
 // This update loop ensures that each update() is called one at a time, even if it takes longer than the interval
-export class Ticker {
-  private tickingCbs: Record<TickEvents, Array<TickEventHandlers[TickEvents]>> = {
-    tick: [],
-  }
-
+export class Ticker extends EventEmitter<TickEventHandlers> {
   constructor(options?: { interval?: number }) {
+    super()
     const { interval = 300 } = options ?? { interval: 300 }
 
     let last = Date.now()
-    const tickingCbs: Record<TickEvents, Array<TickEventHandlers[TickEvents]>> = {
-      tick: [],
-    }
 
     setTimeout(async () => {
       while (true) {
         const start = Date.now()
         const nextTickPromise = new Promise<void>((resolve) => {
-        // Schedule nextTick resolution for after all callbacks complete
+          // Schedule nextTick resolution for after all callbacks complete
           setImmediate(resolve)
         })
 
         // Run all callbacks without awaiting them
-        const callbackPromises = tickingCbs.tick.map(cb => cb({
+        const callbackPromises = this.listeners('tick').map(cb => cb({
           delta: start - last,
           nextTick: () => nextTickPromise,
         }))
@@ -47,9 +43,8 @@ export class Ticker {
         ])
 
         const remaining = interval - (Date.now() - start)
-        if (remaining > 0) {
+        if (remaining > 0)
           await new Promise(resolve => setTimeout(resolve, remaining))
-        }
 
         last = start
       }
@@ -57,6 +52,6 @@ export class Ticker {
   }
 
   on<K extends TickEvents>(event: K, cb: TickEventsHandler<K>) {
-    this.tickingCbs[event].push(cb)
+    return super.on(event, cb)
   }
 }

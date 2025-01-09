@@ -19,6 +19,7 @@
     "@guiiai/logg": "^1.0.6",
     "@typeschema/zod": "^0.14.0",
     "dotenv": "^16.4.7",
+    "eventemitter3": "^5.0.1",
     "minecraft-data": "^3.82.0",
     "mineflayer": "^4.24.0",
     "mineflayer-armor-manager": "^2.0.1",

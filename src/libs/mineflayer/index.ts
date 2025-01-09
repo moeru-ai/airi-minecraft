@@ -3,6 +3,7 @@ import type { Message } from 'neuri/openai'
 import type { z } from 'zod'
 import type { MineflayerPlugin } from './plugin'
 import { useLogg } from '@guiiai/logg'
+import EventEmitter from 'eventemitter3'
 import mineflayer from 'mineflayer'
 import { type CommandContext, parseCommand } from './command'
 import { formBotChat } from './message'
@@ -25,16 +26,6 @@ export type Events = keyof EventHandlers
 export type EventsHandler<K extends Events> = EventHandlers[K]
 
 export type Handler = (ctx: Context) => void | Promise<void>
-
-function createEventHandlers(): Record<Events, Array<EventsHandler<Events>>> {
-  return {
-    'command': [],
-    'time:sunrise': [],
-    'time:noon': [],
-    'time:sunset': [],
-    'time:midnight': [],
-  }
-}
 
 export class Health {
   public value: number
@@ -133,7 +124,7 @@ export interface MineflayerOptions {
   plugins?: Array<MineflayerPlugin>
 }
 
-export class Mineflayer {
+export class Mineflayer extends EventEmitter<EventHandlers> {
   public bot: Bot
   public username: string
   public health: Health = new Health()
@@ -149,10 +140,10 @@ export class Mineflayer {
   private options: MineflayerOptions
   private logger: ReturnType<typeof useLogg>
   private commands: Map<string, EventsHandler<'command'>> = new Map()
-  private eventHandlers = createEventHandlers()
   private ticker: Ticker = new Ticker()
 
   constructor(options: MineflayerOptions) {
+    super()
     this.options = options
     this.bot = mineflayer.createBot(options.botConfig)
     this.username = options.botConfig.username
@@ -277,10 +268,7 @@ export class Mineflayer {
   }
 
   public emit<E extends Events>(event: E, ...args: Parameters<EventsHandler<E>>) {
-    const handlers = this.eventHandlers[event]
-    for (const handler of handlers) {
-      handler(args[0])
-    }
+    return super.emit(event, ...args)
   }
 
   public async stop() {
@@ -292,6 +280,7 @@ export class Mineflayer {
     this.components.cleanup()
     this.bot.removeListener('chat', this.handleCommand())
     this.bot.end()
+    this.removeAllListeners()
   }
 
   private handleCommand() {
