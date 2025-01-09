@@ -2,10 +2,11 @@ import type { Block } from 'prismarine-block'
 import type { Item } from 'prismarine-item'
 import type { Recipe } from 'prismarine-recipe'
 import type { Mineflayer } from '../libs/mineflayer'
+
 import { useLogg } from '@guiiai/logg'
-import * as world from '../composables/world'
+
 import { getInventoryCounts, getNearestBlock, getNearestFreeSpace } from '../composables/world'
-import * as mc from '../utils/mcdata'
+import { getItemId, getItemName } from '../utils/mcdata'
 import { ensureCraftingTable } from './actions/ensure'
 import { collectBlock, placeBlock } from './blocks'
 import { goToNearestBlock, goToPosition, moveAway } from './movement'
@@ -47,7 +48,7 @@ export async function craftRecipe(
   if (itemName.endsWith('plank'))
     itemName += 's' // Correct common mistakes
 
-  const itemId = mc.getItemId(itemName)
+  const itemId = getItemId(itemName)
   if (itemId === null) {
     logger.log(`Invalid item name: ${itemName}`)
     return false
@@ -113,7 +114,7 @@ export async function craftRecipe(
   async function findAndUseCraftingTable(
     craftingTableRange: number,
   ): Promise<boolean> {
-    let craftingTable = world.getNearestBlock(mineflayer, 'crafting_table', craftingTableRange)
+    let craftingTable = getNearestBlock(mineflayer, 'crafting_table', craftingTableRange)
     if (craftingTable) {
       return await moveToAndCraft(craftingTable)
     }
@@ -214,11 +215,11 @@ export async function smeltItem(mineflayer: Mineflayer, itemName: string, num = 
   const inputItem = furnace.inputItem()
   if (
     inputItem
-    && inputItem.type !== mc.getItemId(itemName)
+    && inputItem.type !== getItemId(itemName)
     && inputItem.count > 0
   ) {
     logger.log(
-      `The furnace is currently smelting ${mc.getItemName(
+      `The furnace is currently smelting ${getItemName(
         inputItem.type,
       )}.`,
     )
@@ -251,11 +252,11 @@ export async function smeltItem(mineflayer: Mineflayer, itemName: string, num = 
     }
     await furnace.putFuel(fuel.type, null, putFuel)
     logger.log(
-      `Added ${putFuel} ${mc.getItemName(fuel.type)} to furnace fuel.`,
+      `Added ${putFuel} ${getItemName(fuel.type)} to furnace fuel.`,
     )
   }
   // Put the items in the furnace
-  const itemId = mc.getItemId(itemName)
+  const itemId = getItemId(itemName)
   if (itemId === null) {
     logger.log(`Invalid item name: ${itemName}`)
     return false
@@ -293,12 +294,12 @@ export async function smeltItem(mineflayer: Mineflayer, itemName: string, num = 
   }
   if (total < num) {
     logger.log(
-      `Only smelted ${total} ${mc.getItemName(smeltedItem?.type || 0)}.`,
+      `Only smelted ${total} ${getItemName(smeltedItem?.type || 0)}.`,
     )
     return false
   }
   logger.log(
-    `Successfully smelted ${itemName}, got ${total} ${mc.getItemName(
+    `Successfully smelted ${itemName}, got ${total} ${getItemName(
       smeltedItem?.type || 0,
     )}.`,
   )

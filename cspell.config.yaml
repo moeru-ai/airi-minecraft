@@ -1,4 +1,4 @@
-version: '0.2'
+version: "0.2"
 ignorePaths: []
 dictionaryDefinitions: []
 dictionaries: []
@@ -7,6 +7,7 @@ words:
   - airi
   - antfu
   - bumpp
+  - collectblock
   - convo
   - defu
   - execa
@@ -23,6 +24,7 @@ words:
   - neuri
   - noancestors
   - ofetch
+  - OneLinerable
   - openai
   - prismarine
   - reactjs
@@ -36,6 +38,5 @@ words:
   - vitepress
   - vuejs
   - xsai
-  - OneLinerable
 ignoreWords: []
 import: []

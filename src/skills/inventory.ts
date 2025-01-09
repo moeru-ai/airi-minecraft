@@ -1,5 +1,5 @@
 import type { Mineflayer } from '../libs/mineflayer'
-import * as world from '../composables/world'
+import { getNearestBlock } from '../composables/world'
 import { log } from './base'
 import { goToPlayer, goToPosition } from './movement'
 
@@ -61,7 +61,7 @@ export async function discard(mineflayer: Mineflayer, itemName: string, num = -1
 }
 
 export async function putInChest(mineflayer: Mineflayer, itemName: string, num = -1): Promise<boolean> {
-  const chest = world.getNearestBlock(mineflayer, 'chest', 32)
+  const chest = getNearestBlock(mineflayer, 'chest', 32)
   if (!chest) {
     log(mineflayer, 'Could not find a chest nearby.')
     return false
@@ -85,7 +85,7 @@ export async function putInChest(mineflayer: Mineflayer, itemName: string, num =
 }
 
 export async function takeFromChest(mineflayer: Mineflayer, itemName: string, num = -1): Promise<boolean> {
-  const chest = world.getNearestBlock(mineflayer, 'chest', 32)
+  const chest = getNearestBlock(mineflayer, 'chest', 32)
   if (!chest) {
     log(mineflayer, 'Could not find a chest nearby.')
     return false
@@ -110,7 +110,7 @@ export async function takeFromChest(mineflayer: Mineflayer, itemName: string, nu
 }
 
 export async function viewChest(mineflayer: Mineflayer): Promise<boolean> {
-  const chest = world.getNearestBlock(mineflayer, 'chest', 32)
+  const chest = getNearestBlock(mineflayer, 'chest', 32)
   if (!chest) {
     log(mineflayer, 'Could not find a chest nearby.')
     return false

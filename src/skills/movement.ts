@@ -5,7 +5,7 @@ import { useLogg } from '@guiiai/logg'
 import { randomInt } from 'es-toolkit'
 import pathfinder from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
-import * as world from '../composables/world'
+import { getNearestBlock, getNearestEntityWhere } from '../composables/world'
 import { sleep } from '../utils/helper'
 import { log } from './base'
 
@@ -47,7 +47,7 @@ export async function goToNearestBlock(
     range = MAX_RANGE
   }
 
-  const block = world.getNearestBlock(mineflayer, blockType, range)
+  const block = getNearestBlock(mineflayer, blockType, range)
   if (!block) {
     log(mineflayer, `Could not find any ${blockType} in ${range} blocks.`)
     return false
@@ -64,7 +64,7 @@ export async function goToNearestEntity(
   minDistance = 2,
   range = 64,
 ): Promise<boolean> {
-  const entity = world.getNearestEntityWhere(
+  const entity = getNearestEntityWhere(
     mineflayer,
     entity => entity.name === entityType,
     range,

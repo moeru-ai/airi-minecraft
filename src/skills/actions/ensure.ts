@@ -3,8 +3,8 @@ import { useLogg } from '@guiiai/logg'
 import { getItemId } from '../../utils/mcdata'
 import { craftRecipe } from '../crafting'
 import { moveAway } from '../movement'
-import { collectBlock } from './collectBlock'
-import { gatherWood } from './gatherWood'
+import { collectBlock } from './collect-block'
+import { gatherWood } from './gather-wood'
 import { getItemCount } from './inventory'
 
 // Constants for crafting and gathering

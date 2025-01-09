@@ -1,10 +1,12 @@
 import type { Entity } from 'prismarine-entity'
 import type { Item } from 'prismarine-item'
 import type { Mineflayer } from '../libs/mineflayer'
+
 import pathfinderModel from 'mineflayer-pathfinder'
-import * as world from '../composables/world'
+
+import { getNearbyEntities, getNearestEntityWhere } from '../composables/world'
 import { sleep } from '../utils/helper'
-import * as mc from '../utils/mcdata'
+import { isHostile } from '../utils/mcdata'
 import { log } from './base'
 
 const { goals } = pathfinderModel
@@ -46,7 +48,7 @@ export async function attackNearest(
   mobType: string,
   kill = true,
 ): Promise<boolean> {
-  const mob = world.getNearbyEntities(mineflayer, 24).find(entity => entity.name === mobType)
+  const mob = getNearbyEntities(mineflayer, 24).find(entity => entity.name === mobType)
 
   if (mob) {
     return await attackEntity(mineflayer, mob, kill)
@@ -78,7 +80,7 @@ export async function attackEntity(
   })
 
   mineflayer.bot.pvp.attack(entity)
-  while (world.getNearbyEntities(mineflayer, 24).includes(entity)) {
+  while (getNearbyEntities(mineflayer, 24).includes(entity)) {
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
 
@@ -88,7 +90,7 @@ export async function attackEntity(
 
 export async function defendSelf(mineflayer: Mineflayer, range = 9): Promise<boolean> {
   let attacked = false
-  let enemy = world.getNearestEntityWhere(mineflayer, entity => mc.isHostile(entity), range)
+  let enemy = getNearestEntityWhere(mineflayer, entity => isHostile(entity), range)
 
   while (enemy) {
     await equipHighestAttack(mineflayer)
@@ -114,7 +116,7 @@ export async function defendSelf(mineflayer: Mineflayer, range = 9): Promise<boo
     mineflayer.bot.pvp.attack(enemy)
     attacked = true
     await sleep(500)
-    enemy = world.getNearestEntityWhere(mineflayer, entity => mc.isHostile(entity), range)
+    enemy = getNearestEntityWhere(mineflayer, entity => isHostile(entity), range)
 
     mineflayer.once('interrupt', () => {
       mineflayer.bot.pvp.stop()

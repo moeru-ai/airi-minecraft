@@ -1,9 +1,10 @@
 import type { Mineflayer } from '../libs/mineflayer'
 import type { BlockFace } from './base'
+
 import pathfinderModel, { type SafeBlock } from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
-import * as world from '../composables/world'
-import * as mc from '../utils/mcdata'
+import { getNearestBlock, getNearestBlocks, getPosition, shouldPlaceTorch } from '../composables/world'
+import { getBlockId, makeItem } from '../utils/mcdata'
 import { log } from './base'
 import { goToPosition } from './movement'
 
@@ -13,9 +14,9 @@ const { goals, Movements } = pathfinderModel
  * Place a torch if needed
  */
 async function autoLight(mineflayer: Mineflayer): Promise<boolean> {
-  if (world.shouldPlaceTorch(mineflayer)) {
+  if (shouldPlaceTorch(mineflayer)) {
     try {
-      const pos = world.getPosition(mineflayer)
+      const pos = getPosition(mineflayer)
       return await placeBlock(mineflayer, 'torch', pos.x, pos.y, pos.z, 'bottom', true)
     }
     catch {
@@ -112,7 +113,7 @@ export async function placeBlock(
   placeOn: BlockFace = 'bottom',
   dontCheat = false,
 ): Promise<boolean> {
-  if (!mc.getBlockId(blockType)) {
+  if (!getBlockId(blockType)) {
     log(mineflayer, `Invalid block type: ${blockType}.`)
     return false
   }
@@ -213,7 +214,7 @@ async function placeWithoutCheats(
 
   let block = mineflayer.bot.inventory.items().find(item => item.name === itemName)
   if (!block && mineflayer.isCreative) {
-    await mineflayer.bot.creative.setInventorySlot(36, mc.makeItem(itemName, 1))
+    await mineflayer.bot.creative.setInventorySlot(36, makeItem(itemName, 1))
     block = mineflayer.bot.inventory.items().find(item => item.name === itemName)
   }
 
@@ -415,7 +416,7 @@ async function findNearestDoor(bot: any): Promise<Vec3 | null> {
   ]
 
   for (const doorType of doorTypes) {
-    const block = world.getNearestBlock(bot, doorType, 16)
+    const block = getNearestBlock(bot, doorType, 16)
     if (block) {
       return block.position
     }
@@ -544,7 +545,7 @@ function fixSeedName(seedType: string): string {
 }
 
 export async function activateNearestBlock(mineflayer: Mineflayer, type: string): Promise<boolean> {
-  const block = world.getNearestBlock(mineflayer, type, 16)
+  const block = getNearestBlock(mineflayer, type, 16)
   if (!block) {
     log(mineflayer, `Could not find any ${type} to activate.`)
     return false
@@ -621,7 +622,7 @@ function getBlockTypes(blockType: string): string[] {
 }
 
 function getValidBlocks(mineflayer: Mineflayer, blocktypes: string[], exclude: Vec3[] | null): any[] {
-  let blocks = world.getNearestBlocks(mineflayer, blocktypes, 64)
+  let blocks = getNearestBlocks(mineflayer, blocktypes, 64)
 
   if (exclude) {
     blocks = blocks.filter(
