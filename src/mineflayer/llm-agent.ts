@@ -11,8 +11,7 @@ export function LLMAgent(options: { agent: Neuri }): MineflayerPlugin {
     async created(bot) {
       const agent = options.agent
 
-      const logger = useLogg('aichat').useGlobalConfig()
-      logger.log('Loading aichat plugin')
+      const logger = useLogg('LLMAgent').useGlobalConfig()
 
       bot.memory.chatHistory.push(system(genActionAgentPrompt(bot)))
 
@@ -23,13 +22,10 @@ export function LLMAgent(options: { agent: Neuri }): MineflayerPlugin {
         bot.memory.chatHistory.push(user(`${username}: ${message}`))
 
         const content = await agent.handleStateless([...bot.memory.chatHistory], async (c) => {
-          logger.log('Generate response')
+          logger.log('thinking...')
 
           try {
             const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' }) || { error: { message: 'Unknown error' } }
-
-            logger.withFields({ completion }).log('Completion')
-
             if (!completion || 'error' in completion) {
               logger.withFields(c).error('Completion')
               return
@@ -37,17 +33,18 @@ export function LLMAgent(options: { agent: Neuri }): MineflayerPlugin {
             }
 
             const content = await completion?.firstContent()
+            logger.withFields({ usage: completion.usage, content }).log('output')
             bot.memory.chatHistory.push(assistant(content))
 
             return content
           }
           catch (e) {
-            logger.errorWithError('Generate response error', e)
+            logger.errorWithError('failed to think of an action', e)
           }
         })
 
         if (content) {
-          logger.withFields({ content }).log('Bot response')
+          logger.withFields({ content }).log('responded')
           bot.bot.chat(content)
         }
       })

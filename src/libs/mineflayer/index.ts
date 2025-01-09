@@ -38,8 +38,8 @@ export class Health {
   }
 }
 
-abstract class OneLinerable {
-  public abstract toOneLiner(): string
+interface OneLinerable {
+  toOneLiner: () => string
 }
 
 export class Status implements OneLinerable {
