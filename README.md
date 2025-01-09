@@ -30,7 +30,7 @@ An intelligent Minecraft bot powered by LLM. AIRI can understand natural languag
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/airi-mc.git
+git clone https://github.com/luoling8192/airi-mc.git
 cd airi-mc
 ```
 
