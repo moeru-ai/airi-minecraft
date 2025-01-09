@@ -2,6 +2,9 @@ import type { Action } from '../libs/mineflayer'
 import { z } from 'zod'
 import * as world from '../composables/world'
 import * as skills from '../skills'
+import { collectBlock } from '../skills/actions/collect-block'
+import { discard, equip, putInChest, takeFromChest, viewChest } from '../skills/actions/inventory'
+import { activateNearestBlock, placeBlock } from '../skills/actions/world-interactions'
 
 // Utils
 const pad = (str: string): string => `\n${str}\n`
@@ -264,7 +267,7 @@ export const actionsList: Action[] = [
       item_name: z.string().describe('The name of the item to equip.'),
     }),
     perform: mineflayer => async (item_name: string) => {
-      await skills.equip(mineflayer, item_name)
+      await equip(mineflayer, item_name)
       return 'Equipping item...'
     },
   },
@@ -277,7 +280,7 @@ export const actionsList: Action[] = [
       num: z.number().int().describe('The number of items to put in the chest.').min(1),
     }),
     perform: mineflayer => async (item_name: string, num: number) => {
-      await skills.putInChest(mineflayer, item_name, num)
+      await putInChest(mineflayer, item_name, num)
       return 'Putting items in chest...'
     },
   },
@@ -290,7 +293,7 @@ export const actionsList: Action[] = [
       num: z.number().int().describe('The number of items to take.').min(1),
     }),
     perform: mineflayer => async (item_name: string, num: number) => {
-      await skills.takeFromChest(mineflayer, item_name, num)
+      await takeFromChest(mineflayer, item_name, num)
       return 'Taking items from chest...'
     },
   },
@@ -300,7 +303,7 @@ export const actionsList: Action[] = [
     description: 'View the items/counts of the nearest chest.',
     schema: z.object({}),
     perform: mineflayer => async () => {
-      await skills.viewChest(mineflayer)
+      await viewChest(mineflayer)
       return 'Viewing chest contents...'
     },
   },
@@ -313,10 +316,7 @@ export const actionsList: Action[] = [
       num: z.number().int().describe('The number of items to discard.').min(1),
     }),
     perform: mineflayer => async (item_name: string, num: number) => {
-      const start_loc = mineflayer.bot.entity.position
-      await skills.moveAway(mineflayer, 5)
-      await skills.discard(mineflayer, item_name, num)
-      await skills.goToPosition(mineflayer, start_loc.x, start_loc.y, start_loc.z, 0)
+      await discard(mineflayer, item_name, num)
       return 'Discarding items...'
     },
   },
@@ -329,7 +329,7 @@ export const actionsList: Action[] = [
       num: z.number().int().describe('The number of blocks to collect.').min(1),
     }),
     perform: mineflayer => async (type: string, num: number) => {
-      await skills.collectBlock(mineflayer, type, num)
+      await collectBlock(mineflayer, type, num)
       return 'Collecting blocks...'
     },
   },
@@ -378,7 +378,7 @@ export const actionsList: Action[] = [
     }),
     perform: mineflayer => async (type: string) => {
       const pos = mineflayer.bot.entity.position
-      await skills.placeBlock(mineflayer, type, pos.x, pos.y, pos.z)
+      await placeBlock(mineflayer, type, pos.x, pos.y, pos.z)
       return 'Placing block...'
     },
   },
@@ -429,7 +429,7 @@ export const actionsList: Action[] = [
       type: z.string().describe('The type of object to activate.'),
     }),
     perform: mineflayer => async (type: string) => {
-      await skills.activateNearestBlock(mineflayer, type)
+      await activateNearestBlock(mineflayer, type)
       return 'Activating block...'
     },
   },
