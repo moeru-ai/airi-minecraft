@@ -1,9 +1,9 @@
-import type { Agent } from './agent'
+import type { Mineflayer } from '../libs/mineflayer/core'
 import { useLogg } from '@guiiai/logg'
 
 type Fn = (...args: any[]) => void
 
-export function useActionManager(agent: Agent) {
+export function useActionManager(mineflayer: Mineflayer) {
   const executing: { value: boolean } = { value: false }
   const currentActionLabel: { value: string | undefined } = { value: '' }
   const currentActionFn: { value: (Fn) | undefined } = { value: undefined }
@@ -26,17 +26,18 @@ export function useActionManager(agent: Agent) {
   }
 
   async function stop() {
-    if (!executing.value)
-      return
-    const timeout = setTimeout(() => {
-      agent.cleanKill('Code execution refused stop after 10 seconds. Killing process.')
-    }, 10000)
-    while (executing.value) {
-      agent.requestInterrupt()
-      log.log('waiting for code to finish executing...')
-      await new Promise(resolve => setTimeout(resolve, 300))
-    }
-    clearTimeout(timeout)
+    // if (!executing.value)
+    //   return
+    // const timeout = setTimeout(() => {
+    //   mineflayer.cleanKill('Code execution refused stop after 10 seconds. Killing process.')
+    // }, 10000)
+    // while (executing.value) {
+    //   mineflayer.requestInterrupt()
+    //   log.log('waiting for code to finish executing...')
+    //   await new Promise(resolve => setTimeout(resolve, 300))
+    // }
+    // clearTimeout(timeout)
+    mineflayer.emit('interrupt')
   }
 
   function cancelResume() {
@@ -53,7 +54,7 @@ export function useActionManager(agent: Agent) {
       }
       resume_name.value = actionLabel
     }
-    if (resume_func.value != null && (agent.isIdle() || new_resume) && (!agent.self_prompter.on || new_resume)) {
+    if (resume_func.value != null && (mineflayer.isIdle() || new_resume) && (!mineflayer.self_prompter.on || new_resume)) {
       currentActionLabel.value = resume_name.value
       const res = await _executeAction(resume_name.value, resume_func.value, timeout)
       currentActionLabel.value = ''
@@ -70,14 +71,14 @@ export function useActionManager(agent: Agent) {
       log.log('executing code...\n')
 
       // await current action to finish (executing=false), with 10 seconds timeout
-      // also tell agent.bot to stop various actions
+      // also tell mineflayer.bot to stop various actions
       if (executing.value) {
         log.log(`action "${actionLabel}" trying to interrupt current action "${currentActionLabel.value}"`)
       }
       await stop()
 
       // clear bot logs and reset interrupt code
-      agent.clearBotLogs()
+      mineflayer.clearBotLogs()
 
       executing.value = true
       currentActionLabel.value = actionLabel
@@ -99,12 +100,12 @@ export function useActionManager(agent: Agent) {
 
       // get bot activity summary
       const output = _getBotOutputSummary()
-      const interrupted = agent.bot.interrupt_code
-      agent.clearBotLogs()
+      const interrupted = mineflayer.bot.interrupt_code
+      mineflayer.clearBotLogs()
 
       // if not interrupted and not generating, emit idle event
-      if (!interrupted && !agent.coder.generating) {
-        agent.bot.emit('idle')
+      if (!interrupted && !mineflayer.coder.generating) {
+        mineflayer.bot.emit('idle')
       }
 
       // return action status report
@@ -124,17 +125,17 @@ export function useActionManager(agent: Agent) {
       + `Error: ${err}\n`
       + `Stack trace:\n${(err as Error).stack}`
 
-      const interrupted = agent.bot.interrupt_code
-      agent.clearBotLogs()
-      if (!interrupted && !agent.coder.generating) {
-        agent.bot.emit('idle')
+      const interrupted = mineflayer.bot.interrupt_code
+      mineflayer.clearBotLogs()
+      if (!interrupted && !mineflayer.coder.generating) {
+        mineflayer.bot.emit('idle')
       }
       return { success: false, message, interrupted, timedout: false }
     }
   }
 
   function _getBotOutputSummary() {
-    const { bot } = agent
+    const { bot } = mineflayer
     if (bot.interrupt_code && !timedout.value)
       return ''
     let output = bot.output
@@ -154,7 +155,7 @@ export function useActionManager(agent: Agent) {
     return setTimeout(async () => {
       log.warn(`Code execution timed out after ${TIMEOUT_MINS} minutes. Attempting force stop.`)
       timedout.value = true
-      agent.history.add('system', `Code execution timed out after ${TIMEOUT_MINS} minutes. Attempting force stop.`)
+      mineflayer.history.add('system', `Code execution timed out after ${TIMEOUT_MINS} minutes. Attempting force stop.`)
       await stop() // last attempt to stop
     }, TIMEOUT_MINS * 60 * 1000)
   }
