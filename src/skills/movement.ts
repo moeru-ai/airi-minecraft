@@ -119,38 +119,15 @@ export async function followPlayer(
     return false
   }
 
+  log(mineflayer, `I am now actively following player ${username}.`)
+
   const movements = new Movements(mineflayer.bot)
   mineflayer.bot.pathfinder.setMovements(movements)
   mineflayer.bot.pathfinder.setGoal(new goals.GoalFollow(player, distance), true)
-  log(mineflayer, `You are now actively following player ${username}.`)
 
-  let shouldInterrupt = false
-
-  mineflayer.on('interrupt', () => {
-    shouldInterrupt = true
+  mineflayer.once('interrupt', () => {
+    mineflayer.bot.pathfinder.stop()
   })
-
-  async function follow() {
-    // eslint-disable-next-line no-unmodified-loop-condition
-    while (!shouldInterrupt) {
-      await sleep(500)
-
-      if (mineflayer.allowCheats && mineflayer.bot.entity.position.distanceTo(player.position) > 100 && player.onGround) {
-        await goToPlayer(mineflayer, username)
-      }
-
-      // if (mineflayer.bot.modes?.isOn('unstuck')) {
-      //   const isNearby = mineflayer.bot.entity.position.distanceTo(player.position) <= distance + 1
-      //   if (isNearby) {
-      //     mineflayer.bot.modes.pause('unstuck')
-      //   } else {
-      //     mineflayer.bot.modes.unpause('unstuck')
-      //   }
-      // }
-    }
-  }
-
-  follow()
 
   return true
 }
@@ -186,12 +163,12 @@ export async function moveAway(mineflayer: Mineflayer, distance: number): Promis
 
     await mineflayer.bot.pathfinder.goto(farGoal)
     const newPos = mineflayer.bot.entity.position
-    logger.log(`Moved away from nearest entity to ${newPos}.`)
+    logger.log(`I moved away from nearest entity to ${newPos}.`)
     await sleep(500)
     return true
   }
   catch (err) {
-    logger.log(`Failed to move away: ${(err as Error).message}`)
+    logger.log(`I failed to move away: ${(err as Error).message}`)
     return false
   }
 }
@@ -215,7 +192,7 @@ export async function stay(mineflayer: Mineflayer, seconds = 30): Promise<boolea
     await sleep(500)
   }
 
-  log(mineflayer, `Stayed for ${(Date.now() - start) / 1000} seconds.`)
+  log(mineflayer, `I stayed for ${(Date.now() - start) / 1000} seconds.`)
   return true
 }
 
@@ -227,7 +204,7 @@ export async function goToBed(mineflayer: Mineflayer): Promise<boolean> {
   })
 
   if (beds.length === 0) {
-    log(mineflayer, 'Could not find a bed to sleep in.')
+    log(mineflayer, 'I could not find a bed to sleep in.')
     return false
   }
 
@@ -236,17 +213,17 @@ export async function goToBed(mineflayer: Mineflayer): Promise<boolean> {
 
   const bed = mineflayer.bot.blockAt(loc)
   if (!bed) {
-    log(mineflayer, 'Could not find bed block.')
+    log(mineflayer, 'I could not find a bed to sleep in.')
     return false
   }
 
   await mineflayer.bot.sleep(bed)
-  log(mineflayer, 'You are in bed.')
+  log(mineflayer, 'I am in bed.')
 
   while (mineflayer.bot.isSleeping) {
     await sleep(500)
   }
 
-  log(mineflayer, 'You have woken up.')
+  log(mineflayer, 'I have woken up.')
   return true
 }
