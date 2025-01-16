@@ -1,6 +1,7 @@
 import process, { exit } from 'node:process'
 
 import { useLogg } from '@guiiai/logg'
+import { Client } from '@proj-airi/server-sdk'
 import MineflayerArmorManager from 'mineflayer-armor-manager'
 import { loader as MineflayerAutoEat } from 'mineflayer-auto-eat'
 import { plugin as MineflayerCollectBlock } from 'mineflayer-collectblock'
@@ -33,9 +34,11 @@ async function main() {
     ],
   })
 
+  const airiClient = new Client({ name: 'minecraft-bot', url: 'ws://localhost:6121/ws' })
+
   // Dynamically load LLMAgent after bot is initialized
   const agent = await initAgent(bot)
-  await bot.loadPlugin(LLMAgent({ agent }))
+  await bot.loadPlugin(LLMAgent({ agent, airiClient }))
 
   process.on('SIGINT', () => {
     bot.stop()
