@@ -1,7 +1,6 @@
 import type { BotOptions } from 'mineflayer'
-import process from 'node:process'
+import { env } from 'node:process'
 import { useLogg } from '@guiiai/logg'
-import { configDotenv } from 'dotenv'
 
 const logger = useLogg('config').useGlobalConfig()
 
@@ -26,15 +25,14 @@ export const openaiConfig: OpenAIConfig = {
 export function initEnv() {
   logger.log('Initializing environment variables')
 
-  configDotenv({ path: '.env.local' })
-  openaiConfig.apiKey = process.env.OPENAI_API_KEY || ''
-  openaiConfig.baseUrl = process.env.OPENAI_API_BASEURL || ''
+  openaiConfig.apiKey = env.OPENAI_API_KEY || ''
+  openaiConfig.baseUrl = env.OPENAI_API_BASEURL || ''
 
-  botConfig.username = process.env.BOT_USERNAME || ''
-  botConfig.host = process.env.BOT_HOSTNAME || ''
-  botConfig.port = Number.parseInt(process.env.BOT_PORT || '49415')
-  botConfig.password = process.env.BOT_PASSWORD || ''
-  botConfig.version = process.env.BOT_VERSION || '1.20'
+  botConfig.username = env.BOT_USERNAME || ''
+  botConfig.host = env.BOT_HOSTNAME || ''
+  botConfig.port = Number.parseInt(env.BOT_PORT || '49415')
+  botConfig.password = env.BOT_PASSWORD || ''
+  botConfig.version = env.BOT_VERSION || '1.20'
 
   logger.withFields({ openaiConfig }).log('Environment variables initialized')
 }

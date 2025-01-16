@@ -6,7 +6,8 @@
   "description": "An intelligent Minecraft bot powered by LLM. AIRI can understand natural language commands, interact with the world, and assist players in various tasks.",
   "main": "src/main.ts",
   "scripts": {
-    "dev": "tsx src/main.ts",
+    "dev": "dotenvx run -f .env -f .env.local --overload --ignore=MISSING_ENV_FILE -- tsx src/main.ts",
+    "start": "dotenvx run -f .env -f .env.local --overload --ignore=MISSING_ENV_FILE -- tsx src/main.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
@@ -14,7 +15,9 @@
     "postinstall": "npx simple-git-hooks"
   },
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.33.0",
     "@guiiai/logg": "^1.0.6",
+    "@proj-airi/server-sdk": "^0.1.2",
     "@typeschema/zod": "^0.14.0",
     "dotenv": "^16.4.7",
     "es-toolkit": "^1.31.0",

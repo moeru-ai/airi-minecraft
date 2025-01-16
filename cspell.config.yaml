@@ -1,4 +1,4 @@
-version: "0.2"
+version: '0.2'
 ignorePaths: []
 dictionaryDefinitions: []
 dictionaries: []
@@ -10,6 +10,7 @@ words:
   - collectblock
   - convo
   - defu
+  - dotenvx
   - execa
   - guiiai
   - Infobar
@@ -28,6 +29,7 @@ words:
   - openai
   - prismarine
   - reactjs
+  - Retriable
   - serpapi
   - shiki
   - shikijs
