@@ -119,13 +119,7 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
 
       // Try to reconnect after 5 seconds
       setTimeout(async () => {
-        try {
-          await mineflayer.bot.connect(options.botConfig)
-          mineflayer.logger.log('Reconnected successfully')
-        }
-        catch (err) {
-          mineflayer.logger.errorWithError('Failed to reconnect:', err)
-        }
+        await mineflayer.reconnect()
       }, 5000)
     })
 
@@ -165,6 +159,16 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
     })
 
     return mineflayer
+  }
+
+  private async reconnect() {
+    try {
+      await this.bot.connect(this.options.botConfig)
+      this.logger.log('Reconnected successfully')
+    }
+    catch (err) {
+      this.logger.errorWithError('Failed to reconnect:', err)
+    }
   }
 
   public async loadPlugin(plugin: MineflayerPlugin) {
