@@ -9,6 +9,10 @@ import { pickupNearbyItems } from './world-interactions'
 
 const logger = useLogg('Action:CollectBlock').useGlobalConfig()
 
+function isMessagable(err: unknown): err is { message: string } {
+  return (err instanceof Error || (typeof err === 'object' && !!err && 'message' in err && typeof err.message === 'string'))
+}
+
 export async function collectBlock(
   mineflayer: Mineflayer,
   blockType: string,
@@ -101,6 +105,10 @@ export async function collectBlock(
     }
     catch (err) {
       logger.log(`Failed to collect ${blockType}: ${err}.`)
+      if (isMessagable(err) && err.message.includes('Digging aborted')) {
+        break
+      }
+
       continue
     }
   }
