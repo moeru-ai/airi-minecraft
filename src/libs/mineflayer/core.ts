@@ -1,7 +1,7 @@
 import type { Bot, BotOptions } from 'mineflayer'
 import type { MineflayerPlugin } from './plugin'
 import type { EventHandlers, EventsHandler } from './types'
-import { useLogg } from '@guiiai/logg'
+import { type Logg, useLogg } from '@guiiai/logg'
 import EventEmitter from 'eventemitter3'
 import mineflayer from 'mineflayer'
 import { parseCommand } from './command'
@@ -30,7 +30,7 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
   public allowCheats: boolean = false
 
   private options: MineflayerOptions
-  private logger: ReturnType<typeof useLogg>
+  private logger: Logg
   private commands: Map<string, EventsHandler<'command'>> = new Map()
   private ticker: Ticker = new Ticker()
 
