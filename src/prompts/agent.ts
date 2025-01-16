@@ -23,6 +23,17 @@ If I command you 'stop', then call the 'stop' function.
 
 export async function genStatusPrompt(mineflayer: Mineflayer): Promise<string> {
   const inventory = await listInventory(mineflayer)
+  if (inventory.length === 0) {
+    return `I will give you the following information:
+${mineflayer.status.toOneLiner()}
+
+Inventory:
+[Empty]
+
+Item in hand:
+[Empty]
+`
+  }
   const inventoryStr = inventory.map(item => `${item.name} x ${item.count}`).join(', ')
   const itemInHand = `${inventory[0].name} x ${inventory[0].count}` // TODO: mock
 
