@@ -11,6 +11,11 @@ interface PlanContext {
   startTime: number
   lastUpdate: number
   retryCount: number
+  isGenerating: boolean
+  pendingSteps: Array<{
+    action: string
+    params: unknown[]
+  }>
 }
 
 interface PlanTemplate {
@@ -127,6 +132,8 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
         startTime: Date.now(),
         lastUpdate: Date.now(),
         retryCount: 0,
+        isGenerating: false,
+        pendingSteps: [],
       }
 
       return plan
@@ -157,33 +164,8 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       plan.status = 'in_progress'
       this.currentPlan = plan
 
-      for (let i = 0; i < plan.steps.length; i++) {
-        if (!this.context)
-          break
-
-        const step = plan.steps[i]
-        this.context.currentStep = i
-
-        try {
-          this.logger.withFields({ step, index: i }).log('Executing plan step')
-          await this.actionAgent.performAction(step.action, step.params)
-          this.context.lastUpdate = Date.now()
-        }
-        catch (stepError) {
-          this.logger.withError(stepError).error('Failed to execute plan step')
-
-          // Attempt to adjust plan and retry
-          if (this.context.retryCount < 3) {
-            this.context.retryCount++
-            const adjustedPlan = await this.adjustPlan(plan, stepError instanceof Error ? stepError.message : 'Unknown error')
-            await this.executePlan(adjustedPlan)
-            return
-          }
-
-          plan.status = 'failed'
-          throw stepError
-        }
-      }
+      // Start generating and executing steps in parallel
+      await this.generateAndExecutePlanSteps(plan)
 
       plan.status = 'completed'
     }
@@ -194,6 +176,190 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     finally {
       this.context = null
     }
+  }
+
+  private async generateAndExecutePlanSteps(plan: Plan): Promise<void> {
+    if (!this.context || !this.actionAgent) {
+      return
+    }
+
+    // Initialize step generation
+    this.context.isGenerating = true
+    this.context.pendingSteps = []
+
+    // Get available actions
+    const availableActions = this.actionAgent.getAvailableActions()
+
+    // Start step generation
+    const generationPromise = this.generateStepsStream(plan.goal, availableActions)
+
+    // Start step execution
+    const executionPromise = this.executeStepsStream()
+
+    // Wait for both generation and execution to complete
+    await Promise.all([generationPromise, executionPromise])
+  }
+
+  private async generateStepsStream(
+    goal: string,
+    availableActions: Action[],
+  ): Promise<void> {
+    if (!this.context) {
+      return
+    }
+
+    try {
+      // Generate steps in chunks
+      const generator = this.createStepGenerator(goal, availableActions)
+      for await (const steps of generator) {
+        if (!this.context.isGenerating) {
+          break
+        }
+
+        // Add generated steps to pending queue
+        this.context.pendingSteps.push(...steps)
+        this.logger.withField('steps', steps).log('Generated new steps')
+      }
+    }
+    catch (error) {
+      this.logger.withError(error).error('Failed to generate steps')
+      throw error
+    }
+    finally {
+      this.context.isGenerating = false
+    }
+  }
+
+  private async executeStepsStream(): Promise<void> {
+    if (!this.context || !this.actionAgent) {
+      return
+    }
+
+    try {
+      while (this.context.isGenerating || this.context.pendingSteps.length > 0) {
+        // Wait for steps to be available
+        if (this.context.pendingSteps.length === 0) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          continue
+        }
+
+        // Execute next step
+        const step = this.context.pendingSteps.shift()
+        if (!step) {
+          continue
+        }
+
+        try {
+          this.logger.withField('step', step).log('Executing step')
+          await this.actionAgent.performAction(step.action, step.params)
+          this.context.lastUpdate = Date.now()
+          this.context.currentStep++
+        }
+        catch (stepError) {
+          this.logger.withError(stepError).error('Failed to execute step')
+
+          // Attempt to adjust plan and retry
+          if (this.context.retryCount < 3) {
+            this.context.retryCount++
+            // Stop current generation
+            this.context.isGenerating = false
+            this.context.pendingSteps = []
+            // Adjust plan and restart
+            const adjustedPlan = await this.adjustPlan(
+              this.currentPlan!,
+              stepError instanceof Error ? stepError.message : 'Unknown error',
+            )
+            await this.executePlan(adjustedPlan)
+            return
+          }
+
+          throw stepError
+        }
+      }
+    }
+    catch (error) {
+      this.logger.withError(error).error('Failed to execute steps')
+      throw error
+    }
+  }
+
+  private async *createStepGenerator(
+    goal: string,
+    availableActions: Action[],
+  ): AsyncGenerator<Array<{ action: string, params: unknown[] }>, void, unknown> {
+    // First, try to find a matching template
+    const template = this.findMatchingTemplate(goal)
+    if (template) {
+      this.logger.log('Using plan template')
+      yield template.steps
+      return
+    }
+
+    // If no template matches, use LLM to generate plan in chunks
+    this.logger.log('Generating plan using LLM')
+    const chunkSize = 3 // Generate 3 steps at a time
+    let currentChunk = 1
+
+    while (true) {
+      const steps = await generatePlanWithLLM(
+        goal,
+        availableActions,
+        {
+          agent: this.llmConfig.agent,
+          model: this.llmConfig.model,
+        },
+        `Generate steps ${currentChunk * chunkSize - 2} to ${currentChunk * chunkSize}`,
+      )
+
+      if (steps.length === 0) {
+        break
+      }
+
+      yield steps
+      currentChunk++
+
+      // Check if we've generated enough steps or if the goal is achieved
+      if (steps.length < chunkSize || await this.isGoalAchieved(goal)) {
+        break
+      }
+    }
+  }
+
+  private async isGoalAchieved(goal: string): Promise<boolean> {
+    if (!this.context || !this.actionAgent) {
+      return false
+    }
+
+    const requirements = this.parseGoalRequirements(goal)
+
+    // Check inventory for required items
+    if (requirements.needsItems && requirements.items) {
+      const inventorySteps = this.generateGatheringSteps(requirements.items)
+      if (inventorySteps.length > 0) {
+        this.context.pendingSteps.push(...inventorySteps)
+        return false
+      }
+    }
+
+    // Check location requirements
+    if (requirements.needsMovement && requirements.location) {
+      const movementSteps = this.generateMovementSteps(requirements.location)
+      if (movementSteps.length > 0) {
+        this.context.pendingSteps.push(...movementSteps)
+        return false
+      }
+    }
+
+    // Check interaction requirements
+    if (requirements.needsInteraction && requirements.target) {
+      const interactionSteps = this.generateInteractionSteps(requirements.target)
+      if (interactionSteps.length > 0) {
+        this.context.pendingSteps.push(...interactionSteps)
+        return false
+      }
+    }
+
+    return true
   }
 
   public async adjustPlan(plan: Plan, feedback: string): Promise<Plan> {
@@ -209,6 +375,9 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
         const currentStep = this.context.currentStep
         const availableActions = this.actionAgent?.getAvailableActions() ?? []
 
+        // Generate recovery steps based on feedback
+        const recoverySteps = this.generateRecoverySteps(feedback)
+
         // Generate new steps from the current point
         const newSteps = await this.generatePlanSteps(plan.goal, availableActions, feedback)
 
@@ -217,9 +386,11 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
           goal: plan.goal,
           steps: [
             ...plan.steps.slice(0, currentStep),
+            ...recoverySteps,
             ...newSteps,
           ],
           status: 'pending',
+          requiresAction: true,
         }
 
         return adjustedPlan
@@ -234,103 +405,21 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private async generatePlanSteps(
-    goal: string,
-    availableActions: Action[],
-    feedback?: string,
-  ): Promise<Array<{ action: string, params: unknown[] }>> {
-    // First, try to find a matching template
-    const template = this.findMatchingTemplate(goal)
-    if (template) {
-      this.logger.log('Using plan template')
-      return template.steps
-    }
-
-    // If no template matches, use LLM to generate plan
-    this.logger.log('Generating plan using LLM')
-    return await generatePlanWithLLM(goal, availableActions, {
-      agent: this.llmConfig.agent,
-      model: this.llmConfig.model,
-    }, feedback)
-  }
-
-  private findMatchingTemplate(goal: string): PlanTemplate | undefined {
-    for (const [pattern, template] of this.planTemplates.entries()) {
-      if (goal.toLowerCase().includes(pattern.toLowerCase())) {
-        return template
-      }
-    }
-    return undefined
-  }
-
-  private parseGoalRequirements(goal: string): {
-    needsItems: boolean
-    items?: string[]
-    needsMovement: boolean
-    location?: { x?: number, y?: number, z?: number }
-    needsInteraction: boolean
-    target?: string
-    needsCrafting: boolean
-    needsCombat: boolean
-  } {
-    const requirements = {
-      needsItems: false,
-      needsMovement: false,
-      needsInteraction: false,
-      needsCrafting: false,
-      needsCombat: false,
-    }
-
-    const goalLower = goal.toLowerCase()
-
-    // Check for item-related actions
-    if (goalLower.includes('collect') || goalLower.includes('get') || goalLower.includes('find')) {
-      requirements.needsItems = true
-      requirements.needsMovement = true
-    }
-
-    // Check for movement-related actions
-    if (goalLower.includes('go to') || goalLower.includes('move to') || goalLower.includes('follow')) {
-      requirements.needsMovement = true
-    }
-
-    // Check for interaction-related actions
-    if (goalLower.includes('interact') || goalLower.includes('use') || goalLower.includes('open')) {
-      requirements.needsInteraction = true
-    }
-
-    // Check for crafting-related actions
-    if (goalLower.includes('craft') || goalLower.includes('make') || goalLower.includes('build')) {
-      requirements.needsCrafting = true
-      requirements.needsItems = true
-    }
-
-    // Check for combat-related actions
-    if (goalLower.includes('attack') || goalLower.includes('fight') || goalLower.includes('kill')) {
-      requirements.needsCombat = true
-      requirements.needsMovement = true
-    }
-
-    return requirements
-  }
-
-  private generateGatheringSteps(items?: string[]): Array<{ action: string, params: unknown[] }> {
+  private generateGatheringSteps(items: string[]): Array<{ action: string, params: unknown[] }> {
     const steps: Array<{ action: string, params: unknown[] }> = []
 
-    if (items) {
-      for (const item of items) {
-        steps.push(
-          { action: 'searchForBlock', params: [item, 64] },
-          { action: 'collectBlocks', params: [item, 1] },
-        )
-      }
+    for (const item of items) {
+      steps.push(
+        { action: 'searchForBlock', params: [item, 64] },
+        { action: 'collectBlocks', params: [item, 1] },
+      )
     }
 
     return steps
   }
 
-  private generateMovementSteps(location?: { x?: number, y?: number, z?: number }): Array<{ action: string, params: unknown[] }> {
-    if (location?.x !== undefined && location?.y !== undefined && location?.z !== undefined) {
+  private generateMovementSteps(location: { x?: number, y?: number, z?: number }): Array<{ action: string, params: unknown[] }> {
+    if (location.x !== undefined && location.y !== undefined && location.z !== undefined) {
       return [{
         action: 'goToCoordinates',
         params: [location.x, location.y, location.z, 1],
@@ -339,14 +428,11 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     return []
   }
 
-  private generateInteractionSteps(target?: string): Array<{ action: string, params: unknown[] }> {
-    if (target) {
-      return [{
-        action: 'activate',
-        params: [target],
-      }]
-    }
-    return []
+  private generateInteractionSteps(target: string): Array<{ action: string, params: unknown[] }> {
+    return [{
+      action: 'activate',
+      params: [target],
+    }]
   }
 
   private generateRecoverySteps(feedback: string): Array<{ action: string, params: unknown[] }> {
@@ -358,6 +444,21 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
 
     if (feedback.includes('inventory full')) {
       steps.push({ action: 'discard', params: ['cobblestone', 64] })
+    }
+
+    if (feedback.includes('blocked') || feedback.includes('cannot reach')) {
+      steps.push({ action: 'moveAway', params: [5] })
+    }
+
+    if (feedback.includes('too far')) {
+      steps.push({ action: 'moveAway', params: [-3] }) // Move closer
+    }
+
+    if (feedback.includes('need tool')) {
+      steps.push(
+        { action: 'craftRecipe', params: ['wooden_pickaxe', 1] },
+        { action: 'equip', params: ['wooden_pickaxe'] },
+      )
     }
 
     return steps
@@ -381,7 +482,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     this.memoryAgent.remember(`plan:${plan.goal}`, plan)
   }
 
-  private isPlanValid(plan: Plan): boolean {
+  private isPlanValid(_plan: Plan): boolean {
     // Add validation logic here
     return true
   }
@@ -431,10 +532,12 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       }
     }
     else {
-      const convo = this.conversationStore.getConvo(sender)
-      if (convo.active.value) {
-        // Process message and potentially adjust plan
-        this.logger.withFields({ sender, message }).log('Processing agent message')
+      // Process message and potentially adjust plan
+      this.logger.withFields({ sender, message }).log('Processing agent message')
+
+      // If there's a current plan, try to adjust it based on the message
+      if (this.currentPlan) {
+        await this.adjustPlan(this.currentPlan, message)
       }
     }
   }
@@ -453,5 +556,110 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       || requirements.needsInteraction
       || requirements.needsCrafting
       || requirements.needsCombat
+  }
+
+  private async generatePlanSteps(
+    goal: string,
+    availableActions: Action[],
+    feedback?: string,
+  ): Promise<Array<{ action: string, params: unknown[] }>> {
+    // First, try to find a matching template
+    const template = this.findMatchingTemplate(goal)
+    if (template) {
+      this.logger.log('Using plan template')
+      return template.steps
+    }
+
+    // If no template matches, use LLM to generate plan
+    this.logger.log('Generating plan using LLM')
+    return await generatePlanWithLLM(goal, availableActions, {
+      agent: this.llmConfig.agent,
+      model: this.llmConfig.model,
+    }, feedback)
+  }
+
+  private findMatchingTemplate(goal: string): PlanTemplate | undefined {
+    for (const [pattern, template] of this.planTemplates.entries()) {
+      if (goal.toLowerCase().includes(pattern.toLowerCase())) {
+        return template
+      }
+    }
+    return undefined
+  }
+
+  private parseGoalRequirements(goal: string): {
+    needsItems: boolean
+    items?: string[]
+    needsMovement: boolean
+    location?: { x?: number, y?: number, z?: number }
+    needsInteraction: boolean
+    target?: string
+    needsCrafting: boolean
+    needsCombat: boolean
+  } {
+    const requirements = {
+      needsItems: false,
+      items: [] as string[],
+      needsMovement: false,
+      location: undefined as { x?: number, y?: number, z?: number } | undefined,
+      needsInteraction: false,
+      target: undefined as string | undefined,
+      needsCrafting: false,
+      needsCombat: false,
+    }
+
+    const goalLower = goal.toLowerCase()
+
+    // Extract items from goal
+    const itemMatches = goalLower.match(/(collect|get|find|craft|make|build|use|equip) (\w+)/g)
+    if (itemMatches) {
+      requirements.needsItems = true
+      requirements.items = itemMatches.map(match => match.split(' ')[1])
+    }
+
+    // Extract location from goal
+    const locationMatches = goalLower.match(/(go to|move to|at) (\d+)[, ]+(\d+)[, ]+(\d+)/g)
+    if (locationMatches) {
+      requirements.needsMovement = true
+      const [x, y, z] = locationMatches[0].split(/[, ]+/).slice(-3).map(Number)
+      requirements.location = { x, y, z }
+    }
+
+    // Extract target from goal
+    const targetMatches = goalLower.match(/(interact with|use|open|activate) (\w+)/g)
+    if (targetMatches) {
+      requirements.needsInteraction = true
+      requirements.target = targetMatches[0].split(' ').pop()
+    }
+
+    // Check for item-related actions
+    if (goalLower.includes('collect') || goalLower.includes('get') || goalLower.includes('find')) {
+      requirements.needsItems = true
+      requirements.needsMovement = true
+    }
+
+    // Check for movement-related actions
+    if (goalLower.includes('go to') || goalLower.includes('move to') || goalLower.includes('follow')) {
+      requirements.needsMovement = true
+    }
+
+    // Check for interaction-related actions
+    if (goalLower.includes('interact') || goalLower.includes('use') || goalLower.includes('open')) {
+      requirements.needsInteraction = true
+    }
+
+    // Check for crafting-related actions
+    if (goalLower.includes('craft') || goalLower.includes('make') || goalLower.includes('build')) {
+      requirements.needsCrafting = true
+      requirements.needsItems = true
+    }
+
+    // Check for combat-related actions
+    if (goalLower.includes('attack') || goalLower.includes('fight') || goalLower.includes('kill')) {
+      requirements.needsCombat = true
+      requirements.needsMovement = true
+    }
+
+    return requirements
   }
 }

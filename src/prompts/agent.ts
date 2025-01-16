@@ -1,4 +1,4 @@
-import type { Mineflayer } from '../libs/mineflayer'
+import type { Action, Mineflayer } from '../libs/mineflayer'
 import { listInventory } from '../skills/actions/inventory'
 
 export function genSystemBasicPrompt(botName: string): string {
@@ -59,4 +59,32 @@ ${mineflayer.status.toOneLiner()}
 `
 
   return prompt
+}
+
+export function genPlanningAgentPrompt(availableActions: Action[]): string {
+  const actionsList = availableActions
+    .map(action => `- ${action.name}: ${action.description}`)
+    .join('\n')
+
+  return `You are a Minecraft bot planner. Your task is to create a plan to achieve a given goal.
+Available actions:
+${actionsList}
+
+Respond with a Valid JSON array of steps, where each step has:
+- action: The name of the action to perform
+- params: Array of parameters for the action
+
+DO NOT contains any \`\`\` or explation, otherwise agent will be interrupted.
+
+Example response:
+[
+  {
+    "action": "searchForBlock",
+    "params": ["log", 64]
+  },
+  {
+    "action": "collectBlocks",
+    "params": ["log", 1]
+    }
+  ]`
 }

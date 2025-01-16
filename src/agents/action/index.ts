@@ -1,15 +1,34 @@
+import type { MineflayerWithExtensions } from '../../composables/action'
 import type { Action } from '../../libs/mineflayer/action'
 import type { ActionAgent, AgentConfig } from '../../libs/mineflayer/interfaces/agents'
+import { useActionManager } from '../../composables/action'
+import { useBot } from '../../composables/bot'
 import { AbstractAgent } from '../../libs/mineflayer/core/base-agent'
 import { actionsList } from '../actions'
+
+interface ActionState {
+  executing: boolean
+  label: string
+  startTime: number
+}
 
 export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
   public readonly type = 'action' as const
   private actions: Map<string, Action>
+  private actionManager: ReturnType<typeof useActionManager>
+  private mineflayer: MineflayerWithExtensions
+  private currentActionState: ActionState
 
   constructor(config: AgentConfig) {
     super(config)
     this.actions = new Map()
+    this.mineflayer = useBot().bot as MineflayerWithExtensions
+    this.actionManager = useActionManager(this.mineflayer)
+    this.currentActionState = {
+      executing: false,
+      label: '',
+      startTime: 0,
+    }
   }
 
   protected async initializeAgent(): Promise<void> {
@@ -23,11 +42,22 @@ export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
   }
 
   protected async destroyAgent(): Promise<void> {
+    await this.actionManager.stop()
+    this.actionManager.cancelResume()
     this.actions.clear()
     this.removeAllListeners()
+    this.currentActionState = {
+      executing: false,
+      label: '',
+      startTime: 0,
+    }
   }
 
-  public async performAction(name: string, params: unknown[]): Promise<string> {
+  public async performAction(
+    name: string,
+    params: unknown[],
+    options: { timeout?: number, resume?: boolean } = {},
+  ): Promise<string> {
     if (!this.initialized) {
       throw new Error('Action agent not initialized')
     }
@@ -38,19 +68,65 @@ export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
     }
 
     try {
+      this.updateActionState(true, name)
       this.logger.withFields({ name, params }).log('Performing action')
-      return await this.actionManager.runAction(
+
+      const result = await this.actionManager.runAction(
         name,
         async () => {
-          const fn = action.perform
+          const fn = action.perform(this.mineflayer)
           return await fn(...params)
         },
-        { timeout: 60, resume: false },
+        {
+          timeout: options.timeout ?? 60,
+          resume: options.resume ?? false,
+        },
       )
+
+      if (!result.success) {
+        throw new Error(result.message ?? 'Action failed')
+      }
+
+      return this.formatActionOutput(result)
     }
     catch (error) {
       this.logger.withFields({ name, params, error }).error('Failed to perform action')
       throw error
+    }
+    finally {
+      this.updateActionState(false)
+    }
+  }
+
+  public async resumeAction(name: string, params: unknown[]): Promise<string> {
+    const action = this.actions.get(name)
+    if (!action) {
+      throw new Error(`Action not found: ${name}`)
+    }
+
+    try {
+      this.updateActionState(true, name)
+      const result = await this.actionManager.resumeAction(
+        name,
+        async () => {
+          const fn = action.perform(this.mineflayer)
+          return await fn(...params)
+        },
+        60,
+      )
+
+      if (!result.success) {
+        throw new Error(result.message ?? 'Action failed')
+      }
+
+      return this.formatActionOutput(result)
+    }
+    catch (error) {
+      this.logger.withFields({ name, params, error }).error('Failed to resume action')
+      throw error
+    }
+    finally {
+      this.updateActionState(false)
     }
   }
 
@@ -59,20 +135,32 @@ export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
   }
 
   private async handleAgentMessage(sender: string, message: string): Promise<void> {
-    // Handle messages from other agents or system
     if (sender === 'system') {
-      // Handle system messages
       if (message.includes('interrupt')) {
         await this.actionManager.stop()
       }
     }
     else {
-      // Handle agent messages
-      const convo = this.conversationStore.getConvo(sender)
-      if (convo.active.value) {
-        // Process message and potentially perform actions
-        this.logger.withFields({ sender, message }).log('Processing agent message')
-      }
+      this.logger.withFields({ sender, message }).log('Processing agent message')
     }
+  }
+
+  private updateActionState(executing: boolean, label = ''): void {
+    this.currentActionState = {
+      executing,
+      label,
+      startTime: executing ? Date.now() : 0,
+    }
+    this.emit('actionStateChanged', this.currentActionState)
+  }
+
+  private formatActionOutput(result: { message: string | null, timedout: boolean, interrupted: boolean }): string {
+    if (result.timedout) {
+      return `Action timed out: ${result.message}`
+    }
+    if (result.interrupted) {
+      return 'Action was interrupted'
+    }
+    return result.message ?? ''
   }
 }

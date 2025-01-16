@@ -25,7 +25,6 @@ describe('actions agent', { timeout: 0 }, () => {
           user('What\'s your status?'),
         ), async (c) => {
           const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
-          console.log(JSON.stringify(completion, null, 2))
           return await completion?.firstContent()
         })
 
@@ -40,24 +39,18 @@ describe('actions agent', { timeout: 0 }, () => {
     const { bot } = useBot()
     const agent = await initAgent(bot)
 
-    // console.log(JSON.stringify(agent, null, 2))
-
     await new Promise<void>((resolve) => {
       bot.bot.on('spawn', async () => {
         const text = await agent.handle(messages(
           system(genActionAgentPrompt(bot)),
           user('goToPlayer: luoling8192'),
         ), async (c) => {
-          console.log(JSON.stringify(c, null, 2))
-
           const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' })
-
-          console.log(JSON.stringify(completion, null, 2))
 
           return await completion?.firstContent()
         })
 
-        console.log(JSON.stringify(text, null, 2))
+        expect(text).toContain('goToPlayer')
 
         await sleep(10000)
         resolve()

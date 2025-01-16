@@ -1,22 +1,31 @@
 import type { Client } from '@proj-airi/server-sdk'
 import type { Neuri, NeuriContext } from 'neuri'
 import type { ChatCompletion } from 'neuri/openai'
-import type { PlanningAgent } from '../libs/mineflayer/interfaces/agents'
+import type { Mineflayer } from '../libs/mineflayer'
+import type { ActionAgent, PlanningAgent } from '../libs/mineflayer/interfaces/agents'
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
+
 import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
-
 import { PlanningPlugin } from '../agents/planning/factory'
+import { AgentRegistry } from '../libs/mineflayer/core/agent-factory'
 import { formBotChat } from '../libs/mineflayer/message'
 import { genActionAgentPrompt, genStatusPrompt } from '../prompts/agent'
 import { toRetriable } from '../utils/reliability'
+
+interface MineflayerWithAgents extends Mineflayer {
+  planning: PlanningAgent
+  action: ActionAgent
+}
 
 interface LLMAgentOptions {
   agent: Neuri
   airiClient: Client
 }
 
-async function handleLLMCompletion(context: NeuriContext, bot: any, logger: any): Promise<string> {
+async function handleLLMCompletion(context: NeuriContext, bot: MineflayerWithAgents, logger: ReturnType<typeof useLogg>): Promise<string> {
+  logger.log('rerouting...')
+
   const completion = await context.reroute('action', context.messages, {
     model: 'openai/gpt-4o-mini',
   }) as ChatCompletion | { error: { message: string } } & ChatCompletion
@@ -24,7 +33,7 @@ async function handleLLMCompletion(context: NeuriContext, bot: any, logger: any)
   if (!completion || 'error' in completion) {
     logger.withFields({ completion }).error('Completion')
     logger.withFields({ messages: context.messages }).log('messages')
-    throw new Error(completion?.error?.message ?? 'Unknown error')
+    return completion?.error?.message ?? 'Unknown error'
   }
 
   const content = await completion.firstContent()
@@ -34,32 +43,52 @@ async function handleLLMCompletion(context: NeuriContext, bot: any, logger: any)
   return content
 }
 
-async function handleChatMessage(username: string, message: string, bot: any, agent: Neuri, logger: any): Promise<void> {
+async function handleChatMessage(username: string, message: string, bot: MineflayerWithAgents, agent: Neuri, logger: ReturnType<typeof useLogg>): Promise<void> {
   logger.withFields({ username, message }).log('Chat message received')
   bot.memory.chatHistory.push(user(`${username}: ${message}`))
 
-  const statusPrompt = await genStatusPrompt(bot)
-  const retryHandler = toRetriable<NeuriContext, string>(
-    3,
-    1000,
-    ctx => handleLLMCompletion(ctx, bot, logger),
-  )
+  logger.log('thinking...')
 
-  const content = await agent.handleStateless(
-    [...bot.memory.chatHistory, system(statusPrompt)],
-    async (c: NeuriContext) => {
-      logger.log('thinking...')
-      return retryHandler(c)
-    },
-  )
+  try {
+    // 创建并执行计划
+    const plan = await bot.planning.createPlan(message)
+    logger.withFields({ plan }).log('Plan created')
+    await bot.planning.executePlan(plan)
+    logger.log('Plan executed successfully')
 
-  if (content) {
-    logger.withFields({ content }).log('responded')
-    bot.bot.chat(content)
+    // 生成回复
+    const statusPrompt = await genStatusPrompt(bot)
+    const retryHandler = toRetriable<NeuriContext, string>(
+      3,
+      1000,
+      ctx => handleLLMCompletion(ctx, bot, logger),
+      { onError: err => logger.withError(err).log('error occurred') },
+    )
+
+    const content = await agent.handleStateless(
+      [...bot.memory.chatHistory, system(statusPrompt)],
+      async (c: NeuriContext) => {
+        logger.log('handling...')
+        return retryHandler(c)
+      },
+    )
+
+    if (content) {
+      logger.withFields({ content }).log('responded')
+      bot.bot.chat(content)
+    }
+  }
+  catch (error) {
+    logger.withError(error).error('Failed to process message')
+    bot.bot.chat(
+      `Sorry, I encountered an error: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    )
   }
 }
 
-async function handleVoiceInput(event: any, bot: any, agent: Neuri, logger: any): Promise<void> {
+async function handleVoiceInput(event: any, bot: MineflayerWithAgents, agent: Neuri, logger: ReturnType<typeof useLogg>): Promise<void> {
   logger
     .withFields({
       user: event.data.discord?.guildMember,
@@ -72,13 +101,13 @@ async function handleVoiceInput(event: any, bot: any, agent: Neuri, logger: any)
   bot.memory.chatHistory.push(user(`NekoMeowww: ${event.data.transcription}`))
 
   try {
-    const planningAgent = bot.planning as PlanningAgent
-    const plan = await planningAgent.createPlan(event.data.transcription)
+    // 创建并执行计划
+    const plan = await bot.planning.createPlan(event.data.transcription)
     logger.withFields({ plan }).log('Plan created')
-
-    await planningAgent.executePlan(plan)
+    await bot.planning.executePlan(plan)
     logger.log('Plan executed successfully')
 
+    // 生成回复
     const retryHandler = toRetriable<NeuriContext, string>(
       3,
       1000,
@@ -114,19 +143,30 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       const agent = options.agent
       const logger = useLogg('LLMAgent').useGlobalConfig()
 
+      // 初始化 Planning Agent
       const planningPlugin = PlanningPlugin({
         agent: options.agent,
         model: 'openai/gpt-4o-mini',
       })
       await planningPlugin.created!(bot)
 
+      // 获取 Action Agent
+      const registry = AgentRegistry.getInstance()
+      const actionAgent = registry.get<ActionAgent>('action-agent', 'action')
+
+      // 类型转换
+      const botWithAgents = bot as unknown as MineflayerWithAgents
+      botWithAgents.action = actionAgent
+
+      // 初始化系统提示
       bot.memory.chatHistory.push(system(genActionAgentPrompt(bot)))
 
+      // 设置消息处理
       const onChat = formBotChat(bot.username, (username, message) =>
-        handleChatMessage(username, message, bot, agent, logger))
+        handleChatMessage(username, message, botWithAgents, agent, logger))
 
       options.airiClient.onEvent('input:text:voice', event =>
-        handleVoiceInput(event, bot, agent, logger))
+        handleVoiceInput(event, botWithAgents, agent, logger))
 
       bot.bot.on('chat', onChat)
     },

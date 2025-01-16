@@ -160,8 +160,8 @@ export class ChatAgentImpl extends AbstractAgent implements ChatAgent {
     }
     else {
       // Handle messages from other agents
-      const convo = this.conversationStore.getConvo(sender)
-      if (convo.active.value) {
+      const context = this.activeChats.get(sender)
+      if (context) {
         await this.processMessage(message, sender)
       }
     }

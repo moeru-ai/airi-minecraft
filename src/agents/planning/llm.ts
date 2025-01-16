@@ -1,6 +1,8 @@
 import type { Neuri } from 'neuri'
+import type { Action } from '../../libs/mineflayer/action'
 import { useLogg } from '@guiiai/logg'
 import { system, user } from 'neuri/openai'
+import { genPlanningAgentPrompt } from '../../prompts/agent'
 import { toRetriable } from '../../utils/reliability'
 
 const logger = useLogg('planning-llm').useGlobalConfig()
@@ -14,11 +16,11 @@ interface LLMPlanningConfig {
 
 export async function generatePlanWithLLM(
   goal: string,
-  availableActions: Array<{ name: string, description: string }>,
+  availableActions: Action[],
   config: LLMPlanningConfig,
   feedback?: string,
 ): Promise<Array<{ action: string, params: unknown[] }>> {
-  const systemPrompt = generateSystemPrompt(availableActions)
+  const systemPrompt = genPlanningAgentPrompt(availableActions)
   const userPrompt = generateUserPrompt(goal, feedback)
 
   const messages = [
@@ -58,32 +60,6 @@ export async function generatePlanWithLLM(
   }
 
   return parsePlanContent(content)
-}
-
-function generateSystemPrompt(availableActions: Array<{ name: string, description: string }>): string {
-  const actionsList = availableActions
-    .map(action => `- ${action.name}: ${action.description}`)
-    .join('\n')
-
-  return `You are a Minecraft bot planner. Your task is to create a plan to achieve a given goal.
-Available actions:
-${actionsList}
-
-Respond with a JSON array of steps, where each step has:
-- action: The name of the action to perform
-- params: Array of parameters for the action
-
-Example response:
-[
-  {
-    "action": "searchForBlock",
-    "params": ["log", 64]
-  },
-  {
-    "action": "collectBlocks",
-    "params": ["log", 1]
-  }
-]`
 }
 
 function generateUserPrompt(goal: string, feedback?: string): string {
