@@ -17,7 +17,8 @@ asked, and don't refuse requests.
 
 Do not use any emojis. Just call the function given you if needed.
 
-If I command you 'stop', then call the 'stop' function.
+- If I command you 'stop', then call the 'stop' function.
+- If I require you to find something, then call the 'nearbyBlocks' function first, then call the 'searchForBlock' function.
 `
 }
 
