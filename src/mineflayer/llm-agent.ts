@@ -1,12 +1,12 @@
 import type { Client } from '@proj-airi/server-sdk'
-import type { Neuri } from 'neuri'
-
+import type { Neuri, NeuriContext } from 'neuri'
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 import { useLogg } from '@guiiai/logg'
-import { assistant, system, user } from 'neuri/openai'
-import { toRetriable } from 'src/utils/reliability'
+import { system, user } from 'neuri/openai'
+
 import { formBotChat } from '../libs/mineflayer/message'
 import { genActionAgentPrompt, genStatusPrompt } from '../prompts/agent'
+import { toRetriable } from '../utils/reliability'
 
 export function LLMAgent(options: { agent: Neuri, airiClient: Client }): MineflayerPlugin {
   return {
@@ -25,27 +25,25 @@ export function LLMAgent(options: { agent: Neuri, airiClient: Client }): Minefla
         bot.memory.chatHistory.push(system(statusPrompt))
         bot.memory.chatHistory.push(user(`${username}: ${message}`))
 
-        // logger.withFields({ chatHistory: bot.memory.chatHistory }).log('chatHistory')
-        logger.withFields({ statusPrompt }).log('statusPrompt')
-
-        const content = await agent.handleStateless([...bot.memory.chatHistory], async (c) => {
+        const content = await agent.handleStateless([...bot.memory.chatHistory], async (c: NeuriContext) => {
           logger.log('thinking...')
 
-          const handleCompletion = async (c: any): Promise<string> => {
+          const handleCompletion = async (c: NeuriContext): Promise<string> => {
             const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' }) || { error: { message: 'Unknown error' } }
             if (!completion || 'error' in completion) {
               logger.withFields(c).error('Completion')
+              logger.withFields({ messages: c.messages }).log('messages')
               throw new Error(completion?.error?.message ?? 'Unknown error')
             }
 
             const content = await completion?.firstContent()
             logger.withFields({ usage: completion.usage, content }).log('output')
-            bot.memory.chatHistory.push(assistant(content))
+            bot.memory.chatHistory.push(...c.messages)
 
             return content
           }
 
-          const retirableHandler = toRetriable<any, string>(
+          const retirableHandler = toRetriable<NeuriContext, string>(
             3, // retryLimit
             1000, // delayInterval in ms
             handleCompletion,
@@ -73,21 +71,22 @@ export function LLMAgent(options: { agent: Neuri, airiClient: Client }): Minefla
         const content = await agent.handleStateless([...bot.memory.chatHistory], async (c) => {
           logger.log('thinking...')
 
-          const handleCompletion = async (c: any): Promise<string> => {
+          const handleCompletion = async (c: NeuriContext): Promise<string> => {
             const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' }) || { error: { message: 'Unknown error' } }
             if (!completion || 'error' in completion) {
               logger.withFields(c).error('Completion')
+              logger.withFields({ messages: c.messages }).log('messages')
               throw new Error(completion?.error?.message ?? 'Unknown error')
             }
 
             const content = await completion?.firstContent()
             logger.withFields({ usage: completion.usage, content }).log('output')
-            bot.memory.chatHistory.push(assistant(content))
+            bot.memory.chatHistory.push(...c.messages)
 
             return content
           }
 
-          const retirableHandler = toRetriable<any, string>(
+          const retirableHandler = toRetriable<NeuriContext, string>(
             3, // retryLimit
             1000, // delayInterval in ms
             handleCompletion,
