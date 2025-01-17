@@ -2,13 +2,12 @@ import type { Client } from '@proj-airi/server-sdk'
 import type { Neuri, NeuriContext } from 'neuri'
 import type { ChatCompletion } from 'neuri/openai'
 import type { Mineflayer } from '../libs/mineflayer'
-import type { ActionAgent, PlanningAgent } from '../libs/mineflayer/interfaces/agents'
+import type { ActionAgent, ChatAgent, PlanningAgent } from '../libs/mineflayer/interfaces/agents'
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 
 import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
-import { ActionAgentImpl } from '../agents/action'
-import { PlanningPlugin } from '../agents/planning/factory'
+import { createAppContainer } from '../container'
 import { formBotChat } from '../libs/mineflayer/message'
 import { genActionAgentPrompt, genStatusPrompt } from '../prompts/agent'
 import { toRetriable } from '../utils/reliability'
@@ -16,6 +15,7 @@ import { toRetriable } from '../utils/reliability'
 interface MineflayerWithAgents extends Mineflayer {
   planning: PlanningAgent
   action: ActionAgent
+  chat: ChatAgent
 }
 
 interface LLMAgentOptions {
@@ -140,36 +140,40 @@ async function handleVoiceInput(event: any, bot: MineflayerWithAgents, agent: Ne
 export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
   return {
     async created(bot) {
-      const agent = options.agent
       const logger = useLogg('LLMAgent').useGlobalConfig()
 
-      // 初始化 Planning Agent
-      const planningPlugin = PlanningPlugin({
-        agent: options.agent,
-        model: 'openai/gpt-4o-mini',
+      // 创建容器并获取所需的服务
+      const container = createAppContainer({
+        neuri: options.agent,
+        model: 'openai/gpt-4-mini',
+        maxHistoryLength: 50,
+        idleTimeout: 5 * 60 * 1000,
       })
-      await planningPlugin.created!(bot)
 
-      // 创建 Action Agent
-      const actionAgent = new ActionAgentImpl({
-        id: 'action',
-        type: 'action',
-      })
+      const actionAgent = container.resolve('actionAgent')
+      const planningAgent = container.resolve('planningAgent')
+      const chatAgent = container.resolve('chatAgent')
+
+      // 初始化 agents
       await actionAgent.init()
+      await planningAgent.init()
+      await chatAgent.init()
 
       // 类型转换
       const botWithAgents = bot as unknown as MineflayerWithAgents
       botWithAgents.action = actionAgent
+      botWithAgents.planning = planningAgent
+      botWithAgents.chat = chatAgent
 
       // 初始化系统提示
       bot.memory.chatHistory.push(system(genActionAgentPrompt(bot)))
 
       // 设置消息处理
       const onChat = formBotChat(bot.username, (username, message) =>
-        handleChatMessage(username, message, botWithAgents, agent, logger))
+        handleChatMessage(username, message, botWithAgents, options.agent, logger))
 
       options.airiClient.onEvent('input:text:voice', event =>
-        handleVoiceInput(event, botWithAgents, agent, logger))
+        handleVoiceInput(event, botWithAgents, options.agent, logger))
 
       bot.bot.on('chat', onChat)
     },
@@ -178,6 +182,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       const botWithAgents = bot as unknown as MineflayerWithAgents
       await botWithAgents.action?.destroy()
       await botWithAgents.planning?.destroy()
+      await botWithAgents.chat?.destroy()
       bot.bot.removeAllListeners('chat')
     },
   }

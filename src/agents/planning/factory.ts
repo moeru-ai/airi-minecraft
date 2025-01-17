@@ -2,8 +2,7 @@ import type { Neuri } from 'neuri'
 import type { Mineflayer } from '../../libs/mineflayer'
 import type { MineflayerPlugin } from '../../libs/mineflayer/plugin'
 import { useLogg } from '@guiiai/logg'
-import { PlanningAgentImpl } from '.'
-import { ActionAgentImpl } from '../action'
+import { createAppContainer } from '../../container'
 
 interface PlanningPluginOptions {
   agent: Neuri
@@ -21,22 +20,16 @@ export function PlanningPlugin(options: PlanningPluginOptions): MineflayerPlugin
     async created(mineflayer: Mineflayer) {
       logger.log('Initializing planning plugin')
 
-      // 直接创建 action agent
-      const actionAgent = new ActionAgentImpl({
-        id: 'action',
-        type: 'action',
+      // 创建容器并获取所需的服务
+      const container = createAppContainer({
+        neuri: options.agent,
+        model: options.model,
       })
-      await actionAgent.init()
+      const actionAgent = container.resolve('actionAgent')
+      const planningAgent = container.resolve('planningAgent')
 
-      // 创建并初始化 planning agent
-      const planningAgent = new PlanningAgentImpl({
-        id: 'planning',
-        type: 'planning',
-        llm: {
-          agent: options.agent,
-          model: options.model,
-        },
-      })
+      // 初始化 agents
+      await actionAgent.init()
       await planningAgent.init()
 
       // 添加到 bot
