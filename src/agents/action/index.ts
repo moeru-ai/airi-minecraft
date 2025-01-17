@@ -1,7 +1,7 @@
-import type { MineflayerWithExtensions } from '../../composables/action'
+import type { Mineflayer } from '../../libs/mineflayer'
 import type { Action } from '../../libs/mineflayer/action'
 import type { ActionAgent, AgentConfig } from '../../libs/mineflayer/interfaces/agents'
-import { useActionManager } from '../../composables/action'
+import { ActionManager } from '../../composables/action'
 import { useBot } from '../../composables/bot'
 import { AbstractAgent } from '../../libs/mineflayer/core/base-agent'
 import { actionsList } from '../actions'
@@ -12,18 +12,22 @@ interface ActionState {
   startTime: number
 }
 
+/**
+ * ActionAgentImpl implements the ActionAgent interface to handle action execution
+ * Manages action lifecycle, state tracking and error handling
+ */
 export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
   public readonly type = 'action' as const
   private actions: Map<string, Action>
-  private actionManager: ReturnType<typeof useActionManager>
-  private mineflayer: MineflayerWithExtensions
+  private actionManager: ActionManager
+  private mineflayer: Mineflayer
   private currentActionState: ActionState
 
   constructor(config: AgentConfig) {
     super(config)
     this.actions = new Map()
-    this.mineflayer = useBot().bot as MineflayerWithExtensions
-    this.actionManager = useActionManager(this.mineflayer)
+    this.mineflayer = useBot().bot
+    this.actionManager = new ActionManager(this.mineflayer)
     this.currentActionState = {
       executing: false,
       label: '',
@@ -87,7 +91,11 @@ export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
         throw new Error(result.message ?? 'Action failed')
       }
 
-      return this.formatActionOutput(result)
+      return this.formatActionOutput({
+        message: result.message,
+        timedout: result.timedout,
+        interrupted: false,
+      })
     }
     catch (error) {
       this.logger.withFields({ name, params, error }).error('Failed to perform action')
@@ -119,7 +127,11 @@ export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
         throw new Error(result.message ?? 'Action failed')
       }
 
-      return this.formatActionOutput(result)
+      return this.formatActionOutput({
+        message: result.message,
+        timedout: result.timedout,
+        interrupted: false,
+      })
     }
     catch (error) {
       this.logger.withFields({ name, params, error }).error('Failed to resume action')

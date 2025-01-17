@@ -1,6 +1,6 @@
-import type { Bot } from 'mineflayer'
 import type { Mineflayer } from '../libs/mineflayer/core'
 import { useLogg } from '@guiiai/logg'
+import EventEmitter from 'eventemitter3'
 
 // Types and interfaces
 type ActionFn = (...args: any[]) => void
@@ -8,206 +8,189 @@ type ActionFn = (...args: any[]) => void
 interface ActionResult {
   success: boolean
   message: string | null
-  interrupted: boolean
   timedout: boolean
 }
 
-interface BotWithExtensions extends Bot {
-  isIdle: () => boolean
-  interrupt_code: boolean
-  output: string
+interface QueuedAction {
+  label: string
+  fn: ActionFn
+  timeout: number
+  resume: boolean
 }
 
-export interface MineflayerWithExtensions extends Mineflayer {
-  bot: BotWithExtensions
-  self_prompter: {
-    on: boolean
-  }
-  coder: {
-    generating: boolean
-  }
-  clearBotLogs: () => void
-  history: {
-    add: (source: string, message: string) => void
-  }
-}
-
-interface ActionState {
-  executing: { value: boolean }
-  currentActionLabel: { value: string | undefined }
-  currentActionFn: { value: ActionFn | undefined }
-  timedout: { value: boolean }
-  resume: {
-    func: { value: ActionFn | undefined }
-    name: { value: string | undefined }
-  }
-}
-
-export function useActionManager(mineflayer: MineflayerWithExtensions) {
-  // Initialize state
-  const state: ActionState = {
-    executing: { value: false },
-    currentActionLabel: { value: '' },
-    currentActionFn: { value: undefined },
-    timedout: { value: false },
+export class ActionManager extends EventEmitter {
+  private state = {
+    executing: false,
+    currentActionLabel: '',
+    currentActionFn: undefined as ActionFn | undefined,
+    timedout: false,
     resume: {
-      func: { value: undefined },
-      name: { value: undefined },
+      func: undefined as ActionFn | undefined,
+      name: undefined as string | undefined,
     },
   }
 
-  const log = useLogg('ActionManager').useGlobalConfig()
+  // Action queue to store pending actions
+  private actionQueue: QueuedAction[] = []
 
-  // Public API
-  async function resumeAction(actionLabel: string, actionFn: ActionFn, timeout: number): Promise<ActionResult> {
-    return _executeResume(actionLabel, actionFn, timeout)
+  private logger = useLogg('ActionManager').useGlobalConfig()
+  private mineflayer: Mineflayer
+
+  constructor(mineflayer: Mineflayer) {
+    super()
+    this.mineflayer = mineflayer
   }
 
-  async function runAction(
+  public async resumeAction(actionLabel: string, actionFn: ActionFn, timeout: number): Promise<ActionResult> {
+    return this.queueAction({
+      label: actionLabel,
+      fn: actionFn,
+      timeout,
+      resume: true,
+    })
+  }
+
+  public async runAction(
     actionLabel: string,
     actionFn: ActionFn,
     options: { timeout: number, resume: boolean } = { timeout: 10, resume: false },
   ): Promise<ActionResult> {
-    return options.resume
-      ? _executeResume(actionLabel, actionFn, options.timeout)
-      : _executeAction(actionLabel, actionFn, options.timeout)
+    return this.queueAction({
+      label: actionLabel,
+      fn: actionFn,
+      timeout: options.timeout,
+      resume: options.resume,
+    })
   }
 
-  async function stop(): Promise<void> {
-    mineflayer.emit('interrupt')
+  public async stop(): Promise<void> {
+    this.mineflayer.emit('interrupt')
+    // Clear the action queue when stopping
+    this.actionQueue = []
   }
 
-  function cancelResume(): void {
-    state.resume.func.value = undefined
-    state.resume.name.value = undefined
+  public cancelResume(): void {
+    this.state.resume.func = undefined
+    this.state.resume.name = undefined
   }
 
-  // Private helpers
-  async function _executeResume(actionLabel?: string, actionFn?: ActionFn, timeout = 10): Promise<ActionResult> {
+  private async queueAction(action: QueuedAction): Promise<ActionResult> {
+    // Add action to queue
+    this.actionQueue.push(action)
+
+    // If not executing, start processing queue
+    if (!this.state.executing) {
+      return this.processQueue()
+    }
+
+    // Return a promise that will resolve when the action is executed
+    return new Promise((resolve) => {
+      const checkQueue = setInterval(() => {
+        const index = this.actionQueue.findIndex(a => a === action)
+        if (index === -1) {
+          clearInterval(checkQueue)
+          resolve({ success: true, message: 'success', timedout: false })
+        }
+      }, 100)
+    })
+  }
+
+  private async processQueue(): Promise<ActionResult> {
+    while (this.actionQueue.length > 0) {
+      const action = this.actionQueue[0]
+
+      const result = action.resume
+        ? await this.executeResume(action.label, action.fn, action.timeout)
+        : await this.executeAction(action.label, action.fn, action.timeout)
+
+      // Remove completed action from queue
+      this.actionQueue.shift()
+
+      if (!result.success) {
+        // Clear queue on failure
+        this.actionQueue = []
+        return result
+      }
+    }
+
+    return { success: true, message: 'success', timedout: false }
+  }
+
+  private async executeResume(actionLabel?: string, actionFn?: ActionFn, timeout = 10): Promise<ActionResult> {
     const isNewResume = actionFn != null
 
     if (isNewResume) {
       if (!actionLabel) {
         throw new Error('actionLabel is required for new resume')
       }
-      state.resume.func.value = actionFn
-      state.resume.name.value = actionLabel
+      this.state.resume.func = actionFn
+      this.state.resume.name = actionLabel
     }
 
-    const canExecute = state.resume.func.value != null
-      && (mineflayer.bot.isIdle() || isNewResume)
-      && (!mineflayer.self_prompter.on || isNewResume)
+    const canExecute = this.state.resume.func != null && isNewResume
 
     if (!canExecute) {
-      return { success: false, message: null, interrupted: false, timedout: false }
+      return { success: false, message: null, timedout: false }
     }
 
-    state.currentActionLabel.value = state.resume.name.value
-    const result = await _executeAction(state.resume.name.value, state.resume.func.value, timeout)
-    state.currentActionLabel.value = ''
+    this.state.currentActionLabel = this.state.resume.name || ''
+    const result = await this.executeAction(this.state.resume.name || '', this.state.resume.func, timeout)
+    this.state.currentActionLabel = ''
     return result
   }
 
-  async function _executeAction(actionLabel?: string, actionFn?: ActionFn, timeout = 10): Promise<ActionResult> {
+  private async executeAction(actionLabel: string, actionFn?: ActionFn, timeout = 10): Promise<ActionResult> {
     let timeoutHandle: NodeJS.Timeout | undefined
 
     try {
-      log.log('executing code...\n')
+      this.logger.log('executing action...\n')
 
-      if (state.executing.value) {
-        log.log(`action "${actionLabel}" trying to interrupt current action "${state.currentActionLabel.value}"`)
+      if (this.state.executing) {
+        this.logger.log(`action "${actionLabel}" trying to interrupt current action "${this.state.currentActionLabel}"`)
       }
 
-      await stop()
-      mineflayer.clearBotLogs()
+      await this.stop()
 
       // Set execution state
-      state.executing.value = true
-      state.currentActionLabel.value = actionLabel
-      state.currentActionFn.value = actionFn
+      this.state.executing = true
+      this.state.currentActionLabel = actionLabel
+      this.state.currentActionFn = actionFn
 
       if (timeout > 0) {
-        timeoutHandle = _startTimeout(timeout)
+        timeoutHandle = this.startTimeout(timeout)
       }
 
       await actionFn?.()
 
       // Reset state after successful execution
-      _resetExecutionState(timeoutHandle)
+      this.resetExecutionState(timeoutHandle)
 
-      const output = _getBotOutputSummary()
-      const interrupted = mineflayer.bot.interrupt_code
-      mineflayer.clearBotLogs()
-
-      if (!interrupted && !mineflayer.coder.generating) {
-        mineflayer.bot.emit('idle' as any)
-      }
-
-      return { success: true, message: output, interrupted, timedout: false }
+      return { success: true, message: 'success', timedout: false }
     }
     catch (err) {
-      _resetExecutionState(timeoutHandle)
-      cancelResume()
-      log.withError(err).error('Code execution triggered catch')
-      await stop()
+      this.resetExecutionState(timeoutHandle)
+      this.cancelResume()
+      this.logger.withError(err).error('Code execution triggered catch')
+      await this.stop()
 
-      const message = _formatErrorMessage(err as Error)
-      const interrupted = mineflayer.bot.interrupt_code
-      mineflayer.clearBotLogs()
-
-      if (!interrupted && !mineflayer.coder.generating) {
-        mineflayer.bot.emit('idle' as any)
-      }
-
-      return { success: false, message, interrupted, timedout: false }
+      return { success: false, message: 'failed', timedout: false }
     }
   }
 
-  function _resetExecutionState(timeoutHandle?: NodeJS.Timeout): void {
-    state.executing.value = false
-    state.currentActionLabel.value = ''
-    state.currentActionFn.value = undefined
+  private resetExecutionState(timeoutHandle?: NodeJS.Timeout): void {
+    this.state.executing = false
+    this.state.currentActionLabel = ''
+    this.state.currentActionFn = undefined
     if (timeoutHandle)
       clearTimeout(timeoutHandle)
   }
 
-  function _formatErrorMessage(error: Error): string {
-    return `${_getBotOutputSummary()}!!Code threw exception!!\nError: ${error}\nStack trace:\n${error.stack}`
-  }
-
-  function _getBotOutputSummary(): string {
-    const { bot } = mineflayer
-    if (bot.interrupt_code && !state.timedout.value) {
-      return ''
-    }
-
-    const MAX_OUT = 500
-    const output = bot.output.length > MAX_OUT
-      ? _truncateOutput(bot.output, MAX_OUT)
-      : `Code output:\n${bot.output}`
-
-    return output
-  }
-
-  function _truncateOutput(output: string, maxLength: number): string {
-    const halfLength = maxLength / 2
-    return `Code output is very long (${output.length} chars) and has been shortened.\n
-      First outputs:\n${output.substring(0, halfLength)}\n...skipping many lines.\nFinal outputs:\n ${output.substring(output.length - halfLength)}`
-  }
-
-  function _startTimeout(timeoutMins = 10): NodeJS.Timeout {
+  private startTimeout(timeoutMins = 10): NodeJS.Timeout {
     return setTimeout(async () => {
-      log.warn(`Code execution timed out after ${timeoutMins} minutes. Attempting force stop.`)
-      state.timedout.value = true
-      mineflayer.history.add('system', `Code execution timed out after ${timeoutMins} minutes. Attempting force stop.`)
-      await stop()
+      this.logger.warn(`Code execution timed out after ${timeoutMins} minutes. Attempting force stop.`)
+      this.state.timedout = true
+      this.emit('timeout', `Code execution timed out after ${timeoutMins} minutes. Attempting force stop.`)
+      await this.stop()
     }, timeoutMins * 60 * 1000)
-  }
-
-  return {
-    runAction,
-    resumeAction,
-    stop,
-    cancelResume,
   }
 }
