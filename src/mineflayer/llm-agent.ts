@@ -7,8 +7,8 @@ import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 
 import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
+import { ActionAgentImpl } from '../agents/action'
 import { PlanningPlugin } from '../agents/planning/factory'
-import { AgentRegistry } from '../libs/mineflayer/core/agent-factory'
 import { formBotChat } from '../libs/mineflayer/message'
 import { genActionAgentPrompt, genStatusPrompt } from '../prompts/agent'
 import { toRetriable } from '../utils/reliability'
@@ -150,9 +150,12 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       })
       await planningPlugin.created!(bot)
 
-      // 获取 Action Agent
-      const registry = AgentRegistry.getInstance()
-      const actionAgent = registry.get<ActionAgent>('action-agent', 'action')
+      // 创建 Action Agent
+      const actionAgent = new ActionAgentImpl({
+        id: 'action',
+        type: 'action',
+      })
+      await actionAgent.init()
 
       // 类型转换
       const botWithAgents = bot as unknown as MineflayerWithAgents
@@ -172,6 +175,9 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
     },
 
     async beforeCleanup(bot) {
+      const botWithAgents = bot as unknown as MineflayerWithAgents
+      await botWithAgents.action?.destroy()
+      await botWithAgents.planning?.destroy()
       bot.bot.removeAllListeners('chat')
     },
   }

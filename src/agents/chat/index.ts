@@ -21,15 +21,15 @@ export class ChatAgentImpl extends AbstractAgent implements ChatAgent {
   protected async initializeAgent(): Promise<void> {
     this.logger.log('Initializing chat agent')
 
-    // Set up event listeners
+    // 设置事件监听
     this.on('message', async ({ sender, message }) => {
       await this.handleAgentMessage(sender, message)
     })
 
-    // Set up idle timeout checker
+    // 设置空闲超时检查
     setInterval(() => {
       this.checkIdleChats()
-    }, 60 * 1000) // Check every minute
+    }, 60 * 1000)
   }
 
   protected async destroyAgent(): Promise<void> {
