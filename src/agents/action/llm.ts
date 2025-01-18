@@ -1,43 +1,13 @@
-import type { Agent, Neuri } from 'neuri'
+import type { Agent } from 'neuri'
 import type { Mineflayer } from '../../libs/mineflayer'
 
 import { useLogg } from '@guiiai/logg'
-import { agent, neuri } from 'neuri'
+import { agent } from 'neuri'
 
-import { openaiConfig } from '../../composables/config'
 import { actionsList } from './tools'
 
-let neuriAgent: Neuri | undefined
-const agents = new Set<Agent | Promise<Agent>>()
-
-const logger = useLogg('action-llm').useGlobalConfig()
-
-export async function initAgent(mineflayer: Mineflayer): Promise<Neuri> {
-  logger.log('Initializing agent')
-  let n = neuri()
-
-  agents.add(initActionAgent(mineflayer))
-
-  agents.forEach(agent => n = n.agent(agent))
-
-  neuriAgent = await n.build({
-    provider: {
-      apiKey: openaiConfig.apiKey,
-      baseURL: openaiConfig.baseUrl,
-    },
-  })
-
-  return neuriAgent
-}
-
-export function getAgent(): Neuri {
-  if (!neuriAgent) {
-    throw new Error('Agent not initialized')
-  }
-  return neuriAgent
-}
-
 export async function initActionAgent(mineflayer: Mineflayer): Promise<Agent> {
+  const logger = useLogg('action-llm').useGlobalConfig()
   logger.log('Initializing action agent')
   let actionAgent = agent('action')
 

@@ -1,4 +1,4 @@
-import type { Neuri } from 'neuri'
+import type { Neuri, NeuriContext } from 'neuri'
 import type { Action } from '../../libs/mineflayer/action'
 
 import { useLogg } from '@guiiai/logg'
@@ -33,7 +33,7 @@ export async function generatePlanWithLLM(
   const content = await config.agent.handleStateless(messages, async (c) => {
     logger.log('Generating plan...')
 
-    const handleCompletion = async (c: any): Promise<string> => {
+    const handleCompletion = async (c: NeuriContext): Promise<string> => {
       const completion = await c.reroute('action', c.messages, {
         model: config.model ?? 'openai/gpt-4o-mini',
       })
