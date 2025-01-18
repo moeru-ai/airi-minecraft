@@ -1,5 +1,8 @@
+import type { Message } from 'neuri/openai'
+import type { Action } from 'src/libs/mineflayer'
 import type { AgentConfig, MemoryAgent } from '../../libs/mineflayer/interfaces/agents'
 import { useLogg } from '@guiiai/logg'
+import { Memory } from '../../libs/mineflayer/memory'
 
 const logger = useLogg('memory-agent').useGlobalConfig()
 
@@ -8,11 +11,13 @@ export class MemoryAgentImpl implements MemoryAgent {
   public readonly id: string
   private memory: Map<string, unknown>
   private initialized: boolean
+  private memoryInstance: Memory
 
   constructor(config: AgentConfig) {
     this.id = config.id
     this.memory = new Map()
     this.initialized = false
+    this.memoryInstance = new Memory()
   }
 
   async init(): Promise<void> {
@@ -63,5 +68,39 @@ export class MemoryAgentImpl implements MemoryAgent {
     }
 
     return Object.fromEntries(this.memory.entries())
+  }
+
+  addChatMessage(message: Message): void {
+    if (!this.initialized) {
+      throw new Error('Memory agent not initialized')
+    }
+
+    this.memoryInstance.chatHistory.push(message)
+    logger.withFields({ message }).log('Adding chat message to memory')
+  }
+
+  addAction(action: Action): void {
+    if (!this.initialized) {
+      throw new Error('Memory agent not initialized')
+    }
+
+    this.memoryInstance.actions.push(action)
+    logger.withFields({ action }).log('Adding action to memory')
+  }
+
+  getChatHistory(): Message[] {
+    if (!this.initialized) {
+      throw new Error('Memory agent not initialized')
+    }
+
+    return this.memoryInstance.chatHistory
+  }
+
+  getActions(): Action[] {
+    if (!this.initialized) {
+      throw new Error('Memory agent not initialized')
+    }
+
+    return this.memoryInstance.actions
   }
 }

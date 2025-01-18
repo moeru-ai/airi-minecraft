@@ -17,3 +17,7 @@ export interface EventHandlers {
 export type Events = keyof EventHandlers
 export type EventsHandler<K extends Events> = EventHandlers[K]
 export type Handler = (ctx: Context) => void | Promise<void>
+
+export interface OneLinerable {
+  toOneLiner: () => string
+}

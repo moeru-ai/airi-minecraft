@@ -4,7 +4,7 @@ import type { ActionAgent, AgentConfig } from '../../libs/mineflayer/interfaces/
 import { ActionManager } from '../../composables/action'
 import { useBot } from '../../composables/bot'
 import { AbstractAgent } from '../../libs/mineflayer/core/base-agent'
-import { actionsList } from '../actions'
+import { actionsList } from './actions'
 
 interface ActionState {
   executing: boolean

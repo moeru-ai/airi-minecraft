@@ -63,9 +63,9 @@ export abstract class AbstractAgent extends EventEmitter3 implements BaseAgent {
     this.emit('chat', message)
   }
 
-  public clearBotLogs(): void {
-    // Implement if needed
-  }
+  // public clearBotLogs(): void {
+  //   // Implement if needed
+  // }
 
   public requestInterrupt(): void {
     this.emit('interrupt')

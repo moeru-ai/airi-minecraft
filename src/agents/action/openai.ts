@@ -1,8 +1,8 @@
 import type { Agent, Neuri } from 'neuri'
-import type { Mineflayer } from '../libs/mineflayer'
+import type { Mineflayer } from '../../libs/mineflayer'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
-import { openaiConfig } from '../composables/config'
+import { openaiConfig } from '../../composables/config'
 import { actionsList } from './actions'
 
 let neuriAgent: Neuri | undefined

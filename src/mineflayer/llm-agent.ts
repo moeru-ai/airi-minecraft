@@ -4,11 +4,11 @@ import type { ChatCompletion } from 'neuri/openai'
 import type { Mineflayer } from '../libs/mineflayer'
 import type { ActionAgent, ChatAgent, PlanningAgent } from '../libs/mineflayer/interfaces/agents'
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
-
 import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
+
 import { createAppContainer } from '../container'
-import { formBotChat } from '../libs/mineflayer/message'
+import { ChatMessageHandler } from '../libs/mineflayer/message'
 import { genActionAgentPrompt, genStatusPrompt } from '../prompts/agent'
 import { toRetriable } from '../utils/reliability'
 
@@ -169,7 +169,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       bot.memory.chatHistory.push(system(genActionAgentPrompt(bot)))
 
       // 设置消息处理
-      const onChat = formBotChat(bot.username, (username, message) =>
+      const onChat = new ChatMessageHandler(bot.username).handleChat((username, message) =>
         handleChatMessage(username, message, botWithAgents, options.agent, logger))
 
       options.airiClient.onEvent('input:text:voice', event =>

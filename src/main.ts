@@ -9,7 +9,7 @@ import { pathfinder as MineflayerPathfinder } from 'mineflayer-pathfinder'
 import { plugin as MineflayerPVP } from 'mineflayer-pvp'
 import { plugin as MineflayerTool } from 'mineflayer-tool'
 
-import { initAgent } from './agents/openai'
+import { initAgent } from './agents/action/openai'
 import { initBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
 import { wrapPlugin } from './libs/mineflayer/plugin'
