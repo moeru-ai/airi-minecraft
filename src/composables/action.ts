@@ -17,6 +17,8 @@ interface QueuedAction {
   fn: ActionFn
   timeout: number
   resume: boolean
+  resolve: (result: ActionResult) => void
+  reject: (error: Error) => void
 }
 
 export class ActionManager extends EventEmitter {
@@ -75,24 +77,17 @@ export class ActionManager extends EventEmitter {
     this.state.resume.name = undefined
   }
 
-  private async queueAction(action: QueuedAction): Promise<ActionResult> {
-    // Add action to queue
-    this.actionQueue.push(action)
+  private async queueAction(action: Omit<QueuedAction, 'resolve' | 'reject'>): Promise<ActionResult> {
+    return new Promise((resolve, reject) => {
+      this.actionQueue.push({
+        ...action,
+        resolve,
+        reject,
+      })
 
-    // If not executing, start processing queue
-    if (!this.state.executing) {
-      return this.processQueue()
-    }
-
-    // Return a promise that will resolve when the action is executed
-    return new Promise((resolve) => {
-      const checkQueue = setInterval(() => {
-        const index = this.actionQueue.findIndex(a => a === action)
-        if (index === -1) {
-          clearInterval(checkQueue)
-          resolve({ success: true, message: 'success', timedout: false })
-        }
-      }, 100)
+      if (!this.state.executing) {
+        this.processQueue().catch(reject)
+      }
     })
   }
 
@@ -100,17 +95,28 @@ export class ActionManager extends EventEmitter {
     while (this.actionQueue.length > 0) {
       const action = this.actionQueue[0]
 
-      const result = action.resume
-        ? await this.executeResume(action.label, action.fn, action.timeout)
-        : await this.executeAction(action.label, action.fn, action.timeout)
+      try {
+        const result = action.resume
+          ? await this.executeResume(action.label, action.fn, action.timeout)
+          : await this.executeAction(action.label, action.fn, action.timeout)
 
-      // Remove completed action from queue
-      this.actionQueue.shift()
+        this.actionQueue.shift()?.resolve(result)
 
-      if (!result.success) {
-        // Clear queue on failure
+        if (!result.success) {
+          this.actionQueue.forEach(pendingAction =>
+            pendingAction.reject(new Error('Queue cleared due to action failure')),
+          )
+          this.actionQueue = []
+          return result
+        }
+      }
+      catch (error) {
+        this.actionQueue.shift()?.reject(error as Error)
+        this.actionQueue.forEach(pendingAction =>
+          pendingAction.reject(new Error('Queue cleared due to error')),
+        )
         this.actionQueue = []
-        return result
+        throw error
       }
     }
 
