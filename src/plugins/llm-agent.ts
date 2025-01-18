@@ -8,9 +8,9 @@ import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
 
+import { generateActionAgentPrompt, generateStatusPrompt } from '../agents/prompt/llm-agent.plugin'
 import { createAppContainer } from '../container'
 import { ChatMessageHandler } from '../libs/mineflayer/message'
-import { genActionAgentPrompt, genStatusPrompt } from '../utils/prompt'
 import { toRetriable } from '../utils/reliability'
 
 interface MineflayerWithAgents extends Mineflayer {
@@ -51,26 +51,25 @@ async function handleChatMessage(username: string, message: string, bot: Minefla
   logger.log('thinking...')
 
   try {
-    // 创建并执行计划
+    // Create and execute plan
     const plan = await bot.planning.createPlan(message)
     logger.withFields({ plan }).log('Plan created')
     await bot.planning.executePlan(plan)
     logger.log('Plan executed successfully')
 
-    // 生成回复
-    const statusPrompt = await genStatusPrompt(bot)
-    const retryHandler = toRetriable<NeuriContext, string>(
-      3,
-      1000,
-      ctx => handleLLMCompletion(ctx, bot, logger),
-      { onError: err => logger.withError(err).log('error occurred') },
-    )
-
+    // Generate response
+    // TODO: use chat agent and conversion manager
+    const statusPrompt = await generateStatusPrompt(bot)
     const content = await agent.handleStateless(
       [...bot.memory.chatHistory, system(statusPrompt)],
       async (c: NeuriContext) => {
-        logger.log('handling...')
-        return retryHandler(c)
+        logger.log('handling response...')
+        return toRetriable<NeuriContext, string>(
+          3,
+          1000,
+          ctx => handleLLMCompletion(ctx, bot, logger),
+          { onError: err => logger.withError(err).log('error occurred') },
+        )(c)
       },
     )
 
@@ -97,7 +96,7 @@ async function handleVoiceInput(event: any, bot: MineflayerWithAgents, agent: Ne
     })
     .log('Chat message received')
 
-  const statusPrompt = await genStatusPrompt(bot)
+  const statusPrompt = await generateStatusPrompt(bot)
   bot.memory.chatHistory.push(system(statusPrompt))
   bot.memory.chatHistory.push(user(`NekoMeowww: ${event.data.transcription}`))
 
@@ -167,7 +166,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       botWithAgents.chat = chatAgent
 
       // 初始化系统提示
-      bot.memory.chatHistory.push(system(genActionAgentPrompt(bot)))
+      bot.memory.chatHistory.push(system(generateActionAgentPrompt(bot)))
 
       // 设置消息处理
       const onChat = new ChatMessageHandler(bot.username).handleChat((username, message) =>

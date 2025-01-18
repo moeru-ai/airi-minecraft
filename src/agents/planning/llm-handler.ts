@@ -3,7 +3,7 @@ import type { Action } from '../../libs/mineflayer/action'
 import { system, user } from 'neuri/openai'
 
 import { BaseLLMHandler } from '../../libs/llm/base'
-import { genPlanningAgentPrompt } from '../../utils/prompt'
+import { generatePlanningAgentSystemPrompt, generatePlanningAgentUserPrompt } from '../prompt/planning'
 
 export class PlanningLLMHandler extends BaseLLMHandler {
   public async generatePlan(
@@ -11,8 +11,8 @@ export class PlanningLLMHandler extends BaseLLMHandler {
     availableActions: Action[],
     feedback?: string,
   ): Promise<Array<{ action: string, params: unknown[] }>> {
-    const systemPrompt = genPlanningAgentPrompt(availableActions)
-    const userPrompt = this.generateUserPrompt(goal, feedback)
+    const systemPrompt = generatePlanningAgentSystemPrompt(availableActions)
+    const userPrompt = generatePlanningAgentUserPrompt(goal, feedback)
     const messages = [system(systemPrompt), user(userPrompt)]
 
     const result = await this.config.agent.handleStateless(messages, async (context) => {
@@ -28,14 +28,6 @@ export class PlanningLLMHandler extends BaseLLMHandler {
     }
 
     return this.parsePlanContent(result)
-  }
-
-  private generateUserPrompt(goal: string, feedback?: string): string {
-    let prompt = `Create a plan to: ${goal}`
-    if (feedback) {
-      prompt += `\nPrevious attempt feedback: ${feedback}`
-    }
-    return prompt
   }
 
   private parsePlanContent(content: string): Array<{ action: string, params: unknown[] }> {

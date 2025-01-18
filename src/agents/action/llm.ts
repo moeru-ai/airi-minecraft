@@ -10,7 +10,7 @@ import { actionsList } from './tools'
 let neuriAgent: Neuri | undefined
 const agents = new Set<Agent | Promise<Agent>>()
 
-const logger = useLogg('openai').useGlobalConfig()
+const logger = useLogg('action-llm').useGlobalConfig()
 
 export async function initAgent(mineflayer: Mineflayer): Promise<Neuri> {
   logger.log('Initializing agent')

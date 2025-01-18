@@ -5,7 +5,7 @@ import { initBot, useBot } from '../../composables/bot'
 import { botConfig, initEnv } from '../../composables/config'
 import { sleep } from '../../utils/helper'
 import { initLogger } from '../../utils/logger'
-import { genActionAgentPrompt, genQueryAgentPrompt } from '../../utils/prompt'
+import { generateActionAgentPrompt } from '../prompt/llm-agent.plugin'
 import { initAgent } from './llm'
 
 describe('actions agent', { timeout: 0 }, () => {
@@ -22,7 +22,7 @@ describe('actions agent', { timeout: 0 }, () => {
     await new Promise<void>((resolve) => {
       bot.bot.once('spawn', async () => {
         const text = await agent.handle(messages(
-          system(genQueryAgentPrompt(bot)),
+          system(generateActionAgentPrompt(bot)),
           user('What\'s your status?'),
         ), async (c) => {
           const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
@@ -43,7 +43,7 @@ describe('actions agent', { timeout: 0 }, () => {
     await new Promise<void>((resolve) => {
       bot.bot.on('spawn', async () => {
         const text = await agent.handle(messages(
-          system(genActionAgentPrompt(bot)),
+          system(generateActionAgentPrompt(bot)),
           user('goToPlayer: luoling8192'),
         ), async (c) => {
           const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' })
@@ -58,32 +58,4 @@ describe('actions agent', { timeout: 0 }, () => {
       })
     })
   })
-
-  // it('should split question into actions', async () => {
-  //   const { ctx } = useBot()
-  //   const agent = await initAgent(ctx)
-
-  //   function testFn() {
-  //     return new Promise<void>((resolve) => {
-  //       ctx.bot.on('spawn', async () => {
-  //         const text = await agent.handle(messages(
-  //           system(genActionAgentPrompt(ctx)),
-  //           user('Help me to cut down the tree'),
-  //         ), async (c) => {
-  //           const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' })
-
-  //           console.log(completion)
-
-  //           return await completion?.firstContent()
-  //         })
-
-  //         console.log(text)
-
-  //         resolve()
-  //       })
-  //     })
-  //   }
-
-  //   await testFn()
-  // })
 })

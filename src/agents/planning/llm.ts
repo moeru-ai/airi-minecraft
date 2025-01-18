@@ -4,8 +4,8 @@ import type { Action } from '../../libs/mineflayer/action'
 import { useLogg } from '@guiiai/logg'
 import { system, user } from 'neuri/openai'
 
-import { genPlanningAgentPrompt } from '../../utils/prompt'
 import { toRetriable } from '../../utils/reliability'
+import { generatePlanningAgentSystemPrompt, generatePlanningAgentUserPrompt } from '../prompt/planning'
 
 const logger = useLogg('planning-llm').useGlobalConfig()
 
@@ -22,8 +22,8 @@ export async function generatePlanWithLLM(
   config: LLMPlanningConfig,
   feedback?: string,
 ): Promise<Array<{ action: string, params: unknown[] }>> {
-  const systemPrompt = genPlanningAgentPrompt(availableActions)
-  const userPrompt = generateUserPrompt(goal, feedback)
+  const systemPrompt = generatePlanningAgentSystemPrompt(availableActions)
+  const userPrompt = generatePlanningAgentUserPrompt(goal, feedback)
 
   const messages = [
     system(systemPrompt),
@@ -62,14 +62,6 @@ export async function generatePlanWithLLM(
   }
 
   return parsePlanContent(content)
-}
-
-function generateUserPrompt(goal: string, feedback?: string): string {
-  let prompt = `Create a plan to: ${goal}`
-  if (feedback) {
-    prompt += `\nPrevious attempt feedback: ${feedback}`
-  }
-  return prompt
 }
 
 function parsePlanContent(content: string): Array<{ action: string, params: unknown[] }> {

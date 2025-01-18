@@ -67,9 +67,9 @@ export abstract class AbstractAgent extends EventEmitter3 implements BaseAgent {
 
   constructor(config: AgentConfig) {
     super()
-    this.id = config.id
+    this.id = config.id // TODO: use uuid, is it needed?
     this.type = config.type
-    this.name = `${this.type}-${this.id}`
+    this.name = `${this.type}-agent`
     this.initialized = false
     this.logger = useLogg(this.name).useGlobalConfig()
 

@@ -3,7 +3,7 @@ import type { ChatHistory } from './types'
 import { system, user } from 'neuri/openai'
 
 import { BaseLLMHandler } from '../../libs/llm/base'
-import { genChatAgentPrompt } from '../../utils/prompt'
+import { genChatAgentPrompt } from '../prompt/chat'
 
 export class ChatLLMHandler extends BaseLLMHandler {
   public async generateResponse(
