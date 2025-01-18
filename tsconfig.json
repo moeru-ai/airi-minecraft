@@ -5,7 +5,6 @@
       "ESNext"
     ],
     "moduleDetection": "auto",
-    "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
