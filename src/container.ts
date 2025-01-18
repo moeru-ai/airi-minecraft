@@ -23,6 +23,7 @@ export function createAppContainer(options: {
 }) {
   const container = createContainer<ContainerServices>({
     injectionMode: InjectionMode.PROXY,
+    strict: true,
   })
 
   // Register services
