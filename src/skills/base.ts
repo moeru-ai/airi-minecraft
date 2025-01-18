@@ -1,4 +1,5 @@
 import type { Mineflayer } from '../libs/mineflayer'
+
 import { useLogg } from '@guiiai/logg'
 
 const logger = useLogg('skills').useGlobalConfig()

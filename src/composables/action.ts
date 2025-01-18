@@ -1,4 +1,5 @@
 import type { Agent } from './agent'
+
 import { useLogg } from '@guiiai/logg'
 
 type Fn = (...args: any[]) => void

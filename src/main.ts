@@ -1,5 +1,4 @@
 import process, { exit } from 'node:process'
-
 import { useLogg } from '@guiiai/logg'
 import { Client } from '@proj-airi/server-sdk'
 import MineflayerArmorManager from 'mineflayer-armor-manager'

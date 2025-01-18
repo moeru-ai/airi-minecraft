@@ -1,6 +1,7 @@
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 
 import { useLogg } from '@guiiai/logg'
+
 import { formBotChat } from '../libs/mineflayer/message'
 
 export function Echo(): MineflayerPlugin {

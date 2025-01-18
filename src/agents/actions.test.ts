@@ -1,5 +1,6 @@
 import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
+
 import { initBot, useBot } from '../composables/bot'
 import { botConfig, initEnv } from '../composables/config'
 import { genActionAgentPrompt, genQueryAgentPrompt } from '../prompts/agent'
@@ -25,7 +26,6 @@ describe('actions agent', { timeout: 0 }, () => {
           user('What\'s your status?'),
         ), async (c) => {
           const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
-          console.log(JSON.stringify(completion, null, 2))
           return await completion?.firstContent()
         })
 
@@ -48,16 +48,11 @@ describe('actions agent', { timeout: 0 }, () => {
           system(genActionAgentPrompt(bot)),
           user('goToPlayer: luoling8192'),
         ), async (c) => {
-          console.log(JSON.stringify(c, null, 2))
-
           const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' })
-
-          console.log(JSON.stringify(completion, null, 2))
-
           return await completion?.firstContent()
         })
 
-        console.log(JSON.stringify(text, null, 2))
+        expect(text?.toLowerCase()).toContain('goToPlayer')
 
         await sleep(10000)
         resolve()

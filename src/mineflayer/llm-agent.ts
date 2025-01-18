@@ -1,6 +1,7 @@
 import type { Client } from '@proj-airi/server-sdk'
 import type { Neuri, NeuriContext } from 'neuri'
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
+
 import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
 

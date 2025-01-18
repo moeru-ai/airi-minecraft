@@ -1,4 +1,5 @@
 import type { Agent } from './agent'
+
 import { useLogg } from '@guiiai/logg'
 
 let self_prompter_paused = false

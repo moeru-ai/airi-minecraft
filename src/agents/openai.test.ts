@@ -1,5 +1,6 @@
 import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
+
 import { initBot, useBot } from '../composables/bot'
 import { botConfig, initEnv } from '../composables/config'
 import { genSystemBasicPrompt } from '../prompts/agent'

@@ -1,9 +1,11 @@
 import type { Bot, BotOptions } from 'mineflayer'
 import type { MineflayerPlugin } from './plugin'
 import type { EventHandlers, EventsHandler } from './types'
+
 import { type Logg, useLogg } from '@guiiai/logg'
 import EventEmitter from 'eventemitter3'
 import mineflayer from 'mineflayer'
+
 import { parseCommand } from './command'
 import { Components } from './components'
 import { Health } from './health'
