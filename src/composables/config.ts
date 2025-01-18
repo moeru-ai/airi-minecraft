@@ -9,6 +9,7 @@ const logger = useLogg('config').useGlobalConfig()
 interface OpenAIConfig {
   apiKey: string
   baseUrl: string
+  model: string
 }
 
 interface EnvConfig {
@@ -21,6 +22,7 @@ const defaultConfig: EnvConfig = {
   openai: {
     apiKey: '',
     baseUrl: '',
+    model: 'openai/gpt-4o-mini',
   },
   bot: {
     username: '',
@@ -43,6 +45,7 @@ export function initEnv(): void {
     openai: {
       apiKey: env.OPENAI_API_KEY || defaultConfig.openai.apiKey,
       baseUrl: env.OPENAI_API_BASEURL || defaultConfig.openai.baseUrl,
+      model: env.OPENAI_MODEL || defaultConfig.openai.model,
     },
     bot: {
       username: env.BOT_USERNAME || defaultConfig.bot.username,

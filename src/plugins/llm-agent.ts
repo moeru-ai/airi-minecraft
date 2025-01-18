@@ -145,7 +145,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       // 创建容器并获取所需的服务
       const container = createAppContainer({
         neuri: options.agent,
-        model: 'openai/gpt-4-mini',
+        model: 'openai/gpt-4o-mini',
         maxHistoryLength: 50,
         idleTimeout: 5 * 60 * 1000,
       })

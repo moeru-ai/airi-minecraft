@@ -4,7 +4,7 @@ import type { ActionAgent, AgentConfig, MemoryAgent, Plan, PlanningAgent } from 
 
 import { AbstractAgent } from '../../libs/mineflayer/base-agent'
 import { ActionAgentImpl } from '../action'
-import { generatePlanWithLLM } from './llm'
+import { PlanningLLMHandler } from './llm-handler'
 
 interface PlanContext {
   goal: string
@@ -44,12 +44,17 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   private memoryAgent: MemoryAgent | null = null
   private planTemplates: Map<string, PlanTemplate>
   private llmConfig: PlanningAgentConfig['llm']
+  private llmHandler: PlanningLLMHandler
 
   constructor(config: PlanningAgentConfig) {
     super(config)
     this.planTemplates = new Map()
     this.llmConfig = config.llm
     this.initializePlanTemplates()
+    this.llmHandler = new PlanningLLMHandler({
+      agent: this.llmConfig.agent,
+      model: this.llmConfig.model,
+    })
   }
 
   protected async initializeAgent(): Promise<void> {
@@ -304,13 +309,9 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     let currentChunk = 1
 
     while (true) {
-      const steps = await generatePlanWithLLM(
+      const steps = await this.llmHandler.generatePlan(
         goal,
         availableActions,
-        {
-          agent: this.llmConfig.agent,
-          model: this.llmConfig.model,
-        },
         `Generate steps ${currentChunk * chunkSize - 2} to ${currentChunk * chunkSize}`,
       )
 
@@ -575,10 +576,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
 
     // If no template matches, use LLM to generate plan
     this.logger.log('Generating plan using LLM')
-    return await generatePlanWithLLM(goal, availableActions, {
-      agent: this.llmConfig.agent,
-      model: this.llmConfig.model,
-    }, feedback)
+    return await this.llmHandler.generatePlan(goal, availableActions, feedback)
   }
 
   private findMatchingTemplate(goal: string): PlanTemplate | undefined {

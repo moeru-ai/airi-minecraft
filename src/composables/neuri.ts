@@ -4,9 +4,9 @@ import type { Mineflayer } from '../libs/mineflayer'
 import { useLogg } from '@guiiai/logg'
 import { neuri } from 'neuri'
 
-import { createActionNeuriAgent } from '../agents/action/llm'
+import { createActionNeuriAgent } from '../agents/action/llm-handler'
 import { createChatNeuriAgent } from '../agents/chat/llm'
-import { createPlanningNeuriAgent } from '../agents/planning/llm'
+import { createPlanningNeuriAgent } from '../agents/planning/llm-handler'
 import { openaiConfig } from './config'
 
 let neuriAgent: Neuri | undefined

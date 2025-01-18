@@ -41,6 +41,7 @@ export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
     actionsList.forEach(action => this.actions.set(action.name, action))
 
     // Set up event listeners
+    // todo: nothing to call here
     this.on('message', async ({ sender, message }) => {
       await this.handleAgentMessage(sender, message)
     })

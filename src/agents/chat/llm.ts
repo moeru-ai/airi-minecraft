@@ -42,7 +42,7 @@ export async function generateChatResponse(
 
     const handleCompletion = async (c: any): Promise<string> => {
       const completion = await c.reroute('chat', c.messages, {
-        model: config.model ?? 'openai/gpt-4-mini',
+        model: config.model ?? 'openai/gpt-4o-mini',
       })
 
       if (!completion || 'error' in completion) {
