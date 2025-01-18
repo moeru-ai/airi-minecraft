@@ -1,5 +1,6 @@
 import type { ChatAgent } from '../../libs/mineflayer/base-agent'
 import type { ChatAgentConfig, ChatContext } from './types'
+
 import { AbstractAgent } from '../../libs/mineflayer/base-agent'
 import { generateChatResponse } from './llm'
 

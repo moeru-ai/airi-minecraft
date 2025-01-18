@@ -1,7 +1,9 @@
 import type { Message } from 'neuri/openai'
 import type { Action } from '../../libs/mineflayer'
 import type { AgentConfig, MemoryAgent } from '../../libs/mineflayer/base-agent'
+
 import { useLogg } from '@guiiai/logg'
+
 import { Memory } from '../../libs/mineflayer/memory'
 
 const logger = useLogg('memory-agent').useGlobalConfig()

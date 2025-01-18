@@ -1,6 +1,8 @@
 import type { Neuri } from 'neuri'
+
 import { useLogg } from '@guiiai/logg'
 import { asClass, asFunction, createContainer, InjectionMode } from 'awilix'
+
 import { ActionAgentImpl } from './agents/action'
 import { ChatAgentImpl } from './agents/chat'
 import { PlanningAgentImpl } from './agents/planning'

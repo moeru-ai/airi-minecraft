@@ -1,7 +1,9 @@
 import type { Neuri } from 'neuri'
 import type { Mineflayer } from '../../libs/mineflayer'
 import type { MineflayerPlugin } from '../../libs/mineflayer/plugin'
+
 import { useLogg } from '@guiiai/logg'
+
 import { createAppContainer } from '../../container'
 
 interface PlanningPluginOptions {

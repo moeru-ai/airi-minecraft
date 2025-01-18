@@ -3,10 +3,11 @@ import type { Neuri, NeuriContext } from 'neuri'
 import type { ChatCompletion } from 'neuri/openai'
 import type { Mineflayer } from '../libs/mineflayer'
 import type { ActionAgent, ChatAgent, PlanningAgent } from '../libs/mineflayer/base-agent'
-
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
+
 import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
+
 import { createAppContainer } from '../container'
 import { ChatMessageHandler } from '../libs/mineflayer/message'
 import { genActionAgentPrompt, genStatusPrompt } from '../utils/prompt'

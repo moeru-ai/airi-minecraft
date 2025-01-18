@@ -1,5 +1,6 @@
 import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
+
 import minecraftData, {
   type Biome,
   type ShapedRecipe,

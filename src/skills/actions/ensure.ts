@@ -1,5 +1,7 @@
 import type { Mineflayer } from '../../libs/mineflayer'
+
 import { useLogg } from '@guiiai/logg'
+
 import { getItemId } from '../../utils/mcdata'
 import { craftRecipe } from '../crafting'
 import { moveAway } from '../movement'

@@ -1,4 +1,5 @@
 import type { Mineflayer } from '../libs/mineflayer/core'
+
 import { useLogg } from '@guiiai/logg'
 import EventEmitter from 'eventemitter3'
 

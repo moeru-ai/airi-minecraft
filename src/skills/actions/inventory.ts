@@ -2,6 +2,7 @@ import type { Item } from 'prismarine-item'
 import type { Mineflayer } from '../../libs/mineflayer'
 
 import { useLogg } from '@guiiai/logg'
+
 import { getNearestBlock } from '../../composables/world'
 import { goToPlayer, goToPosition } from '../movement'
 

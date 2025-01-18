@@ -1,7 +1,9 @@
 import type { Neuri } from 'neuri'
 import type { ChatHistory } from './types'
+
 import { useLogg } from '@guiiai/logg'
 import { system, user } from 'neuri/openai'
+
 import { genChatAgentPrompt } from '../../utils/prompt'
 import { toRetriable } from '../../utils/reliability'
 

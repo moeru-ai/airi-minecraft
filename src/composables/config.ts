@@ -1,4 +1,5 @@
 import type { BotOptions } from 'mineflayer'
+
 import { env } from 'node:process'
 import { useLogg } from '@guiiai/logg'
 

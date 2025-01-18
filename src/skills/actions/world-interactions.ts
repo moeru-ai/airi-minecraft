@@ -1,9 +1,11 @@
 import type { Bot } from 'mineflayer'
 import type { Block } from 'prismarine-block'
 import type { Mineflayer } from '../../libs/mineflayer'
+
 import { useLogg } from '@guiiai/logg'
 import pathfinder from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
+
 import { sleep } from '../../utils/helper'
 import { getNearestBlock, makeItem } from '../../utils/mcdata'
 import { goToPosition } from '../movement'

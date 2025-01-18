@@ -1,4 +1,5 @@
 import type { Action, Mineflayer } from '../libs/mineflayer'
+
 import { listInventory } from '../skills/actions/inventory'
 
 export function genSystemBasicPrompt(botName: string): string {

@@ -1,7 +1,9 @@
 import type { Neuri } from 'neuri'
 import type { Action } from '../../libs/mineflayer/action'
+
 import { useLogg } from '@guiiai/logg'
 import { system, user } from 'neuri/openai'
+
 import { genPlanningAgentPrompt } from '../../utils/prompt'
 import { toRetriable } from '../../utils/reliability'
 

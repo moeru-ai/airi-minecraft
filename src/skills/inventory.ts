@@ -1,4 +1,5 @@
 import type { Mineflayer } from '../libs/mineflayer'
+
 import { getNearestBlock } from '../composables/world'
 import { log } from './base'
 import { goToPlayer, goToPosition } from './movement'

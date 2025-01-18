@@ -1,4 +1,5 @@
 import type { Action } from './action'
+
 import { useLogg } from '@guiiai/logg'
 import EventEmitter3 from 'eventemitter3'
 
