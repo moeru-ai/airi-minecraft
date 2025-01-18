@@ -4,7 +4,9 @@ import type { Mineflayer } from '../libs/mineflayer'
 import { useLogg } from '@guiiai/logg'
 import { neuri } from 'neuri'
 
-import { initActionAgent } from '../agents/action/llm'
+import { initActionNeuriAgent } from '../agents/action/llm'
+import { initChatNeuriAgent } from '../agents/chat/llm'
+import { initPlanningNeuriAgent } from '../agents/planning/llm'
 import { openaiConfig } from './config'
 
 let neuriAgent: Neuri | undefined
@@ -16,7 +18,9 @@ export async function initNeuriAgent(mineflayer: Mineflayer): Promise<Neuri> {
   logger.log('Initializing agent')
   let n = neuri()
 
-  agents.add(initActionAgent(mineflayer))
+  agents.add(initPlanningNeuriAgent())
+  agents.add(initActionNeuriAgent(mineflayer))
+  agents.add(initChatNeuriAgent())
 
   agents.forEach(agent => n = n.agent(agent))
 

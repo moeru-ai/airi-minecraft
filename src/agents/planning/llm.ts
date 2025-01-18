@@ -1,7 +1,8 @@
-import type { Neuri, NeuriContext } from 'neuri'
+import type { Agent, Neuri, NeuriContext } from 'neuri'
 import type { Action } from '../../libs/mineflayer/action'
 
 import { useLogg } from '@guiiai/logg'
+import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
 
 import { toRetriable } from '../../utils/helper'
@@ -14,6 +15,10 @@ interface LLMPlanningConfig {
   model?: string
   retryLimit?: number
   delayInterval?: number
+}
+
+export async function initPlanningNeuriAgent(): Promise<Agent> {
+  return agent('planning').build()
 }
 
 export async function generatePlanWithLLM(
@@ -34,7 +39,7 @@ export async function generatePlanWithLLM(
     logger.log('Generating plan...')
 
     const handleCompletion = async (c: NeuriContext): Promise<string> => {
-      const completion = await c.reroute('action', c.messages, {
+      const completion = await c.reroute('planning', c.messages, {
         model: config.model ?? 'openai/gpt-4o-mini',
       })
 

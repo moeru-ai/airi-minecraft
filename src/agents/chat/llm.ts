@@ -1,7 +1,8 @@
-import type { Neuri } from 'neuri'
+import type { Agent, Neuri } from 'neuri'
 import type { ChatHistory } from './types'
 
 import { useLogg } from '@guiiai/logg'
+import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
 
 import { toRetriable } from '../../utils/helper'
@@ -15,6 +16,10 @@ interface LLMChatConfig {
   retryLimit?: number
   delayInterval?: number
   maxContextLength?: number
+}
+
+export async function initChatNeuriAgent(): Promise<Agent> {
+  return agent('chat').build()
 }
 
 export async function generateChatResponse(
