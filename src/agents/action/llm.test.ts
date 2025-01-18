@@ -1,10 +1,10 @@
 import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { initBot, useBot } from '../composables/bot'
-import { botConfig, initEnv } from '../composables/config'
-import { genSystemBasicPrompt } from '../prompts/agent'
-import { initLogger } from '../utils/logger'
-import { initAgent } from './openai'
+import { initBot, useBot } from '../../composables/bot'
+import { botConfig, initEnv } from '../../composables/config'
+import { initLogger } from '../../utils/logger'
+import { genSystemBasicPrompt } from '../../utils/prompt'
+import { initAgent } from './llm'
 
 describe('openAI agent', { timeout: 0 }, () => {
   beforeAll(() => {

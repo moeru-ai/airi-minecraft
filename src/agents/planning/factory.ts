@@ -20,7 +20,7 @@ export function PlanningPlugin(options: PlanningPluginOptions): MineflayerPlugin
     async created(mineflayer: Mineflayer) {
       logger.log('Initializing planning plugin')
 
-      // 创建容器并获取所需的服务
+      // Get the container
       const container = createAppContainer({
         neuri: options.agent,
         model: options.model,
@@ -28,11 +28,11 @@ export function PlanningPlugin(options: PlanningPluginOptions): MineflayerPlugin
       const actionAgent = container.resolve('actionAgent')
       const planningAgent = container.resolve('planningAgent')
 
-      // 初始化 agents
+      // Initialize agents
       await actionAgent.init()
       await planningAgent.init()
 
-      // 添加到 bot
+      // Add to bot
       ;(mineflayer as MineflayerWithPlanning).planning = planningAgent
     },
 

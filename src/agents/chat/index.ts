@@ -1,6 +1,6 @@
-import type { ChatAgent } from '../../libs/mineflayer/interfaces/agents'
+import type { ChatAgent } from '../../libs/mineflayer/base-agent'
 import type { ChatAgentConfig, ChatContext } from './types'
-import { AbstractAgent } from '../../libs/mineflayer/core/base-agent'
+import { AbstractAgent } from '../../libs/mineflayer/base-agent'
 import { generateChatResponse } from './llm'
 
 export class ChatAgentImpl extends AbstractAgent implements ChatAgent {
@@ -21,12 +21,10 @@ export class ChatAgentImpl extends AbstractAgent implements ChatAgent {
   protected async initializeAgent(): Promise<void> {
     this.logger.log('Initializing chat agent')
 
-    // 设置事件监听
     this.on('message', async ({ sender, message }) => {
       await this.handleAgentMessage(sender, message)
     })
 
-    // 设置空闲超时检查
     setInterval(() => {
       this.checkIdleChats()
     }, 60 * 1000)

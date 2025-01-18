@@ -2,10 +2,10 @@ import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { initBot, useBot } from '../../composables/bot'
 import { botConfig, initEnv } from '../../composables/config'
-import { genActionAgentPrompt, genQueryAgentPrompt } from '../../prompts/agent'
 import { sleep } from '../../utils/helper'
 import { initLogger } from '../../utils/logger'
-import { initAgent } from '../openai'
+import { genActionAgentPrompt, genQueryAgentPrompt } from '../../utils/prompt'
+import { initAgent } from './llm'
 
 describe('actions agent', { timeout: 0 }, () => {
   beforeAll(() => {

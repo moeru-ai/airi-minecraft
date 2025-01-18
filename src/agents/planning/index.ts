@@ -1,7 +1,7 @@
 import type { Neuri } from 'neuri'
 import type { Action } from '../../libs/mineflayer/action'
-import type { ActionAgent, AgentConfig, MemoryAgent, Plan, PlanningAgent } from '../../libs/mineflayer/interfaces/agents'
-import { AbstractAgent } from '../../libs/mineflayer/core/base-agent'
+import type { ActionAgent, AgentConfig, MemoryAgent, Plan, PlanningAgent } from '../../libs/mineflayer/base-agent'
+import { AbstractAgent } from '../../libs/mineflayer/base-agent'
 import { ActionAgentImpl } from '../action'
 import { generatePlanWithLLM } from './llm'
 
@@ -54,14 +54,14 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   protected async initializeAgent(): Promise<void> {
     this.logger.log('Initializing planning agent')
 
-    // 直接创建 action agent
+    // Create action agent directly
     this.actionAgent = new ActionAgentImpl({
       id: 'action',
       type: 'action',
     })
     await this.actionAgent.init()
 
-    // 设置事件监听
+    // Set event listener
     this.on('message', async ({ sender, message }) => {
       await this.handleAgentMessage(sender, message)
     })

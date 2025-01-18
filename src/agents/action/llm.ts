@@ -3,7 +3,7 @@ import type { Mineflayer } from '../../libs/mineflayer'
 import { useLogg } from '@guiiai/logg'
 import { agent, neuri } from 'neuri'
 import { openaiConfig } from '../../composables/config'
-import { actionsList } from './actions'
+import { actionsList } from './tools'
 
 let neuriAgent: Neuri | undefined
 const agents = new Set<Agent | Promise<Agent>>()

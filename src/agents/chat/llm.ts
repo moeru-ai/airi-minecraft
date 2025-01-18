@@ -2,6 +2,7 @@ import type { Neuri } from 'neuri'
 import type { ChatHistory } from './types'
 import { useLogg } from '@guiiai/logg'
 import { system, user } from 'neuri/openai'
+import { genChatAgentPrompt } from '../../utils/prompt'
 import { toRetriable } from '../../utils/reliability'
 
 const logger = useLogg('chat-llm').useGlobalConfig()
@@ -19,7 +20,7 @@ export async function generateChatResponse(
   history: ChatHistory[],
   config: LLMChatConfig,
 ): Promise<string> {
-  const systemPrompt = generateSystemPrompt()
+  const systemPrompt = genChatAgentPrompt()
   const chatHistory = formatChatHistory(history, config.maxContextLength ?? 10)
   const userPrompt = message
 
@@ -61,28 +62,6 @@ export async function generateChatResponse(
   }
 
   return content
-}
-
-function generateSystemPrompt(): string {
-  return `You are a Minecraft bot assistant. Your task is to engage in natural conversation with players while helping them achieve their goals.
-
-Guidelines:
-1. Be friendly and helpful
-2. Keep responses concise but informative
-3. Use game-appropriate language
-4. Acknowledge player's emotions and intentions
-5. Ask for clarification when needed
-6. Remember context from previous messages
-7. Be proactive in suggesting helpful actions
-
-You can:
-- Answer questions about the game
-- Help with tasks and crafting
-- Give directions and suggestions
-- Engage in casual conversation
-- Coordinate with other bots
-
-Remember that you're operating in a Minecraft world and should maintain that context in your responses.`
 }
 
 function formatChatHistory(

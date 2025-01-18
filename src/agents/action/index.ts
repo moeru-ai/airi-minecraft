@@ -1,10 +1,10 @@
 import type { Mineflayer } from '../../libs/mineflayer'
 import type { Action } from '../../libs/mineflayer/action'
-import type { ActionAgent, AgentConfig } from '../../libs/mineflayer/interfaces/agents'
+import type { ActionAgent, AgentConfig } from '../../libs/mineflayer/base-agent'
 import { ActionManager } from '../../composables/action'
 import { useBot } from '../../composables/bot'
-import { AbstractAgent } from '../../libs/mineflayer/core/base-agent'
-import { actionsList } from './actions'
+import { AbstractAgent } from '../../libs/mineflayer/base-agent'
+import { actionsList } from './tools'
 
 interface ActionState {
   executing: boolean
