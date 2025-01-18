@@ -2,7 +2,7 @@ import type { LLMConfig, LLMResponse } from './types'
 
 import { useLogg } from '@guiiai/logg'
 
-import { toRetriable } from '../../utils/reliability'
+import { toRetriable } from '../../utils/helper'
 
 export abstract class BaseLLMHandler {
   protected logger = useLogg('llm-handler').useGlobalConfig()

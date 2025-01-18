@@ -11,7 +11,7 @@ import { assistant, system, user } from 'neuri/openai'
 import { generateActionAgentPrompt, generateStatusPrompt } from '../agents/prompt/llm-agent.plugin'
 import { createAppContainer } from '../container'
 import { ChatMessageHandler } from '../libs/mineflayer/message'
-import { toRetriable } from '../utils/reliability'
+import { toRetriable } from '../utils/helper'
 
 interface MineflayerWithAgents extends Mineflayer {
   planning: PlanningAgent

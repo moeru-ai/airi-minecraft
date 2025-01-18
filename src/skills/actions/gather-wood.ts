@@ -2,10 +2,10 @@ import type { Mineflayer } from '../../libs/mineflayer'
 
 import { useLogg } from '@guiiai/logg'
 
-import { getNearestBlocks } from '../../composables/world'
 import { sleep } from '../../utils/helper'
 import { breakBlockAt } from '../blocks'
 import { goToPosition, moveAway } from '../movement'
+import { getNearestBlocks } from '../world'
 import { pickupNearbyItems } from './world-interactions'
 
 const logger = useLogg('Action:GatherWood').useGlobalConfig()

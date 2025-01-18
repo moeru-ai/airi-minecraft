@@ -4,10 +4,10 @@ import type { Mineflayer } from '../libs/mineflayer'
 
 import pathfinderModel from 'mineflayer-pathfinder'
 
-import { getNearbyEntities, getNearestEntityWhere } from '../composables/world'
 import { sleep } from '../utils/helper'
 import { isHostile } from '../utils/mcdata'
 import { log } from './base'
+import { getNearbyEntities, getNearestEntityWhere } from './world'
 
 const { goals } = pathfinderModel
 

@@ -3,13 +3,12 @@ import type { Mineflayer } from '../../libs/mineflayer'
 import { listInventory } from '../../skills/actions/inventory'
 
 export function generateSystemBasicPrompt(botName: string): string {
+  // ${ctx.prompt.selfPrompt}
   return `You are a playful Minecraft bot named ${botName} that can converse with players, see, move,
 mine, build, and interact with the world by using commands.`
 }
 
 export function generateActionAgentPrompt(mineflayer: Mineflayer): string {
-  // ${ctx.prompt.selfPrompt}
-
   return `${generateSystemBasicPrompt(mineflayer.username)}
 
 Act human-like as if you were a typical Minecraft player, rather than an AI. Be very brief in
@@ -24,28 +23,28 @@ Do not use any emojis. Just call the function given you if needed.
 }
 
 export async function generateStatusPrompt(mineflayer: Mineflayer): Promise<string> {
+  // Get inventory items
   const inventory = await listInventory(mineflayer)
-  if (inventory.length === 0) {
-    return `I will give you the following information:
-${mineflayer.status.toOneLiner()}
 
-Inventory:
-[Empty]
+  // Format inventory string
+  const inventoryStr = inventory.length === 0
+    ? '[Empty]'
+    : inventory.map(item => `${item.name} x ${item.count}`).join(', ')
 
-Item in hand:
-[Empty]
-`
-  }
-  const inventoryStr = inventory.map(item => `${item.name} x ${item.count}`).join(', ')
-  const itemInHand = `${inventory[0].name} x ${inventory[0].count}` // TODO: mock
+  // Get currently held item
+  const itemInHand = inventory.length === 0
+    ? '[Empty]'
+    : `${inventory[0].name} x ${inventory[0].count}` // TODO: mock
 
-  return `I will give you the following information:
-${mineflayer.status.toOneLiner()}
-
-Inventory:
-${inventoryStr}
-
-Item in hand:
-${itemInHand}
-`
+  // Build status message
+  return [
+    'I will give you the following information:',
+    mineflayer.status.toOneLiner(),
+    '',
+    'Inventory:',
+    inventoryStr,
+    '',
+    'Item in hand:',
+    itemInHand,
+  ].join('\n')
 }

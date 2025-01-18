@@ -4,7 +4,7 @@ import type { Action } from '../../libs/mineflayer/action'
 import { useLogg } from '@guiiai/logg'
 import { system, user } from 'neuri/openai'
 
-import { toRetriable } from '../../utils/reliability'
+import { toRetriable } from '../../utils/helper'
 import { generatePlanningAgentSystemPrompt, generatePlanningAgentUserPrompt } from '../prompt/planning'
 
 const logger = useLogg('planning-llm').useGlobalConfig()

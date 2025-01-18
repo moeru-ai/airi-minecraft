@@ -4,10 +4,10 @@ import type { BlockFace } from './base'
 import pathfinderModel, { type SafeBlock } from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 
-import { getNearestBlock, getNearestBlocks, getPosition, shouldPlaceTorch } from '../composables/world'
 import { getBlockId, makeItem } from '../utils/mcdata'
 import { log } from './base'
 import { goToPosition } from './movement'
+import { getNearestBlock, getNearestBlocks, getPosition, shouldPlaceTorch } from './world'
 
 const { goals, Movements } = pathfinderModel
 

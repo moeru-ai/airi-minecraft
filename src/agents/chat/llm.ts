@@ -4,7 +4,7 @@ import type { ChatHistory } from './types'
 import { useLogg } from '@guiiai/logg'
 import { system, user } from 'neuri/openai'
 
-import { toRetriable } from '../../utils/reliability'
+import { toRetriable } from '../../utils/helper'
 import { genChatAgentPrompt } from '../prompt/chat'
 
 const logger = useLogg('chat-llm').useGlobalConfig()

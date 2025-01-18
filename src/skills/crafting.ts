@@ -5,11 +5,11 @@ import type { Mineflayer } from '../libs/mineflayer'
 
 import { useLogg } from '@guiiai/logg'
 
-import { getInventoryCounts, getNearestBlock, getNearestFreeSpace } from '../composables/world'
 import { getItemId, getItemName } from '../utils/mcdata'
 import { ensureCraftingTable } from './actions/ensure'
 import { collectBlock, placeBlock } from './blocks'
 import { goToNearestBlock, goToPosition, moveAway } from './movement'
+import { getInventoryCounts, getNearestBlock, getNearestFreeSpace } from './world'
 
 const logger = useLogg('Skill:Crafting').useGlobalConfig()
 
