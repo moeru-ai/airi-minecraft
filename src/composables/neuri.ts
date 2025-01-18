@@ -12,10 +12,10 @@ import { openaiConfig } from './config'
 let neuriAgent: Neuri | undefined
 const agents = new Set<Agent | Promise<Agent>>()
 
-const logger = useLogg('action-llm').useGlobalConfig()
+const logger = useLogg('neuri').useGlobalConfig()
 
 export async function createNeuriAgent(mineflayer: Mineflayer): Promise<Neuri> {
-  logger.log('Initializing agent')
+  logger.log('Initializing neuri agent')
   let n = neuri()
 
   agents.add(createPlanningNeuriAgent())

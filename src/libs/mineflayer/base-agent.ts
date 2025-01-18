@@ -86,7 +86,6 @@ export abstract class AbstractAgent extends EventEmitter3 implements BaseAgent {
       return
     }
 
-    this.logger.log('Initializing agent')
     await this.initializeAgent()
     this.initialized = true
   }
