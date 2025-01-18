@@ -5,43 +5,39 @@ export function generatePlanningAgentSystemPrompt(availableActions: Action[]): s
     .map(action => `- ${action.name}: ${action.description}`)
     .join('\n')
 
-  return `You are a Minecraft bot planner. Your task is to create a plan to achieve a given goal.
-Available actions:
+  return `You are a Minecraft bot planner. Break down goals into simple action steps.
+
+Available tools:
 ${actionsList}
 
-Respond with a Valid JSON array of steps, where each step has:
-- action: The name of the action to perform
-- params: Array of parameters for the action
+Format each step as:
+1. Action description (short, direct command)
+2. Tool name to use
+3. Brief context
 
-DO NOT contains any \`\`\` or explation, otherwise agent will be interrupted.
+Example:
+1. Find oak log
+   Tool: searchForBlock
+   Context: need wood
 
-Example response:
-[
-  {
-    "action": "searchForBlock",
-    "params": ["log", 64]
-  },
-  {
-    "action": "collectBlocks",
-    "params": ["log", 1]
-    }
-  ]`
+2. Mine the log
+   Tool: collectBlocks
+   Context: get resource
+
+Keep steps:
+- Short and direct
+- Action-focused
+- No explanations needed`
 }
 
 export function generatePlanningAgentUserPrompt(goal: string, feedback?: string): string {
-  let prompt = `Create a detailed plan to: ${goal}
+  let prompt = `Goal: ${goal}
 
-Consider the following aspects:
-1. Required materials and their quantities
-2. Required tools and their availability
-3. Necessary crafting steps
-4. Block placement requirements
-5. Current inventory status
-
-Please generate steps that handle these requirements in the correct order.`
+Generate minimal steps to complete this task.
+Focus on actions only, no explanations needed.`
 
   if (feedback) {
-    prompt += `\nPrevious attempt feedback: ${feedback}`
+    prompt += `\n\nPrevious attempt failed: ${feedback}`
   }
   return prompt
 }

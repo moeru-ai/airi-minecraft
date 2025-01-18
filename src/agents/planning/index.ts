@@ -4,7 +4,7 @@ import type { ActionAgent, AgentConfig, MemoryAgent, Plan, PlanningAgent } from 
 
 import { AbstractAgent } from '../../libs/mineflayer/base-agent'
 import { ActionAgentImpl } from '../action'
-import { PlanningLLMHandler } from './llm-handler'
+import { PlanningLLMHandler, type PlanStep } from './llm-handler'
 
 interface PlanContext {
   goal: string
@@ -13,20 +13,7 @@ interface PlanContext {
   lastUpdate: number
   retryCount: number
   isGenerating: boolean
-  pendingSteps: Array<{
-    action: string
-    params: unknown[]
-  }>
-}
-
-interface PlanTemplate {
-  goal: string
-  conditions: string[]
-  steps: Array<{
-    action: string
-    params: unknown[]
-  }>
-  requiresAction: boolean
+  pendingSteps: PlanStep[]
 }
 
 export interface PlanningAgentConfig extends AgentConfig {
@@ -42,15 +29,12 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   private context: PlanContext | null = null
   private actionAgent: ActionAgent | null = null
   private memoryAgent: MemoryAgent | null = null
-  private planTemplates: Map<string, PlanTemplate>
   private llmConfig: PlanningAgentConfig['llm']
   private llmHandler: PlanningLLMHandler
 
   constructor(config: PlanningAgentConfig) {
     super(config)
-    this.planTemplates = new Map()
     this.llmConfig = config.llm
-    this.initializePlanTemplates()
     this.llmHandler = new PlanningLLMHandler({
       agent: this.llmConfig.agent,
       model: this.llmConfig.model,
@@ -82,7 +66,6 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     this.context = null
     this.actionAgent = null
     this.memoryAgent = null
-    this.planTemplates.clear()
     this.removeAllListeners()
   }
 
@@ -259,7 +242,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
 
         try {
           this.logger.withField('step', step).log('Executing step')
-          await this.actionAgent.performAction(step.action, step.params)
+          await this.actionAgent.performAction(step)
           this.context.lastUpdate = Date.now()
           this.context.currentStep++
         }
@@ -294,16 +277,8 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   private async *createStepGenerator(
     goal: string,
     availableActions: Action[],
-  ): AsyncGenerator<Array<{ action: string, params: unknown[] }>, void, unknown> {
-    // First, try to find a matching template
-    const template = this.findMatchingTemplate(goal)
-    if (template) {
-      this.logger.log('Using plan template')
-      yield template.steps
-      return
-    }
-
-    // If no template matches, use LLM to generate plan in chunks
+  ): AsyncGenerator<PlanStep[], void, unknown> {
+    // Use LLM to generate plan in chunks
     this.logger.log('Generating plan using LLM')
     const chunkSize = 3 // Generate 3 steps at a time
     let currentChunk = 1
@@ -409,59 +384,93 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private generateGatheringSteps(items: string[]): Array<{ action: string, params: unknown[] }> {
-    const steps: Array<{ action: string, params: unknown[] }> = []
+  private generateGatheringSteps(items: string[]): PlanStep[] {
+    const steps: PlanStep[] = []
 
     for (const item of items) {
       steps.push(
-        { action: 'searchForBlock', params: [item, 64] },
-        { action: 'collectBlocks', params: [item, 1] },
+        {
+          description: `Search for ${item} in the surrounding area`,
+          tool: 'searchForBlock',
+          reasoning: `We need to locate ${item} before we can collect it`,
+        },
+        {
+          description: `Collect ${item} from the found location`,
+          tool: 'collectBlocks',
+          reasoning: `We need to gather ${item} for our inventory`,
+        },
       )
     }
 
     return steps
   }
 
-  private generateMovementSteps(location: { x?: number, y?: number, z?: number }): Array<{ action: string, params: unknown[] }> {
+  private generateMovementSteps(location: { x?: number, y?: number, z?: number }): PlanStep[] {
     if (location.x !== undefined && location.y !== undefined && location.z !== undefined) {
       return [{
-        action: 'goToCoordinates',
-        params: [location.x, location.y, location.z, 1],
+        description: `Move to coordinates (${location.x}, ${location.y}, ${location.z})`,
+        tool: 'goToCoordinates',
+        reasoning: 'We need to reach the specified location',
       }]
     }
     return []
   }
 
-  private generateInteractionSteps(target: string): Array<{ action: string, params: unknown[] }> {
+  private generateInteractionSteps(target: string): PlanStep[] {
     return [{
-      action: 'activate',
-      params: [target],
+      description: `Interact with ${target}`,
+      tool: 'activate',
+      reasoning: `We need to use ${target} to proceed`,
     }]
   }
 
-  private generateRecoverySteps(feedback: string): Array<{ action: string, params: unknown[] }> {
-    const steps: Array<{ action: string, params: unknown[] }> = []
+  private generateRecoverySteps(feedback: string): PlanStep[] {
+    const steps: PlanStep[] = []
 
     if (feedback.includes('not found')) {
-      steps.push({ action: 'searchForBlock', params: ['any', 128] })
+      steps.push({
+        description: 'Search in a wider area',
+        tool: 'searchForBlock',
+        reasoning: 'The target was not found in the immediate vicinity',
+      })
     }
 
     if (feedback.includes('inventory full')) {
-      steps.push({ action: 'discard', params: ['cobblestone', 64] })
+      steps.push({
+        description: 'Clear inventory space',
+        tool: 'discard',
+        reasoning: 'We need to make room in our inventory',
+      })
     }
 
     if (feedback.includes('blocked') || feedback.includes('cannot reach')) {
-      steps.push({ action: 'moveAway', params: [5] })
+      steps.push({
+        description: 'Move away from obstacles',
+        tool: 'moveAway',
+        reasoning: 'We need to find a clear path',
+      })
     }
 
     if (feedback.includes('too far')) {
-      steps.push({ action: 'moveAway', params: [-3] }) // Move closer
+      steps.push({
+        description: 'Move closer to target',
+        tool: 'moveAway',
+        reasoning: 'We need to get within range',
+      })
     }
 
     if (feedback.includes('need tool')) {
       steps.push(
-        { action: 'craftRecipe', params: ['wooden_pickaxe', 1] },
-        { action: 'equip', params: ['wooden_pickaxe'] },
+        {
+          description: 'Craft a wooden pickaxe',
+          tool: 'craftRecipe',
+          reasoning: 'We need the appropriate tool for this task',
+        },
+        {
+          description: 'Equip the wooden pickaxe',
+          tool: 'equip',
+          reasoning: 'We need to use the tool we just crafted',
+        },
       )
     }
 
@@ -489,44 +498,6 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   private isPlanValid(_plan: Plan): boolean {
     // Add validation logic here
     return true
-  }
-
-  private initializePlanTemplates(): void {
-    // Add common plan templates
-    this.planTemplates.set('collect wood', {
-      goal: 'collect wood',
-      conditions: ['needs_axe', 'near_trees'],
-      steps: [
-        { action: 'searchForBlock', params: ['log', 64] },
-        { action: 'collectBlocks', params: ['log', 1] },
-      ],
-      requiresAction: true,
-    })
-
-    this.planTemplates.set('find shelter', {
-      goal: 'find shelter',
-      conditions: ['is_night', 'unsafe'],
-      steps: [
-        { action: 'searchForBlock', params: ['bed', 64] },
-        { action: 'goToBed', params: [] },
-      ],
-      requiresAction: true,
-    })
-
-    // Add templates for non-action goals
-    this.planTemplates.set('hello', {
-      goal: 'hello',
-      conditions: [],
-      steps: [],
-      requiresAction: false,
-    })
-
-    this.planTemplates.set('how are you', {
-      goal: 'how are you',
-      conditions: [],
-      steps: [],
-      requiresAction: false,
-    })
   }
 
   private async handleAgentMessage(sender: string, message: string): Promise<void> {
@@ -566,26 +537,10 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     goal: string,
     availableActions: Action[],
     feedback?: string,
-  ): Promise<Array<{ action: string, params: unknown[] }>> {
-    // First, try to find a matching template
-    const template = this.findMatchingTemplate(goal)
-    if (template) {
-      this.logger.log('Using plan template')
-      return template.steps
-    }
-
-    // If no template matches, use LLM to generate plan
+  ): Promise<PlanStep[]> {
+    // Use LLM to generate plan
     this.logger.log('Generating plan using LLM')
     return await this.llmHandler.generatePlan(goal, availableActions, feedback)
-  }
-
-  private findMatchingTemplate(goal: string): PlanTemplate | undefined {
-    for (const [pattern, template] of this.planTemplates.entries()) {
-      if (goal.toLowerCase().includes(pattern.toLowerCase())) {
-        return template
-      }
-    }
-    return undefined
   }
 
   private parseGoalRequirements(goal: string): {

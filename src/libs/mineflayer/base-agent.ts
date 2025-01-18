@@ -1,3 +1,4 @@
+import type { PlanStep } from '../../agents/planning/llm-handler'
 import type { Action } from './action'
 
 import { useLogg } from '@guiiai/logg'
@@ -19,7 +20,7 @@ export interface BaseAgent {
 
 export interface ActionAgent extends BaseAgent {
   type: 'action'
-  performAction: (name: string, params: unknown[]) => Promise<string>
+  performAction: (step: PlanStep) => Promise<string>
   getAvailableActions: () => Action[]
 }
 
@@ -33,10 +34,7 @@ export interface MemoryAgent extends BaseAgent {
 
 export interface Plan {
   goal: string
-  steps: Array<{
-    action: string
-    params: unknown[]
-  }>
+  steps: PlanStep[]
   status: 'pending' | 'in_progress' | 'completed' | 'failed'
   requiresAction: boolean
 }

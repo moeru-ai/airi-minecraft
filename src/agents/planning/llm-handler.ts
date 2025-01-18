@@ -11,12 +11,18 @@ export async function createPlanningNeuriAgent(): Promise<Agent> {
   return agent('planning').build()
 }
 
+export interface PlanStep {
+  description: string
+  tool: string
+  reasoning: string
+}
+
 export class PlanningLLMHandler extends BaseLLMHandler {
   public async generatePlan(
     goal: string,
     availableActions: Action[],
     feedback?: string,
-  ): Promise<Array<{ action: string, params: unknown[] }>> {
+  ): Promise<PlanStep[]> {
     const systemPrompt = generatePlanningAgentSystemPrompt(availableActions)
     const userPrompt = generatePlanningAgentUserPrompt(goal, feedback)
     const messages = [system(systemPrompt), user(userPrompt)]
@@ -36,26 +42,26 @@ export class PlanningLLMHandler extends BaseLLMHandler {
     return this.parsePlanContent(result)
   }
 
-  private parsePlanContent(content: string): Array<{ action: string, params: unknown[] }> {
-    try {
-      const match = content.match(/\[[\s\S]*\]/)
-      if (!match) {
-        throw new Error('No plan found in response')
-      }
+  private parsePlanContent(content: string): PlanStep[] {
+    // Split content into steps (numbered list)
+    const steps = content.split(/\d+\./).filter(step => step.trim().length > 0)
 
-      const plan = JSON.parse(match[0])
-      if (!Array.isArray(plan)) {
-        throw new TypeError('Invalid plan format')
-      }
+    return steps.map((step) => {
+      const lines = step.trim().split('\n')
+      const description = lines[0]
 
-      return plan.map(step => ({
-        action: step.action,
-        params: step.params,
-      }))
-    }
-    catch (error) {
-      this.logger.withError(error).error('Failed to parse plan')
-      throw error
-    }
+      // Extract tool name from the content (usually in single quotes)
+      const toolMatch = step.match(/'([^']+)'/)
+      const tool = toolMatch ? toolMatch[1] : ''
+
+      // Everything else is considered reasoning
+      const reasoning = lines.slice(1).join('\n').trim()
+
+      return {
+        description,
+        tool,
+        reasoning,
+      }
+    })
   }
 }
