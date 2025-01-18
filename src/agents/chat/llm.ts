@@ -18,7 +18,7 @@ interface LLMChatConfig {
   maxContextLength?: number
 }
 
-export async function initChatNeuriAgent(): Promise<Agent> {
+export async function createChatNeuriAgent(): Promise<Agent> {
   return agent('chat').build()
 }
 

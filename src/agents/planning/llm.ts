@@ -3,7 +3,7 @@ import type { Action } from '../../libs/mineflayer/action'
 
 import { useLogg } from '@guiiai/logg'
 import { agent } from 'neuri'
-import { system, user } from 'neuri/openai'
+import { type ChatCompletion, system, user } from 'neuri/openai'
 
 import { toRetriable } from '../../utils/helper'
 import { generatePlanningAgentSystemPrompt, generatePlanningAgentUserPrompt } from '../prompt/planning'
@@ -17,7 +17,7 @@ interface LLMPlanningConfig {
   delayInterval?: number
 }
 
-export async function initPlanningNeuriAgent(): Promise<Agent> {
+export async function createPlanningNeuriAgent(): Promise<Agent> {
   return agent('planning').build()
 }
 
@@ -41,7 +41,7 @@ export async function generatePlanWithLLM(
     const handleCompletion = async (c: NeuriContext): Promise<string> => {
       const completion = await c.reroute('planning', c.messages, {
         model: config.model ?? 'openai/gpt-4o-mini',
-      })
+      }) as ChatCompletion | ChatCompletion & { error: { message: string } }
 
       if (!completion || 'error' in completion) {
         logger.withFields(c).error('Completion failed')
@@ -53,7 +53,7 @@ export async function generatePlanWithLLM(
       return content
     }
 
-    const retirableHandler = toRetriable<any, string>(
+    const retirableHandler = toRetriable<NeuriContext, string>(
       config.retryLimit ?? 3,
       config.delayInterval ?? 1000,
       handleCompletion,

@@ -4,9 +4,9 @@ import type { Mineflayer } from '../libs/mineflayer'
 import { useLogg } from '@guiiai/logg'
 import { neuri } from 'neuri'
 
-import { initActionNeuriAgent } from '../agents/action/llm'
-import { initChatNeuriAgent } from '../agents/chat/llm'
-import { initPlanningNeuriAgent } from '../agents/planning/llm'
+import { createActionNeuriAgent } from '../agents/action/llm'
+import { createChatNeuriAgent } from '../agents/chat/llm'
+import { createPlanningNeuriAgent } from '../agents/planning/llm'
 import { openaiConfig } from './config'
 
 let neuriAgent: Neuri | undefined
@@ -14,13 +14,13 @@ const agents = new Set<Agent | Promise<Agent>>()
 
 const logger = useLogg('action-llm').useGlobalConfig()
 
-export async function initNeuriAgent(mineflayer: Mineflayer): Promise<Neuri> {
+export async function createNeuriAgent(mineflayer: Mineflayer): Promise<Neuri> {
   logger.log('Initializing agent')
   let n = neuri()
 
-  agents.add(initPlanningNeuriAgent())
-  agents.add(initActionNeuriAgent(mineflayer))
-  agents.add(initChatNeuriAgent())
+  agents.add(createPlanningNeuriAgent())
+  agents.add(createActionNeuriAgent(mineflayer))
+  agents.add(createChatNeuriAgent())
 
   agents.forEach(agent => n = n.agent(agent))
 
@@ -34,7 +34,7 @@ export async function initNeuriAgent(mineflayer: Mineflayer): Promise<Neuri> {
   return neuriAgent
 }
 
-export function getAgent(): Neuri {
+export function useNeuriAgent(): Neuri {
   if (!neuriAgent) {
     throw new Error('Agent not initialized')
   }

@@ -10,7 +10,7 @@ import { plugin as MineflayerTool } from 'mineflayer-tool'
 
 import { initBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
-import { initNeuriAgent } from './composables/neuri'
+import { createNeuriAgent } from './composables/neuri'
 import { wrapPlugin } from './libs/mineflayer'
 import { LLMAgent } from './plugins/llm-agent'
 import { initLogger } from './utils/logger'
@@ -36,7 +36,7 @@ async function main() {
   const airiClient = new Client({ name: 'minecraft-bot', url: 'ws://localhost:6121/ws' })
 
   // Dynamically load LLMAgent after the bot is initialized
-  const agent = await initNeuriAgent(bot)
+  const agent = await createNeuriAgent(bot)
   await bot.loadPlugin(LLMAgent({ agent, airiClient }))
 
   process.on('SIGINT', () => {

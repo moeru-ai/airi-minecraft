@@ -3,10 +3,10 @@ import { beforeAll, describe, expect, it } from 'vitest'
 
 import { initBot, useBot } from '../../composables/bot'
 import { botConfig, initEnv } from '../../composables/config'
+import { createNeuriAgent } from '../../composables/neuri'
 import { sleep } from '../../utils/helper'
 import { initLogger } from '../../utils/logger'
 import { generateActionAgentPrompt } from '../prompt/llm-agent.plugin'
-import { initAgent } from './llm'
 
 describe('actions agent', { timeout: 0 }, () => {
   beforeAll(() => {
@@ -17,7 +17,7 @@ describe('actions agent', { timeout: 0 }, () => {
 
   it('should choose right query command', async () => {
     const { bot } = useBot()
-    const agent = await initAgent(bot)
+    const agent = await createNeuriAgent(bot)
 
     await new Promise<void>((resolve) => {
       bot.bot.once('spawn', async () => {
@@ -38,7 +38,7 @@ describe('actions agent', { timeout: 0 }, () => {
 
   it('should choose right action command', async () => {
     const { bot } = useBot()
-    const agent = await initAgent(bot)
+    const agent = await createNeuriAgent(bot)
 
     await new Promise<void>((resolve) => {
       bot.bot.on('spawn', async () => {

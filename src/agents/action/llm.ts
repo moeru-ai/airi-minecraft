@@ -6,7 +6,7 @@ import { agent } from 'neuri'
 
 import { actionsList } from './tools'
 
-export async function initActionNeuriAgent(mineflayer: Mineflayer): Promise<Agent> {
+export async function createActionNeuriAgent(mineflayer: Mineflayer): Promise<Agent> {
   const logger = useLogg('action-llm').useGlobalConfig()
   logger.log('Initializing action agent')
   let actionAgent = agent('action')
