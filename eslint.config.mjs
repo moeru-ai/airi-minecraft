@@ -7,9 +7,9 @@ export default antfu({
       'error',
       {
         'groups': [
-          ['type'], // types 最优先
-          ['builtin', 'external'], // 然后是内置模块和外部包
-          ['parent', 'sibling', 'index'], // 最后是内部引用
+          ['type'],
+          ['builtin', 'external'],
+          ['parent', 'sibling', 'index'],
         ],
         'newlines-between': 'always',
       },
