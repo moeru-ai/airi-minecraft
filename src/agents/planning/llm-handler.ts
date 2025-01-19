@@ -14,7 +14,7 @@ export async function createPlanningNeuriAgent(): Promise<Agent> {
 export interface PlanStep {
   description: string
   tool: string
-  reasoning: string
+  params: Record<string, unknown>
 }
 
 export class PlanningLLMHandler extends BaseLLMHandler {
@@ -48,19 +48,52 @@ export class PlanningLLMHandler extends BaseLLMHandler {
 
     return steps.map((step) => {
       const lines = step.trim().split('\n')
-      const description = lines[0]
+      const description = lines[0].trim()
 
-      // Extract tool name from the content (usually in single quotes)
-      const toolMatch = step.match(/'([^']+)'/)
-      const tool = toolMatch ? toolMatch[1] : ''
+      // Extract tool name and parameters
+      let tool = ''
+      const params: Record<string, unknown> = {}
 
-      // Everything else is considered reasoning
-      const reasoning = lines.slice(1).join('\n').trim()
+      for (const line of lines) {
+        const trimmed = line.trim()
+
+        // Extract tool name
+        if (trimmed.startsWith('Tool:')) {
+          tool = trimmed.split(':')[1].trim()
+          continue
+        }
+
+        // Extract parameters
+        if (trimmed === 'Params:') {
+          let i = lines.indexOf(line) + 1
+          while (i < lines.length) {
+            const paramLine = lines[i].trim()
+            if (paramLine === '')
+              break
+
+            const paramMatch = paramLine.match(/(\w+):\s*(.+)/)
+            if (paramMatch) {
+              const [, key, value] = paramMatch
+              // Try to parse numbers and booleans
+              if (value === 'true')
+                params[key] = true
+              else if (value === 'false')
+                params[key] = false
+              else if (/^\d+$/.test(value))
+                params[key] = Number.parseInt(value)
+              else if (/^\d*\.\d+$/.test(value))
+                params[key] = Number.parseFloat(value)
+              else params[key] = value.trim()
+            }
+            i++
+          }
+        }
+      }
 
       return {
         description,
         tool,
-        reasoning,
+        params,
       }
     })
   }

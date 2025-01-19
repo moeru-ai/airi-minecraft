@@ -2,8 +2,13 @@ import type { Action } from '../../libs/mineflayer/action'
 
 export function generatePlanningAgentSystemPrompt(availableActions: Action[]): string {
   const actionsList = availableActions
-    .map(action => `- ${action.name}: ${action.description}`)
-    .join('\n')
+    .map((action) => {
+      const params = Object.entries(action.schema.shape as Record<string, any>)
+        .map(([name, type]) => `    - ${name}: ${type._def.typeName}`)
+        .join('\n')
+      return `- ${action.name}: ${action.description}\n  Parameters:\n${params}`
+    })
+    .join('\n\n')
 
   return `You are a Minecraft bot planner. Break down goals into simple action steps.
 
@@ -12,29 +17,32 @@ ${actionsList}
 
 Format each step as:
 1. Action description (short, direct command)
-2. Tool name to use
-3. Brief context
+2. Tool name
+3. Required parameters
 
 Example:
 1. Find oak log
    Tool: searchForBlock
-   Context: need wood
+   Params:
+     blockType: oak_log
+     range: 64
 
 2. Mine the log
    Tool: collectBlocks
-   Context: get resource
+   Params:
+     blockType: oak_log
+     count: 1
 
 Keep steps:
 - Short and direct
 - Action-focused
-- No explanations needed`
+- Parameters precise`
 }
 
 export function generatePlanningAgentUserPrompt(goal: string, feedback?: string): string {
   let prompt = `Goal: ${goal}
 
-Generate minimal steps to complete this task.
-Focus on actions only, no explanations needed.`
+Generate minimal steps with exact parameters.`
 
   if (feedback) {
     prompt += `\n\nPrevious attempt failed: ${feedback}`
