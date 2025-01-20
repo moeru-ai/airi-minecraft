@@ -3,8 +3,8 @@ import type { Action } from '../../libs/mineflayer/action'
 export function generatePlanningAgentSystemPrompt(availableActions: Action[]): string {
   const actionsList = availableActions
     .map((action) => {
-      const params = Object.entries(action.schema.shape as Record<string, any>)
-        .map(([name, type]) => `    - ${name}: ${type._def.typeName}`)
+      const params = Object.keys(action.schema.shape)
+        .map(name => `    - ${name}`)
         .join('\n')
       return `- ${action.name}: ${action.description}\n  Parameters:\n${params}`
     })
@@ -21,28 +21,24 @@ Format each step as:
 3. Required parameters
 
 Example:
-1. Find oak log
-   Tool: searchForBlock
+1. Follow player
+   Tool: followPlayer
    Params:
-     blockType: oak_log
-     range: 64
-
-2. Mine the log
-   Tool: collectBlocks
-   Params:
-     blockType: oak_log
-     count: 1
+     player: luoling8192
+     follow_dist: 3
 
 Keep steps:
 - Short and direct
 - Action-focused
-- Parameters precise`
+- Parameters precise
+- Generate all steps at once`
 }
 
-export function generatePlanningAgentUserPrompt(goal: string, feedback?: string): string {
-  let prompt = `Goal: ${goal}
+export function generatePlanningAgentUserPrompt(goal: string, sender: string, feedback?: string): string {
+  let prompt = `${sender}: ${goal}
 
-Generate minimal steps with exact parameters.`
+Generate minimal steps with exact parameters.
+Use the sender's name (${sender}) for player-related parameters.`
 
   if (feedback) {
     prompt += `\n\nPrevious attempt failed: ${feedback}`

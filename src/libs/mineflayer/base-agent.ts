@@ -43,7 +43,7 @@ export interface PlanningAgent extends BaseAgent {
   type: 'planning'
   createPlan: (goal: string) => Promise<Plan>
   executePlan: (plan: Plan) => Promise<void>
-  adjustPlan: (plan: Plan, feedback: string) => Promise<Plan>
+  adjustPlan: (plan: Plan, feedback: string, sender: string) => Promise<Plan>
 }
 
 export interface ChatAgent extends BaseAgent {

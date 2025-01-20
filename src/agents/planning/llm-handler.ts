@@ -21,10 +21,11 @@ export class PlanningLLMHandler extends BaseLLMHandler {
   public async generatePlan(
     goal: string,
     availableActions: Action[],
+    sender: string,
     feedback?: string,
   ): Promise<PlanStep[]> {
     const systemPrompt = generatePlanningAgentSystemPrompt(availableActions)
-    const userPrompt = generatePlanningAgentUserPrompt(goal, feedback)
+    const userPrompt = generatePlanningAgentUserPrompt(goal, sender, feedback)
     const messages = [system(systemPrompt), user(userPrompt)]
 
     const result = await this.config.agent.handleStateless(messages, async (context) => {

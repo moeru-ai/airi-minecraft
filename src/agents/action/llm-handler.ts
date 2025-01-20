@@ -60,7 +60,7 @@ Remember to:
     return `Execute this step: ${step.description}
 
 Suggested tool: ${step.tool}
-Context and reasoning: ${step.reasoning}
+Params: ${JSON.stringify(step.params)}
 
 Please use the appropriate tool with the correct parameters to accomplish this step.
 If the suggested tool is not appropriate, you may choose a different one.`

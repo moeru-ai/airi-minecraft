@@ -103,7 +103,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       }
 
       // Create plan steps based on available actions and goal
-      const steps = await this.generatePlanSteps(goal, availableActions)
+      const steps = await this.generatePlanSteps(goal, availableActions, 'system')
 
       // Create new plan
       const plan: Plan = {
@@ -155,8 +155,31 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       plan.status = 'in_progress'
       this.currentPlan = plan
 
-      // Start generating and executing steps in parallel
-      await this.generateAndExecutePlanSteps(plan)
+      // Execute each step
+      for (const step of plan.steps) {
+        try {
+          this.logger.withField('step', step).log('Executing step')
+          await this.actionAgent.performAction(step)
+        }
+        catch (stepError) {
+          this.logger.withError(stepError).error('Failed to execute step')
+
+          // Attempt to adjust plan and retry
+          if (this.context && this.context.retryCount < 3) {
+            this.context.retryCount++
+            // Adjust plan and restart
+            const adjustedPlan = await this.adjustPlan(
+              plan,
+              stepError instanceof Error ? stepError.message : 'Unknown error',
+              'system',
+            )
+            await this.executePlan(adjustedPlan)
+            return
+          }
+
+          throw stepError
+        }
+      }
 
       plan.status = 'completed'
     }
@@ -169,48 +192,25 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private async generateAndExecutePlanSteps(plan: Plan): Promise<void> {
-    if (!this.context || !this.actionAgent) {
-      return
-    }
-
-    // Initialize step generation
-    this.context.isGenerating = true
-    this.context.pendingSteps = []
-
-    // Get available actions
-    const availableActions = this.actionAgent.getAvailableActions()
-
-    // Start step generation
-    const generationPromise = this.generateStepsStream(plan.goal, availableActions)
-
-    // Start step execution
-    const executionPromise = this.executeStepsStream()
-
-    // Wait for both generation and execution to complete
-    await Promise.all([generationPromise, executionPromise])
-  }
-
   private async generateStepsStream(
     goal: string,
     availableActions: Action[],
+    sender: string,
   ): Promise<void> {
     if (!this.context) {
       return
     }
 
     try {
-      // Generate steps in chunks
-      const generator = this.createStepGenerator(goal, availableActions)
-      for await (const steps of generator) {
-        if (!this.context.isGenerating) {
-          break
-        }
-
-        // Add generated steps to pending queue
-        this.context.pendingSteps.push(...steps)
-        this.logger.withField('steps', steps).log('Generated new steps')
+      // Generate all steps at once
+      const steps = await this.llmHandler.generatePlan(goal, availableActions, sender)
+      if (!this.context.isGenerating) {
+        return
       }
+
+      // Add all steps to pending queue
+      this.context.pendingSteps.push(...steps)
+      this.logger.withField('steps', steps).log('Generated steps')
     }
     catch (error) {
       this.logger.withError(error).error('Failed to generate steps')
@@ -259,6 +259,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
             const adjustedPlan = await this.adjustPlan(
               this.currentPlan!,
               stepError instanceof Error ? stepError.message : 'Unknown error',
+              'system',
             )
             await this.executePlan(adjustedPlan)
             return
@@ -341,7 +342,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     return true
   }
 
-  public async adjustPlan(plan: Plan, feedback: string): Promise<Plan> {
+  public async adjustPlan(plan: Plan, feedback: string, sender: string): Promise<Plan> {
     if (!this.initialized) {
       throw new Error('Planning agent not initialized')
     }
@@ -358,7 +359,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
         const recoverySteps = this.generateRecoverySteps(feedback)
 
         // Generate new steps from the current point
-        const newSteps = await this.generatePlanSteps(plan.goal, availableActions, feedback)
+        const newSteps = await this.generatePlanSteps(plan.goal, availableActions, sender, feedback)
 
         // Create adjusted plan
         const adjustedPlan: Plan = {
@@ -392,12 +393,18 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
         {
           description: `Search for ${item} in the surrounding area`,
           tool: 'searchForBlock',
-          reasoning: `We need to locate ${item} before we can collect it`,
+          params: {
+            blockType: item,
+            range: 64,
+          },
         },
         {
           description: `Collect ${item} from the found location`,
           tool: 'collectBlocks',
-          reasoning: `We need to gather ${item} for our inventory`,
+          params: {
+            blockType: item,
+            count: 1,
+          },
         },
       )
     }
@@ -410,7 +417,11 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       return [{
         description: `Move to coordinates (${location.x}, ${location.y}, ${location.z})`,
         tool: 'goToCoordinates',
-        reasoning: 'We need to reach the specified location',
+        params: {
+          x: location.x,
+          y: location.y,
+          z: location.z,
+        },
       }]
     }
     return []
@@ -420,7 +431,9 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     return [{
       description: `Interact with ${target}`,
       tool: 'activate',
-      reasoning: `We need to use ${target} to proceed`,
+      params: {
+        target,
+      },
     }]
   }
 
@@ -431,7 +444,10 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       steps.push({
         description: 'Search in a wider area',
         tool: 'searchForBlock',
-        reasoning: 'The target was not found in the immediate vicinity',
+        params: {
+          blockType: 'oak_log',
+          range: 64,
+        },
       })
     }
 
@@ -439,7 +455,10 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       steps.push({
         description: 'Clear inventory space',
         tool: 'discard',
-        reasoning: 'We need to make room in our inventory',
+        params: {
+          blockType: 'oak_log',
+          count: 1,
+        },
       })
     }
 
@@ -447,7 +466,9 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       steps.push({
         description: 'Move away from obstacles',
         tool: 'moveAway',
-        reasoning: 'We need to find a clear path',
+        params: {
+          range: 64,
+        },
       })
     }
 
@@ -455,7 +476,9 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       steps.push({
         description: 'Move closer to target',
         tool: 'moveAway',
-        reasoning: 'We need to get within range',
+        params: {
+          range: 64,
+        },
       })
     }
 
@@ -464,12 +487,16 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
         {
           description: 'Craft a wooden pickaxe',
           tool: 'craftRecipe',
-          reasoning: 'We need the appropriate tool for this task',
+          params: {
+            recipe: 'oak_pickaxe',
+          },
         },
         {
           description: 'Equip the wooden pickaxe',
           tool: 'equip',
-          reasoning: 'We need to use the tool we just crafted',
+          params: {
+            item: 'oak_pickaxe',
+          },
         },
       )
     }
@@ -512,7 +539,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
 
       // If there's a current plan, try to adjust it based on the message
       if (this.currentPlan) {
-        await this.adjustPlan(this.currentPlan, message)
+        await this.adjustPlan(this.currentPlan, message, sender)
       }
     }
   }
@@ -536,11 +563,12 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   private async generatePlanSteps(
     goal: string,
     availableActions: Action[],
+    sender: string,
     feedback?: string,
   ): Promise<PlanStep[]> {
-    // Use LLM to generate plan
+    // Generate all steps at once
     this.logger.log('Generating plan using LLM')
-    return await this.llmHandler.generatePlan(goal, availableActions, feedback)
+    return await this.llmHandler.generatePlan(goal, availableActions, sender, feedback)
   }
 
   private parseGoalRequirements(goal: string): {

@@ -5,7 +5,6 @@ import type { PlanStep } from '../planning/llm-handler'
 
 import { useBot } from '../../composables/bot'
 import { AbstractAgent } from '../../libs/mineflayer/base-agent'
-import { ActionManager } from '../../manager/action'
 import { actionsList } from './tools'
 
 interface ActionState {
@@ -21,7 +20,6 @@ interface ActionState {
 export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
   public readonly type = 'action' as const
   private actions: Map<string, Action>
-  private actionManager: ActionManager
   private mineflayer: Mineflayer
   private currentActionState: ActionState
 
@@ -29,7 +27,6 @@ export class ActionAgentImpl extends AbstractAgent implements ActionAgent {
     super(config)
     this.actions = new Map()
     this.mineflayer = useBot().bot
-    this.actionManager = new ActionManager(this.mineflayer)
     this.currentActionState = {
       executing: false,
       label: '',
