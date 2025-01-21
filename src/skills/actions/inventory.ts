@@ -3,8 +3,8 @@ import type { Mineflayer } from '../../libs/mineflayer'
 
 import { useLogg } from '@guiiai/logg'
 
-import { getNearestBlock } from '../../composables/world'
 import { goToPlayer, goToPosition } from '../movement'
+import { getNearestBlock } from '../world'
 
 const logger = useLogg('Action:Inventory').useGlobalConfig()
 

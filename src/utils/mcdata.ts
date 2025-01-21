@@ -1,5 +1,3 @@
-// src/utils/minecraftData.ts
-
 import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
 

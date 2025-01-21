@@ -1,8 +1,8 @@
 import type { Mineflayer } from '../libs/mineflayer'
 
-import { getNearestBlock } from '../composables/world'
 import { log } from './base'
 import { goToPlayer, goToPosition } from './movement'
+import { getNearestBlock } from './world'
 
 export async function equip(mineflayer: Mineflayer, itemName: string): Promise<boolean> {
   const item = mineflayer.bot.inventory.slots.find(slot => slot && slot.name === itemName)

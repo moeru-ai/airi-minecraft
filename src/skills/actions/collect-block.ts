@@ -4,8 +4,8 @@ import type { Mineflayer } from '../../libs/mineflayer'
 import { useLogg } from '@guiiai/logg'
 import pathfinder from 'mineflayer-pathfinder'
 
-import { getNearestBlocks } from '../../composables/world'
 import { breakBlockAt } from '../blocks'
+import { getNearestBlocks } from '../world'
 import { ensurePickaxe } from './ensure'
 import { pickupNearbyItems } from './world-interactions'
 

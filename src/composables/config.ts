@@ -5,35 +5,60 @@ import { useLogg } from '@guiiai/logg'
 
 const logger = useLogg('config').useGlobalConfig()
 
+// Configuration interfaces
 interface OpenAIConfig {
   apiKey: string
   baseUrl: string
+  model: string
 }
 
-export const botConfig: BotOptions = {
-  username: '',
-  host: '',
-  port: 0,
-  password: '',
-  version: '1.20',
+interface EnvConfig {
+  openai: OpenAIConfig
+  bot: BotOptions
 }
 
-export const openaiConfig: OpenAIConfig = {
-  apiKey: '',
-  baseUrl: '',
+// Default configurations
+const defaultConfig: EnvConfig = {
+  openai: {
+    apiKey: '',
+    baseUrl: '',
+    model: 'openai/gpt-4o-mini',
+  },
+  bot: {
+    username: '',
+    host: '',
+    port: 0,
+    password: '',
+    version: '1.20',
+  },
 }
 
-export function initEnv() {
+// Exported configurations
+export const botConfig: BotOptions = { ...defaultConfig.bot }
+export const openaiConfig: OpenAIConfig = { ...defaultConfig.openai }
+
+// Load environment variables into config
+export function initEnv(): void {
   logger.log('Initializing environment variables')
 
-  openaiConfig.apiKey = env.OPENAI_API_KEY || ''
-  openaiConfig.baseUrl = env.OPENAI_API_BASEURL || ''
+  const config: EnvConfig = {
+    openai: {
+      apiKey: env.OPENAI_API_KEY || defaultConfig.openai.apiKey,
+      baseUrl: env.OPENAI_API_BASEURL || defaultConfig.openai.baseUrl,
+      model: env.OPENAI_MODEL || defaultConfig.openai.model,
+    },
+    bot: {
+      username: env.BOT_USERNAME || defaultConfig.bot.username,
+      host: env.BOT_HOSTNAME || defaultConfig.bot.host,
+      port: Number.parseInt(env.BOT_PORT || '49415'),
+      password: env.BOT_PASSWORD || defaultConfig.bot.password,
+      version: env.BOT_VERSION || defaultConfig.bot.version,
+    },
+  }
 
-  botConfig.username = env.BOT_USERNAME || ''
-  botConfig.host = env.BOT_HOSTNAME || ''
-  botConfig.port = Number.parseInt(env.BOT_PORT || '49415')
-  botConfig.password = env.BOT_PASSWORD || ''
-  botConfig.version = env.BOT_VERSION || '1.20'
+  // Update exported configs
+  Object.assign(openaiConfig, config.openai)
+  Object.assign(botConfig, config.bot)
 
   logger.withFields({ openaiConfig }).log('Environment variables initialized')
 }

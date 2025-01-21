@@ -8,11 +8,11 @@ import { pathfinder as MineflayerPathfinder } from 'mineflayer-pathfinder'
 import { plugin as MineflayerPVP } from 'mineflayer-pvp'
 import { plugin as MineflayerTool } from 'mineflayer-tool'
 
-import { initAgent } from './agents/openai'
 import { initBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
-import { wrapPlugin } from './libs/mineflayer/plugin'
-import { LLMAgent } from './mineflayer/llm-agent'
+import { createNeuriAgent } from './composables/neuri'
+import { wrapPlugin } from './libs/mineflayer'
+import { LLMAgent } from './plugins/llm-agent'
 import { initLogger } from './utils/logger'
 
 const logger = useLogg('main').useGlobalConfig()
@@ -35,8 +35,8 @@ async function main() {
 
   const airiClient = new Client({ name: 'minecraft-bot', url: 'ws://localhost:6121/ws' })
 
-  // Dynamically load LLMAgent after bot is initialized
-  const agent = await initAgent(bot)
+  // Dynamically load LLMAgent after the bot is initialized
+  const agent = await createNeuriAgent(bot)
   await bot.loadPlugin(LLMAgent({ agent, airiClient }))
 
   process.on('SIGINT', () => {

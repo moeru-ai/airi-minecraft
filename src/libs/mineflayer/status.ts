@@ -1,5 +1,5 @@
 import type { Mineflayer } from './core'
-import type { OneLinerable } from './interfaces'
+import type { OneLinerable } from './types'
 
 export class Status implements OneLinerable {
   public position: string

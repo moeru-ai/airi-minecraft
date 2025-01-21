@@ -10,7 +10,7 @@ import { parseCommand } from './command'
 import { Components } from './components'
 import { Health } from './health'
 import { Memory } from './memory'
-import { formBotChat } from './message'
+import { ChatMessageHandler } from './message'
 import { Status } from './status'
 import { Ticker, type TickEvents, type TickEventsHandler } from './ticker'
 
@@ -191,7 +191,7 @@ export class Mineflayer extends EventEmitter<EventHandlers> {
   }
 
   private handleCommand() {
-    return formBotChat(this.username, (sender, message) => {
+    return new ChatMessageHandler(this.username).handleChat((sender, message) => {
       const { isCommand, command, args } = parseCommand(sender, message)
 
       if (!isCommand)

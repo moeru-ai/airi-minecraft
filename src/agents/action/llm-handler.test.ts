@@ -1,11 +1,11 @@
 import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { initBot, useBot } from '../composables/bot'
-import { botConfig, initEnv } from '../composables/config'
-import { genSystemBasicPrompt } from '../prompts/agent'
-import { initLogger } from '../utils/logger'
-import { initAgent } from './openai'
+import { initBot, useBot } from '../../composables/bot'
+import { botConfig, initEnv } from '../../composables/config'
+import { createNeuriAgent } from '../../composables/neuri'
+import { initLogger } from '../../utils/logger'
+import { generateSystemBasicPrompt } from '../prompt/llm-agent.plugin'
 
 describe('openAI agent', { timeout: 0 }, () => {
   beforeAll(() => {
@@ -16,13 +16,13 @@ describe('openAI agent', { timeout: 0 }, () => {
 
   it('should initialize the agent', async () => {
     const { bot } = useBot()
-    const agent = await initAgent(bot)
+    const agent = await createNeuriAgent(bot)
 
     await new Promise<void>((resolve) => {
       bot.bot.once('spawn', async () => {
         const text = await agent.handle(
           messages(
-            system(genSystemBasicPrompt('airi')),
+            system(generateSystemBasicPrompt('airi')),
             user('Hello, who are you?'),
           ),
           async (c) => {

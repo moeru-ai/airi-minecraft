@@ -2,14 +2,14 @@ import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 
 import { useLogg } from '@guiiai/logg'
 
-import { formBotChat } from '../libs/mineflayer/message'
+import { ChatMessageHandler } from '../libs/mineflayer/message'
 
 export function Echo(): MineflayerPlugin {
   const logger = useLogg('Echo').useGlobalConfig()
 
   return {
     spawned(mineflayer) {
-      const onChatHandler = formBotChat(mineflayer.username, (username, message) => {
+      const onChatHandler = new ChatMessageHandler(mineflayer.username).handleChat((username, message) => {
         logger.withFields({ username, message }).log('Chat message received')
         mineflayer.bot.chat(message)
       })
