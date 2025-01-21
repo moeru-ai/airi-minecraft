@@ -192,155 +192,155 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private async generateStepsStream(
-    goal: string,
-    availableActions: Action[],
-    sender: string,
-  ): Promise<void> {
-    if (!this.context) {
-      return
-    }
+  // private async generateStepsStream(
+  //   goal: string,
+  //   availableActions: Action[],
+  //   sender: string,
+  // ): Promise<void> {
+  //   if (!this.context) {
+  //     return
+  //   }
 
-    try {
-      // Generate all steps at once
-      const steps = await this.llmHandler.generatePlan(goal, availableActions, sender)
-      if (!this.context.isGenerating) {
-        return
-      }
+  //   try {
+  //     // Generate all steps at once
+  //     const steps = await this.llmHandler.generatePlan(goal, availableActions, sender)
+  //     if (!this.context.isGenerating) {
+  //       return
+  //     }
 
-      // Add all steps to pending queue
-      this.context.pendingSteps.push(...steps)
-      this.logger.withField('steps', steps).log('Generated steps')
-    }
-    catch (error) {
-      this.logger.withError(error).error('Failed to generate steps')
-      throw error
-    }
-    finally {
-      this.context.isGenerating = false
-    }
-  }
+  //     // Add all steps to pending queue
+  //     this.context.pendingSteps.push(...steps)
+  //     this.logger.withField('steps', steps).log('Generated steps')
+  //   }
+  //   catch (error) {
+  //     this.logger.withError(error).error('Failed to generate steps')
+  //     throw error
+  //   }
+  //   finally {
+  //     this.context.isGenerating = false
+  //   }
+  // }
 
-  private async executeStepsStream(): Promise<void> {
-    if (!this.context || !this.actionAgent) {
-      return
-    }
+  // private async executeStepsStream(): Promise<void> {
+  //   if (!this.context || !this.actionAgent) {
+  //     return
+  //   }
 
-    try {
-      while (this.context.isGenerating || this.context.pendingSteps.length > 0) {
-        // Wait for steps to be available
-        if (this.context.pendingSteps.length === 0) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-          continue
-        }
+  //   try {
+  //     while (this.context.isGenerating || this.context.pendingSteps.length > 0) {
+  //       // Wait for steps to be available
+  //       if (this.context.pendingSteps.length === 0) {
+  //         await new Promise(resolve => setTimeout(resolve, 100))
+  //         continue
+  //       }
 
-        // Execute next step
-        const step = this.context.pendingSteps.shift()
-        if (!step) {
-          continue
-        }
+  //       // Execute next step
+  //       const step = this.context.pendingSteps.shift()
+  //       if (!step) {
+  //         continue
+  //       }
 
-        try {
-          this.logger.withField('step', step).log('Executing step')
-          await this.actionAgent.performAction(step)
-          this.context.lastUpdate = Date.now()
-          this.context.currentStep++
-        }
-        catch (stepError) {
-          this.logger.withError(stepError).error('Failed to execute step')
+  //       try {
+  //         this.logger.withField('step', step).log('Executing step')
+  //         await this.actionAgent.performAction(step)
+  //         this.context.lastUpdate = Date.now()
+  //         this.context.currentStep++
+  //       }
+  //       catch (stepError) {
+  //         this.logger.withError(stepError).error('Failed to execute step')
 
-          // Attempt to adjust plan and retry
-          if (this.context.retryCount < 3) {
-            this.context.retryCount++
-            // Stop current generation
-            this.context.isGenerating = false
-            this.context.pendingSteps = []
-            // Adjust plan and restart
-            const adjustedPlan = await this.adjustPlan(
-              this.currentPlan!,
-              stepError instanceof Error ? stepError.message : 'Unknown error',
-              'system',
-            )
-            await this.executePlan(adjustedPlan)
-            return
-          }
+  //         // Attempt to adjust plan and retry
+  //         if (this.context.retryCount < 3) {
+  //           this.context.retryCount++
+  //           // Stop current generation
+  //           this.context.isGenerating = false
+  //           this.context.pendingSteps = []
+  //           // Adjust plan and restart
+  //           const adjustedPlan = await this.adjustPlan(
+  //             this.currentPlan!,
+  //             stepError instanceof Error ? stepError.message : 'Unknown error',
+  //             'system',
+  //           )
+  //           await this.executePlan(adjustedPlan)
+  //           return
+  //         }
 
-          throw stepError
-        }
-      }
-    }
-    catch (error) {
-      this.logger.withError(error).error('Failed to execute steps')
-      throw error
-    }
-  }
+  //         throw stepError
+  //       }
+  //     }
+  //   }
+  //   catch (error) {
+  //     this.logger.withError(error).error('Failed to execute steps')
+  //     throw error
+  //   }
+  // }
 
-  private async *createStepGenerator(
-    goal: string,
-    availableActions: Action[],
-  ): AsyncGenerator<PlanStep[], void, unknown> {
-    // Use LLM to generate plan in chunks
-    this.logger.log('Generating plan using LLM')
-    const chunkSize = 3 // Generate 3 steps at a time
-    let currentChunk = 1
+  // private async *createStepGenerator(
+  //   goal: string,
+  //   availableActions: Action[],
+  // ): AsyncGenerator<PlanStep[], void, unknown> {
+  //   // Use LLM to generate plan in chunks
+  //   this.logger.log('Generating plan using LLM')
+  //   const chunkSize = 3 // Generate 3 steps at a time
+  //   let currentChunk = 1
 
-    while (true) {
-      const steps = await this.llmHandler.generatePlan(
-        goal,
-        availableActions,
-        `Generate steps ${currentChunk * chunkSize - 2} to ${currentChunk * chunkSize}`,
-      )
+  //   while (true) {
+  //     const steps = await this.llmHandler.generatePlan(
+  //       goal,
+  //       availableActions,
+  //       `Generate steps ${currentChunk * chunkSize - 2} to ${currentChunk * chunkSize}`,
+  //     )
 
-      if (steps.length === 0) {
-        break
-      }
+  //     if (steps.length === 0) {
+  //       break
+  //     }
 
-      yield steps
-      currentChunk++
+  //     yield steps
+  //     currentChunk++
 
-      // Check if we've generated enough steps or if the goal is achieved
-      if (steps.length < chunkSize || await this.isGoalAchieved(goal)) {
-        break
-      }
-    }
-  }
+  //     // Check if we've generated enough steps or if the goal is achieved
+  //     if (steps.length < chunkSize || await this.isGoalAchieved(goal)) {
+  //       break
+  //     }
+  //   }
+  // }
 
-  private async isGoalAchieved(goal: string): Promise<boolean> {
-    if (!this.context || !this.actionAgent) {
-      return false
-    }
+  // private async isGoalAchieved(goal: string): Promise<boolean> {
+  //   if (!this.context || !this.actionAgent) {
+  //     return false
+  //   }
 
-    const requirements = this.parseGoalRequirements(goal)
+  //   const requirements = this.parseGoalRequirements(goal)
 
-    // Check inventory for required items
-    if (requirements.needsItems && requirements.items) {
-      const inventorySteps = this.generateGatheringSteps(requirements.items)
-      if (inventorySteps.length > 0) {
-        this.context.pendingSteps.push(...inventorySteps)
-        return false
-      }
-    }
+  //   // Check inventory for required items
+  //   if (requirements.needsItems && requirements.items) {
+  //     const inventorySteps = this.generateGatheringSteps(requirements.items)
+  //     if (inventorySteps.length > 0) {
+  //       this.context.pendingSteps.push(...inventorySteps)
+  //       return false
+  //     }
+  //   }
 
-    // Check location requirements
-    if (requirements.needsMovement && requirements.location) {
-      const movementSteps = this.generateMovementSteps(requirements.location)
-      if (movementSteps.length > 0) {
-        this.context.pendingSteps.push(...movementSteps)
-        return false
-      }
-    }
+  //   // Check location requirements
+  //   if (requirements.needsMovement && requirements.location) {
+  //     const movementSteps = this.generateMovementSteps(requirements.location)
+  //     if (movementSteps.length > 0) {
+  //       this.context.pendingSteps.push(...movementSteps)
+  //       return false
+  //     }
+  //   }
 
-    // Check interaction requirements
-    if (requirements.needsInteraction && requirements.target) {
-      const interactionSteps = this.generateInteractionSteps(requirements.target)
-      if (interactionSteps.length > 0) {
-        this.context.pendingSteps.push(...interactionSteps)
-        return false
-      }
-    }
+  //   // Check interaction requirements
+  //   if (requirements.needsInteraction && requirements.target) {
+  //     const interactionSteps = this.generateInteractionSteps(requirements.target)
+  //     if (interactionSteps.length > 0) {
+  //       this.context.pendingSteps.push(...interactionSteps)
+  //       return false
+  //     }
+  //   }
 
-    return true
-  }
+  //   return true
+  // }
 
   public async adjustPlan(plan: Plan, feedback: string, sender: string): Promise<Plan> {
     if (!this.initialized) {
@@ -385,57 +385,57 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private generateGatheringSteps(items: string[]): PlanStep[] {
-    const steps: PlanStep[] = []
+  // private generateGatheringSteps(items: string[]): PlanStep[] {
+  //   const steps: PlanStep[] = []
 
-    for (const item of items) {
-      steps.push(
-        {
-          description: `Search for ${item} in the surrounding area`,
-          tool: 'searchForBlock',
-          params: {
-            blockType: item,
-            range: 64,
-          },
-        },
-        {
-          description: `Collect ${item} from the found location`,
-          tool: 'collectBlocks',
-          params: {
-            blockType: item,
-            count: 1,
-          },
-        },
-      )
-    }
+  //   for (const item of items) {
+  //     steps.push(
+  //       {
+  //         description: `Search for ${item} in the surrounding area`,
+  //         tool: 'searchForBlock',
+  //         params: {
+  //           blockType: item,
+  //           range: 64,
+  //         },
+  //       },
+  //       {
+  //         description: `Collect ${item} from the found location`,
+  //         tool: 'collectBlocks',
+  //         params: {
+  //           blockType: item,
+  //           count: 1,
+  //         },
+  //       },
+  //     )
+  //   }
 
-    return steps
-  }
+  //   return steps
+  // }
 
-  private generateMovementSteps(location: { x?: number, y?: number, z?: number }): PlanStep[] {
-    if (location.x !== undefined && location.y !== undefined && location.z !== undefined) {
-      return [{
-        description: `Move to coordinates (${location.x}, ${location.y}, ${location.z})`,
-        tool: 'goToCoordinates',
-        params: {
-          x: location.x,
-          y: location.y,
-          z: location.z,
-        },
-      }]
-    }
-    return []
-  }
+  // private generateMovementSteps(location: { x?: number, y?: number, z?: number }): PlanStep[] {
+  //   if (location.x !== undefined && location.y !== undefined && location.z !== undefined) {
+  //     return [{
+  //       description: `Move to coordinates (${location.x}, ${location.y}, ${location.z})`,
+  //       tool: 'goToCoordinates',
+  //       params: {
+  //         x: location.x,
+  //         y: location.y,
+  //         z: location.z,
+  //       },
+  //     }]
+  //   }
+  //   return []
+  // }
 
-  private generateInteractionSteps(target: string): PlanStep[] {
-    return [{
-      description: `Interact with ${target}`,
-      tool: 'activate',
-      params: {
-        target,
-      },
-    }]
-  }
+  // private generateInteractionSteps(target: string): PlanStep[] {
+  //   return [{
+  //     description: `Interact with ${target}`,
+  //     tool: 'activate',
+  //     params: {
+  //       target,
+  //     },
+  //   }]
+  // }
 
   private generateRecoverySteps(feedback: string): PlanStep[] {
     const steps: PlanStep[] = []
