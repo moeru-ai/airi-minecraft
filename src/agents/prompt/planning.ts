@@ -2,46 +2,46 @@ import type { Action } from '../../libs/mineflayer/action'
 
 export function generatePlanningAgentSystemPrompt(availableActions: Action[]): string {
   const actionsList = availableActions
-    .map(action => `- ${action.name}: ${action.description}`)
-    .join('\n')
+    .map((action) => {
+      const params = Object.keys(action.schema.shape)
+        .map(name => `    - ${name}`)
+        .join('\n')
+      return `- ${action.name}: ${action.description}\n  Parameters:\n${params}`
+    })
+    .join('\n\n')
 
-  return `You are a Minecraft bot planner. Your task is to create a plan to achieve a given goal.
-Available actions:
+  return `You are a Minecraft bot planner. Break down goals into simple action steps.
+
+Available tools:
 ${actionsList}
 
-Respond with a Valid JSON array of steps, where each step has:
-- action: The name of the action to perform
-- params: Array of parameters for the action
+Format each step as:
+1. Action description (short, direct command)
+2. Tool name
+3. Required parameters
 
-DO NOT contains any \`\`\` or explation, otherwise agent will be interrupted.
+Example:
+1. Follow player
+   Tool: followPlayer
+   Params:
+     player: luoling8192
+     follow_dist: 3
 
-Example response:
-[
-  {
-    "action": "searchForBlock",
-    "params": ["log", 64]
-  },
-  {
-    "action": "collectBlocks",
-    "params": ["log", 1]
-    }
-  ]`
+Keep steps:
+- Short and direct
+- Action-focused
+- Parameters precise
+- Generate all steps at once`
 }
 
-export function generatePlanningAgentUserPrompt(goal: string, feedback?: string): string {
-  let prompt = `Create a detailed plan to: ${goal}
+export function generatePlanningAgentUserPrompt(goal: string, sender: string, feedback?: string): string {
+  let prompt = `${sender}: ${goal}
 
-Consider the following aspects:
-1. Required materials and their quantities
-2. Required tools and their availability
-3. Necessary crafting steps
-4. Block placement requirements
-5. Current inventory status
-
-Please generate steps that handle these requirements in the correct order.`
+Generate minimal steps with exact parameters.
+Use the sender's name (${sender}) for player-related parameters.`
 
   if (feedback) {
-    prompt += `\nPrevious attempt feedback: ${feedback}`
+    prompt += `\n\nPrevious attempt failed: ${feedback}`
   }
   return prompt
 }

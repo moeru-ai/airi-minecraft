@@ -4,7 +4,7 @@ import type { ActionAgent, AgentConfig, MemoryAgent, Plan, PlanningAgent } from 
 
 import { AbstractAgent } from '../../libs/mineflayer/base-agent'
 import { ActionAgentImpl } from '../action'
-import { PlanningLLMHandler } from './llm-handler'
+import { PlanningLLMHandler, type PlanStep } from './llm-handler'
 
 interface PlanContext {
   goal: string
@@ -13,20 +13,7 @@ interface PlanContext {
   lastUpdate: number
   retryCount: number
   isGenerating: boolean
-  pendingSteps: Array<{
-    action: string
-    params: unknown[]
-  }>
-}
-
-interface PlanTemplate {
-  goal: string
-  conditions: string[]
-  steps: Array<{
-    action: string
-    params: unknown[]
-  }>
-  requiresAction: boolean
+  pendingSteps: PlanStep[]
 }
 
 export interface PlanningAgentConfig extends AgentConfig {
@@ -42,15 +29,12 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   private context: PlanContext | null = null
   private actionAgent: ActionAgent | null = null
   private memoryAgent: MemoryAgent | null = null
-  private planTemplates: Map<string, PlanTemplate>
   private llmConfig: PlanningAgentConfig['llm']
   private llmHandler: PlanningLLMHandler
 
   constructor(config: PlanningAgentConfig) {
     super(config)
-    this.planTemplates = new Map()
     this.llmConfig = config.llm
-    this.initializePlanTemplates()
     this.llmHandler = new PlanningLLMHandler({
       agent: this.llmConfig.agent,
       model: this.llmConfig.model,
@@ -82,7 +66,6 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     this.context = null
     this.actionAgent = null
     this.memoryAgent = null
-    this.planTemplates.clear()
     this.removeAllListeners()
   }
 
@@ -120,7 +103,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       }
 
       // Create plan steps based on available actions and goal
-      const steps = await this.generatePlanSteps(goal, availableActions)
+      const steps = await this.generatePlanSteps(goal, availableActions, 'system')
 
       // Create new plan
       const plan: Plan = {
@@ -172,8 +155,31 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       plan.status = 'in_progress'
       this.currentPlan = plan
 
-      // Start generating and executing steps in parallel
-      await this.generateAndExecutePlanSteps(plan)
+      // Execute each step
+      for (const step of plan.steps) {
+        try {
+          this.logger.withField('step', step).log('Executing step')
+          await this.actionAgent.performAction(step)
+        }
+        catch (stepError) {
+          this.logger.withError(stepError).error('Failed to execute step')
+
+          // Attempt to adjust plan and retry
+          if (this.context && this.context.retryCount < 3) {
+            this.context.retryCount++
+            // Adjust plan and restart
+            const adjustedPlan = await this.adjustPlan(
+              plan,
+              stepError instanceof Error ? stepError.message : 'Unknown error',
+              'system',
+            )
+            await this.executePlan(adjustedPlan)
+            return
+          }
+
+          throw stepError
+        }
+      }
 
       plan.status = 'completed'
     }
@@ -186,187 +192,157 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private async generateAndExecutePlanSteps(plan: Plan): Promise<void> {
-    if (!this.context || !this.actionAgent) {
-      return
-    }
+  // private async generateStepsStream(
+  //   goal: string,
+  //   availableActions: Action[],
+  //   sender: string,
+  // ): Promise<void> {
+  //   if (!this.context) {
+  //     return
+  //   }
 
-    // Initialize step generation
-    this.context.isGenerating = true
-    this.context.pendingSteps = []
+  //   try {
+  //     // Generate all steps at once
+  //     const steps = await this.llmHandler.generatePlan(goal, availableActions, sender)
+  //     if (!this.context.isGenerating) {
+  //       return
+  //     }
 
-    // Get available actions
-    const availableActions = this.actionAgent.getAvailableActions()
+  //     // Add all steps to pending queue
+  //     this.context.pendingSteps.push(...steps)
+  //     this.logger.withField('steps', steps).log('Generated steps')
+  //   }
+  //   catch (error) {
+  //     this.logger.withError(error).error('Failed to generate steps')
+  //     throw error
+  //   }
+  //   finally {
+  //     this.context.isGenerating = false
+  //   }
+  // }
 
-    // Start step generation
-    const generationPromise = this.generateStepsStream(plan.goal, availableActions)
+  // private async executeStepsStream(): Promise<void> {
+  //   if (!this.context || !this.actionAgent) {
+  //     return
+  //   }
 
-    // Start step execution
-    const executionPromise = this.executeStepsStream()
+  //   try {
+  //     while (this.context.isGenerating || this.context.pendingSteps.length > 0) {
+  //       // Wait for steps to be available
+  //       if (this.context.pendingSteps.length === 0) {
+  //         await new Promise(resolve => setTimeout(resolve, 100))
+  //         continue
+  //       }
 
-    // Wait for both generation and execution to complete
-    await Promise.all([generationPromise, executionPromise])
-  }
+  //       // Execute next step
+  //       const step = this.context.pendingSteps.shift()
+  //       if (!step) {
+  //         continue
+  //       }
 
-  private async generateStepsStream(
-    goal: string,
-    availableActions: Action[],
-  ): Promise<void> {
-    if (!this.context) {
-      return
-    }
+  //       try {
+  //         this.logger.withField('step', step).log('Executing step')
+  //         await this.actionAgent.performAction(step)
+  //         this.context.lastUpdate = Date.now()
+  //         this.context.currentStep++
+  //       }
+  //       catch (stepError) {
+  //         this.logger.withError(stepError).error('Failed to execute step')
 
-    try {
-      // Generate steps in chunks
-      const generator = this.createStepGenerator(goal, availableActions)
-      for await (const steps of generator) {
-        if (!this.context.isGenerating) {
-          break
-        }
+  //         // Attempt to adjust plan and retry
+  //         if (this.context.retryCount < 3) {
+  //           this.context.retryCount++
+  //           // Stop current generation
+  //           this.context.isGenerating = false
+  //           this.context.pendingSteps = []
+  //           // Adjust plan and restart
+  //           const adjustedPlan = await this.adjustPlan(
+  //             this.currentPlan!,
+  //             stepError instanceof Error ? stepError.message : 'Unknown error',
+  //             'system',
+  //           )
+  //           await this.executePlan(adjustedPlan)
+  //           return
+  //         }
 
-        // Add generated steps to pending queue
-        this.context.pendingSteps.push(...steps)
-        this.logger.withField('steps', steps).log('Generated new steps')
-      }
-    }
-    catch (error) {
-      this.logger.withError(error).error('Failed to generate steps')
-      throw error
-    }
-    finally {
-      this.context.isGenerating = false
-    }
-  }
+  //         throw stepError
+  //       }
+  //     }
+  //   }
+  //   catch (error) {
+  //     this.logger.withError(error).error('Failed to execute steps')
+  //     throw error
+  //   }
+  // }
 
-  private async executeStepsStream(): Promise<void> {
-    if (!this.context || !this.actionAgent) {
-      return
-    }
+  // private async *createStepGenerator(
+  //   goal: string,
+  //   availableActions: Action[],
+  // ): AsyncGenerator<PlanStep[], void, unknown> {
+  //   // Use LLM to generate plan in chunks
+  //   this.logger.log('Generating plan using LLM')
+  //   const chunkSize = 3 // Generate 3 steps at a time
+  //   let currentChunk = 1
 
-    try {
-      while (this.context.isGenerating || this.context.pendingSteps.length > 0) {
-        // Wait for steps to be available
-        if (this.context.pendingSteps.length === 0) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-          continue
-        }
+  //   while (true) {
+  //     const steps = await this.llmHandler.generatePlan(
+  //       goal,
+  //       availableActions,
+  //       `Generate steps ${currentChunk * chunkSize - 2} to ${currentChunk * chunkSize}`,
+  //     )
 
-        // Execute next step
-        const step = this.context.pendingSteps.shift()
-        if (!step) {
-          continue
-        }
+  //     if (steps.length === 0) {
+  //       break
+  //     }
 
-        try {
-          this.logger.withField('step', step).log('Executing step')
-          await this.actionAgent.performAction(step.action, step.params)
-          this.context.lastUpdate = Date.now()
-          this.context.currentStep++
-        }
-        catch (stepError) {
-          this.logger.withError(stepError).error('Failed to execute step')
+  //     yield steps
+  //     currentChunk++
 
-          // Attempt to adjust plan and retry
-          if (this.context.retryCount < 3) {
-            this.context.retryCount++
-            // Stop current generation
-            this.context.isGenerating = false
-            this.context.pendingSteps = []
-            // Adjust plan and restart
-            const adjustedPlan = await this.adjustPlan(
-              this.currentPlan!,
-              stepError instanceof Error ? stepError.message : 'Unknown error',
-            )
-            await this.executePlan(adjustedPlan)
-            return
-          }
+  //     // Check if we've generated enough steps or if the goal is achieved
+  //     if (steps.length < chunkSize || await this.isGoalAchieved(goal)) {
+  //       break
+  //     }
+  //   }
+  // }
 
-          throw stepError
-        }
-      }
-    }
-    catch (error) {
-      this.logger.withError(error).error('Failed to execute steps')
-      throw error
-    }
-  }
+  // private async isGoalAchieved(goal: string): Promise<boolean> {
+  //   if (!this.context || !this.actionAgent) {
+  //     return false
+  //   }
 
-  private async *createStepGenerator(
-    goal: string,
-    availableActions: Action[],
-  ): AsyncGenerator<Array<{ action: string, params: unknown[] }>, void, unknown> {
-    // First, try to find a matching template
-    const template = this.findMatchingTemplate(goal)
-    if (template) {
-      this.logger.log('Using plan template')
-      yield template.steps
-      return
-    }
+  //   const requirements = this.parseGoalRequirements(goal)
 
-    // If no template matches, use LLM to generate plan in chunks
-    this.logger.log('Generating plan using LLM')
-    const chunkSize = 3 // Generate 3 steps at a time
-    let currentChunk = 1
+  //   // Check inventory for required items
+  //   if (requirements.needsItems && requirements.items) {
+  //     const inventorySteps = this.generateGatheringSteps(requirements.items)
+  //     if (inventorySteps.length > 0) {
+  //       this.context.pendingSteps.push(...inventorySteps)
+  //       return false
+  //     }
+  //   }
 
-    while (true) {
-      const steps = await this.llmHandler.generatePlan(
-        goal,
-        availableActions,
-        `Generate steps ${currentChunk * chunkSize - 2} to ${currentChunk * chunkSize}`,
-      )
+  //   // Check location requirements
+  //   if (requirements.needsMovement && requirements.location) {
+  //     const movementSteps = this.generateMovementSteps(requirements.location)
+  //     if (movementSteps.length > 0) {
+  //       this.context.pendingSteps.push(...movementSteps)
+  //       return false
+  //     }
+  //   }
 
-      if (steps.length === 0) {
-        break
-      }
+  //   // Check interaction requirements
+  //   if (requirements.needsInteraction && requirements.target) {
+  //     const interactionSteps = this.generateInteractionSteps(requirements.target)
+  //     if (interactionSteps.length > 0) {
+  //       this.context.pendingSteps.push(...interactionSteps)
+  //       return false
+  //     }
+  //   }
 
-      yield steps
-      currentChunk++
+  //   return true
+  // }
 
-      // Check if we've generated enough steps or if the goal is achieved
-      if (steps.length < chunkSize || await this.isGoalAchieved(goal)) {
-        break
-      }
-    }
-  }
-
-  private async isGoalAchieved(goal: string): Promise<boolean> {
-    if (!this.context || !this.actionAgent) {
-      return false
-    }
-
-    const requirements = this.parseGoalRequirements(goal)
-
-    // Check inventory for required items
-    if (requirements.needsItems && requirements.items) {
-      const inventorySteps = this.generateGatheringSteps(requirements.items)
-      if (inventorySteps.length > 0) {
-        this.context.pendingSteps.push(...inventorySteps)
-        return false
-      }
-    }
-
-    // Check location requirements
-    if (requirements.needsMovement && requirements.location) {
-      const movementSteps = this.generateMovementSteps(requirements.location)
-      if (movementSteps.length > 0) {
-        this.context.pendingSteps.push(...movementSteps)
-        return false
-      }
-    }
-
-    // Check interaction requirements
-    if (requirements.needsInteraction && requirements.target) {
-      const interactionSteps = this.generateInteractionSteps(requirements.target)
-      if (interactionSteps.length > 0) {
-        this.context.pendingSteps.push(...interactionSteps)
-        return false
-      }
-    }
-
-    return true
-  }
-
-  public async adjustPlan(plan: Plan, feedback: string): Promise<Plan> {
+  public async adjustPlan(plan: Plan, feedback: string, sender: string): Promise<Plan> {
     if (!this.initialized) {
       throw new Error('Planning agent not initialized')
     }
@@ -383,7 +359,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
         const recoverySteps = this.generateRecoverySteps(feedback)
 
         // Generate new steps from the current point
-        const newSteps = await this.generatePlanSteps(plan.goal, availableActions, feedback)
+        const newSteps = await this.generatePlanSteps(plan.goal, availableActions, sender, feedback)
 
         // Create adjusted plan
         const adjustedPlan: Plan = {
@@ -409,59 +385,119 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private generateGatheringSteps(items: string[]): Array<{ action: string, params: unknown[] }> {
-    const steps: Array<{ action: string, params: unknown[] }> = []
+  // private generateGatheringSteps(items: string[]): PlanStep[] {
+  //   const steps: PlanStep[] = []
 
-    for (const item of items) {
-      steps.push(
-        { action: 'searchForBlock', params: [item, 64] },
-        { action: 'collectBlocks', params: [item, 1] },
-      )
-    }
+  //   for (const item of items) {
+  //     steps.push(
+  //       {
+  //         description: `Search for ${item} in the surrounding area`,
+  //         tool: 'searchForBlock',
+  //         params: {
+  //           blockType: item,
+  //           range: 64,
+  //         },
+  //       },
+  //       {
+  //         description: `Collect ${item} from the found location`,
+  //         tool: 'collectBlocks',
+  //         params: {
+  //           blockType: item,
+  //           count: 1,
+  //         },
+  //       },
+  //     )
+  //   }
 
-    return steps
-  }
+  //   return steps
+  // }
 
-  private generateMovementSteps(location: { x?: number, y?: number, z?: number }): Array<{ action: string, params: unknown[] }> {
-    if (location.x !== undefined && location.y !== undefined && location.z !== undefined) {
-      return [{
-        action: 'goToCoordinates',
-        params: [location.x, location.y, location.z, 1],
-      }]
-    }
-    return []
-  }
+  // private generateMovementSteps(location: { x?: number, y?: number, z?: number }): PlanStep[] {
+  //   if (location.x !== undefined && location.y !== undefined && location.z !== undefined) {
+  //     return [{
+  //       description: `Move to coordinates (${location.x}, ${location.y}, ${location.z})`,
+  //       tool: 'goToCoordinates',
+  //       params: {
+  //         x: location.x,
+  //         y: location.y,
+  //         z: location.z,
+  //       },
+  //     }]
+  //   }
+  //   return []
+  // }
 
-  private generateInteractionSteps(target: string): Array<{ action: string, params: unknown[] }> {
-    return [{
-      action: 'activate',
-      params: [target],
-    }]
-  }
+  // private generateInteractionSteps(target: string): PlanStep[] {
+  //   return [{
+  //     description: `Interact with ${target}`,
+  //     tool: 'activate',
+  //     params: {
+  //       target,
+  //     },
+  //   }]
+  // }
 
-  private generateRecoverySteps(feedback: string): Array<{ action: string, params: unknown[] }> {
-    const steps: Array<{ action: string, params: unknown[] }> = []
+  private generateRecoverySteps(feedback: string): PlanStep[] {
+    const steps: PlanStep[] = []
 
     if (feedback.includes('not found')) {
-      steps.push({ action: 'searchForBlock', params: ['any', 128] })
+      steps.push({
+        description: 'Search in a wider area',
+        tool: 'searchForBlock',
+        params: {
+          blockType: 'oak_log',
+          range: 64,
+        },
+      })
     }
 
     if (feedback.includes('inventory full')) {
-      steps.push({ action: 'discard', params: ['cobblestone', 64] })
+      steps.push({
+        description: 'Clear inventory space',
+        tool: 'discard',
+        params: {
+          blockType: 'oak_log',
+          count: 1,
+        },
+      })
     }
 
     if (feedback.includes('blocked') || feedback.includes('cannot reach')) {
-      steps.push({ action: 'moveAway', params: [5] })
+      steps.push({
+        description: 'Move away from obstacles',
+        tool: 'moveAway',
+        params: {
+          range: 64,
+        },
+      })
     }
 
     if (feedback.includes('too far')) {
-      steps.push({ action: 'moveAway', params: [-3] }) // Move closer
+      steps.push({
+        description: 'Move closer to target',
+        tool: 'moveAway',
+        params: {
+          range: 64,
+        },
+      })
     }
 
     if (feedback.includes('need tool')) {
       steps.push(
-        { action: 'craftRecipe', params: ['wooden_pickaxe', 1] },
-        { action: 'equip', params: ['wooden_pickaxe'] },
+        {
+          description: 'Craft a wooden pickaxe',
+          tool: 'craftRecipe',
+          params: {
+            recipe: 'oak_pickaxe',
+          },
+        },
+        {
+          description: 'Equip the wooden pickaxe',
+          tool: 'equip',
+          params: {
+            item: 'oak_pickaxe',
+          },
+        },
       )
     }
 
@@ -491,44 +527,6 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     return true
   }
 
-  private initializePlanTemplates(): void {
-    // Add common plan templates
-    this.planTemplates.set('collect wood', {
-      goal: 'collect wood',
-      conditions: ['needs_axe', 'near_trees'],
-      steps: [
-        { action: 'searchForBlock', params: ['log', 64] },
-        { action: 'collectBlocks', params: ['log', 1] },
-      ],
-      requiresAction: true,
-    })
-
-    this.planTemplates.set('find shelter', {
-      goal: 'find shelter',
-      conditions: ['is_night', 'unsafe'],
-      steps: [
-        { action: 'searchForBlock', params: ['bed', 64] },
-        { action: 'goToBed', params: [] },
-      ],
-      requiresAction: true,
-    })
-
-    // Add templates for non-action goals
-    this.planTemplates.set('hello', {
-      goal: 'hello',
-      conditions: [],
-      steps: [],
-      requiresAction: false,
-    })
-
-    this.planTemplates.set('how are you', {
-      goal: 'how are you',
-      conditions: [],
-      steps: [],
-      requiresAction: false,
-    })
-  }
-
   private async handleAgentMessage(sender: string, message: string): Promise<void> {
     if (sender === 'system') {
       if (message.includes('interrupt')) {
@@ -541,7 +539,7 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
 
       // If there's a current plan, try to adjust it based on the message
       if (this.currentPlan) {
-        await this.adjustPlan(this.currentPlan, message)
+        await this.adjustPlan(this.currentPlan, message, sender)
       }
     }
   }
@@ -565,27 +563,12 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
   private async generatePlanSteps(
     goal: string,
     availableActions: Action[],
+    sender: string,
     feedback?: string,
-  ): Promise<Array<{ action: string, params: unknown[] }>> {
-    // First, try to find a matching template
-    const template = this.findMatchingTemplate(goal)
-    if (template) {
-      this.logger.log('Using plan template')
-      return template.steps
-    }
-
-    // If no template matches, use LLM to generate plan
+  ): Promise<PlanStep[]> {
+    // Generate all steps at once
     this.logger.log('Generating plan using LLM')
-    return await this.llmHandler.generatePlan(goal, availableActions, feedback)
-  }
-
-  private findMatchingTemplate(goal: string): PlanTemplate | undefined {
-    for (const [pattern, template] of this.planTemplates.entries()) {
-      if (goal.toLowerCase().includes(pattern.toLowerCase())) {
-        return template
-      }
-    }
-    return undefined
+    return await this.llmHandler.generatePlan(goal, availableActions, sender, feedback)
   }
 
   private parseGoalRequirements(goal: string): {

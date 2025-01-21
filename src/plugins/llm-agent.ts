@@ -101,13 +101,13 @@ async function handleVoiceInput(event: any, bot: MineflayerWithAgents, agent: Ne
   bot.memory.chatHistory.push(user(`NekoMeowww: ${event.data.transcription}`))
 
   try {
-    // 创建并执行计划
+    // Create and execute plan
     const plan = await bot.planning.createPlan(event.data.transcription)
     logger.withFields({ plan }).log('Plan created')
     await bot.planning.executePlan(plan)
     logger.log('Plan executed successfully')
 
-    // 生成回复
+    // Generate response
     const retryHandler = toRetriable<NeuriContext, string>(
       3,
       1000,
@@ -142,7 +142,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
     async created(bot) {
       const logger = useLogg('LLMAgent').useGlobalConfig()
 
-      // 创建容器并获取所需的服务
+      // Create container and get required services
       const container = createAppContainer({
         neuri: options.agent,
         model: 'openai/gpt-4o-mini',
@@ -154,21 +154,21 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       const planningAgent = container.resolve('planningAgent')
       const chatAgent = container.resolve('chatAgent')
 
-      // 初始化 agents
+      // Initialize agents
       await actionAgent.init()
       await planningAgent.init()
       await chatAgent.init()
 
-      // 类型转换
+      // Type conversion
       const botWithAgents = bot as unknown as MineflayerWithAgents
       botWithAgents.action = actionAgent
       botWithAgents.planning = planningAgent
       botWithAgents.chat = chatAgent
 
-      // 初始化系统提示
+      // Initialize system prompt
       bot.memory.chatHistory.push(system(generateActionAgentPrompt(bot)))
 
-      // 设置消息处理
+      // Set message handling
       const onChat = new ChatMessageHandler(bot.username).handleChat((username, message) =>
         handleChatMessage(username, message, botWithAgents, options.agent, logger))
 
