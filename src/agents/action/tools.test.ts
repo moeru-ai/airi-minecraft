@@ -2,7 +2,7 @@ import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { initBot, useBot } from '../../composables/bot'
-import { botConfig, initEnv } from '../../composables/config'
+import { botConfig, initEnv, openaiConfig } from '../../composables/config'
 import { createNeuriAgent } from '../../composables/neuri'
 import { sleep } from '../../utils/helper'
 import { initLogger } from '../../utils/logger'
@@ -25,7 +25,7 @@ describe('actions agent', { timeout: 0 }, () => {
           system(generateActionAgentPrompt(bot)),
           user('What\'s your status?'),
         ), async (c) => {
-          const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
+          const completion = await c.reroute('query', c.messages, { model: openaiConfig.model })
           return await completion?.firstContent()
         })
 
@@ -46,7 +46,7 @@ describe('actions agent', { timeout: 0 }, () => {
           system(generateActionAgentPrompt(bot)),
           user('goToPlayer: luoling8192'),
         ), async (c) => {
-          const completion = await c.reroute('action', c.messages, { model: 'openai/gpt-4o-mini' })
+          const completion = await c.reroute('action', c.messages, { model: openaiConfig.model })
 
           return await completion?.firstContent()
         })

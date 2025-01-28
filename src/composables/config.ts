@@ -10,6 +10,7 @@ interface OpenAIConfig {
   apiKey: string
   baseUrl: string
   model: string
+  reasoningModel: string
 }
 
 interface EnvConfig {
@@ -22,7 +23,8 @@ const defaultConfig: EnvConfig = {
   openai: {
     apiKey: '',
     baseUrl: '',
-    model: 'openai/gpt-4o-mini',
+    model: '',
+    reasoningModel: '',
   },
   bot: {
     username: '',
@@ -46,6 +48,7 @@ export function initEnv(): void {
       apiKey: env.OPENAI_API_KEY || defaultConfig.openai.apiKey,
       baseUrl: env.OPENAI_API_BASEURL || defaultConfig.openai.baseUrl,
       model: env.OPENAI_MODEL || defaultConfig.openai.model,
+      reasoningModel: env.OPENAI_REASONING_MODEL || defaultConfig.openai.reasoningModel,
     },
     bot: {
       username: env.BOT_USERNAME || defaultConfig.bot.username,

@@ -5,6 +5,7 @@ import { useLogg } from '@guiiai/logg'
 import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
 
+import { openaiConfig } from '../../composables/config'
 import { toRetriable } from '../../utils/helper'
 import { genChatAgentPrompt } from '../prompt/chat'
 
@@ -42,7 +43,7 @@ export async function generateChatResponse(
 
     const handleCompletion = async (c: any): Promise<string> => {
       const completion = await c.reroute('chat', c.messages, {
-        model: config.model ?? 'openai/gpt-4o-mini',
+        model: config.model ?? openaiConfig.model,
       })
 
       if (!completion || 'error' in completion) {

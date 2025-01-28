@@ -9,6 +9,7 @@ import { useLogg } from '@guiiai/logg'
 import { assistant, system, user } from 'neuri/openai'
 
 import { generateActionAgentPrompt, generateStatusPrompt } from '../agents/prompt/llm-agent.plugin'
+import { openaiConfig } from '../composables/config'
 import { createAppContainer } from '../container'
 import { ChatMessageHandler } from '../libs/mineflayer/message'
 import { toRetriable } from '../utils/helper'
@@ -28,7 +29,7 @@ async function handleLLMCompletion(context: NeuriContext, bot: MineflayerWithAge
   logger.log('rerouting...')
 
   const completion = await context.reroute('action', context.messages, {
-    model: 'openai/gpt-4o-mini',
+    model: openaiConfig.model,
   }) as ChatCompletion | { error: { message: string } } & ChatCompletion
 
   if (!completion || 'error' in completion) {
@@ -145,7 +146,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       // Create container and get required services
       const container = createAppContainer({
         neuri: options.agent,
-        model: 'openai/gpt-4o-mini',
+        model: openaiConfig.model,
         maxHistoryLength: 50,
         idleTimeout: 5 * 60 * 1000,
       })

@@ -2,7 +2,7 @@ import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { initBot, useBot } from '../../composables/bot'
-import { botConfig, initEnv } from '../../composables/config'
+import { botConfig, initEnv, openaiConfig } from '../../composables/config'
 import { createNeuriAgent } from '../../composables/neuri'
 import { initLogger } from '../../utils/logger'
 import { generateSystemBasicPrompt } from '../prompt/llm-agent.plugin'
@@ -26,7 +26,7 @@ describe('openAI agent', { timeout: 0 }, () => {
             user('Hello, who are you?'),
           ),
           async (c) => {
-            const completion = await c.reroute('query', c.messages, { model: 'openai/gpt-4o-mini' })
+            const completion = await c.reroute('query', c.messages, { model: openaiConfig.model })
             return await completion?.firstContent()
           },
         )
