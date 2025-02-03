@@ -1,6 +1,7 @@
+import type { Logg } from '@guiiai/logg'
 import type { Handler } from './types'
 
-import { type Logg, useLogg } from '@guiiai/logg'
+import { useLogg } from '@guiiai/logg'
 
 export class Components {
   private components: Map<string, Handler> = new Map()

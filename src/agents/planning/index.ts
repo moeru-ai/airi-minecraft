@@ -1,10 +1,11 @@
 import type { Neuri } from 'neuri'
 import type { Action } from '../../libs/mineflayer/action'
 import type { ActionAgent, AgentConfig, MemoryAgent, Plan, PlanningAgent } from '../../libs/mineflayer/base-agent'
+import type { PlanStep } from './llm-handler'
 
 import { AbstractAgent } from '../../libs/mineflayer/base-agent'
 import { ActionAgentImpl } from '../action'
-import { PlanningLLMHandler, type PlanStep } from './llm-handler'
+import { PlanningLLMHandler } from './llm-handler'
 
 interface PlanContext {
   goal: string

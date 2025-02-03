@@ -1,8 +1,9 @@
 import type { useLogg } from '@guiiai/logg'
 import type { NeuriContext } from 'neuri'
+import type { ChatCompletion } from 'neuri/openai'
 import type { MineflayerWithAgents } from './type'
 
-import { assistant, type ChatCompletion } from 'neuri/openai'
+import { assistant } from 'neuri/openai'
 
 import { openaiConfig } from '../../composables/config'
 

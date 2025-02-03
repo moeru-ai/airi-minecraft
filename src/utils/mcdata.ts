@@ -1,11 +1,8 @@
+import type { Biome, ShapedRecipe, ShapelessRecipe } from 'minecraft-data'
 import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
 
-import minecraftData, {
-  type Biome,
-  type ShapedRecipe,
-  type ShapelessRecipe,
-} from 'minecraft-data'
+import minecraftData from 'minecraft-data'
 import prismarineItem from 'prismarine-item'
 
 const GAME_VERSION = '1.20'

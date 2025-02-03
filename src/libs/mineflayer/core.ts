@@ -1,8 +1,10 @@
+import type { Logg } from '@guiiai/logg'
 import type { Bot, BotOptions } from 'mineflayer'
 import type { MineflayerPlugin } from './plugin'
+import type { TickEvents, TickEventsHandler } from './ticker'
 import type { EventHandlers, EventsHandler } from './types'
 
-import { type Logg, useLogg } from '@guiiai/logg'
+import { useLogg } from '@guiiai/logg'
 import EventEmitter from 'eventemitter3'
 import mineflayer from 'mineflayer'
 
@@ -12,7 +14,7 @@ import { Health } from './health'
 import { Memory } from './memory'
 import { ChatMessageHandler } from './message'
 import { Status } from './status'
-import { Ticker, type TickEvents, type TickEventsHandler } from './ticker'
+import { Ticker } from './ticker'
 
 export interface MineflayerOptions {
   botConfig: BotOptions

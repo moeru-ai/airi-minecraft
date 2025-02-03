@@ -1,3 +1,4 @@
+import type { MineflayerPlugin } from '../../libs/mineflayer'
 import type { LLMAgentOptions, MineflayerWithAgents } from './type'
 
 import { useLogg } from '@guiiai/logg'
@@ -6,7 +7,7 @@ import { system } from 'neuri/openai'
 import { generateActionAgentPrompt } from '../../agents/prompt/llm-agent.plugin'
 import { openaiConfig } from '../../composables/config'
 import { createAppContainer } from '../../container'
-import { ChatMessageHandler, type MineflayerPlugin } from '../../libs/mineflayer'
+import { ChatMessageHandler } from '../../libs/mineflayer'
 import { handleChatMessage } from './chat'
 import { handleVoiceInput } from './voice'
 

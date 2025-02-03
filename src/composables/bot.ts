@@ -1,4 +1,6 @@
-import { Mineflayer, type MineflayerOptions } from '../libs/mineflayer'
+import type { MineflayerOptions } from '../libs/mineflayer'
+
+import { Mineflayer } from '../libs/mineflayer'
 
 // Singleton instance of the Mineflayer bot
 let botInstance: Mineflayer | null = null
