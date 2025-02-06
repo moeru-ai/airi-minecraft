@@ -6,10 +6,8 @@ import type { ContextManager } from '../core/context-manager'
 import type { ChatContext, ChatOptions } from '../types'
 
 import { system, user } from 'neuri/openai'
-import { z } from 'zod'
 
-import { generateStatusPrompt } from '../../../libs/llm-agent/prompt'
-import { generateActionClassifierPrompt, generateActionResponsePrompt, generateChatAgentPrompt } from '../prompts'
+import { generateChatAgentPrompt } from '../prompts'
 
 /**
  * Handles all message processing logic for the chat agent
@@ -34,13 +32,19 @@ export class MessageHandler {
       this.contextManager.addToHistory(context, sender, message)
       this.contextManager.updateStatus(context)
 
-      // Check if the message requires an action
-      if (await this.requiresAction(message)) {
-        return await this.handleActionRequest(message, context)
+      // Try to create a plan for the message
+      const plan = await this.bot.planning.createPlan(message)
+
+      // If plan has valid steps (not empty array), execute them
+      if (plan.steps && plan.steps.length > 0 && plan.steps[0].tool) {
+        return await this.handleActionRequest(message, context, plan)
       }
 
-      // If no action is required, generate a normal chat response
-      const response = await this.generateResponse(message, context)
+      // If no actions needed or empty plan, generate a conversational response
+      const response = await this.generateResponse(message, context, {
+        route: 'chat',
+        temperature: 0.7,
+      })
       this.contextManager.addToHistory(context, this.botId, response)
       await this.sendResponse(response)
 
@@ -55,30 +59,17 @@ export class MessageHandler {
   }
 
   /**
-   * Check if the message requires an action
-   */
-  private async requiresAction(message: string): Promise<boolean> {
-    const response = await this.bot.llm.execute<boolean>(
-      [
-        { role: 'system', content: generateActionClassifierPrompt() },
-        { role: 'user', content: message },
-      ],
-      {
-        route: 'chat',
-        temperature: 0,
-        schema: z.boolean(),
-      },
-    )
-    return response
-  }
-
-  /**
    * Handle action request
    */
-  private async handleActionRequest(message: string, context: ChatContext): Promise<string> {
+  private async handleActionRequest(message: string, context: ChatContext, plan: Plan): Promise<string> {
     try {
-      // 1. Generate a plan using the Planning Agent
-      const plan = await this.bot.planning.createPlan(message)
+      // Skip if plan has no valid steps
+      if (!plan.steps || plan.steps.length === 0 || !plan.steps[0].tool) {
+        return await this.generateResponse(message, context, {
+          route: 'chat',
+          temperature: 0.7,
+        })
+      }
 
       // Replace 'system' with actual player name in plan steps
       plan.steps = plan.steps.map((step) => {
@@ -88,15 +79,22 @@ export class MessageHandler {
         return step
       })
 
-      // 2. Execute the plan using the Planning Agent
-      await this.bot.planning.executePlan(plan)
+      // Execute the plan using Action Agent
+      const results = []
+      for (const step of plan.steps) {
+        this.logger.withFields({ step }).log('Executing action step')
+        const result = await this.bot.action.performAction(step)
+        this.logger.withFields({ step, result }).log('Action step result')
+        results.push(result)
+      }
 
-      // 3. Record the action to memory
+      // Record the action to memory
       this.bot.memory.addAction({
         type: 'plan',
         name: message,
         data: {
           plan,
+          results,
           context: {
             player: context.player,
             sessionId: context.startTime.toString(),
@@ -105,8 +103,14 @@ export class MessageHandler {
         timestamp: Date.now(),
       })
 
-      // 4. Generate a response to the action execution
-      const response = await this.generateActionResponse(plan)
+      // Generate a response based on the executed plan and results
+      this.logger.withFields({ plan, results }).log('Generating response for action results')
+      const response = await this.generateResponse(message, context, {
+        route: 'chat',
+        temperature: 0.7,
+        metadata: { plan, results },
+      })
+
       this.contextManager.addToHistory(context, this.botId, response)
       await this.sendResponse(response)
 
@@ -119,21 +123,6 @@ export class MessageHandler {
   }
 
   /**
-   * Generate a response to the action execution
-   */
-  private async generateActionResponse(plan: Plan): Promise<string> {
-    const response = await this.bot.llm.chat({
-      route: 'chat',
-      messages: [
-        { role: 'system', content: generateActionResponsePrompt() },
-        { role: 'user', content: JSON.stringify(plan) },
-      ],
-      temperature: 0.7,
-    })
-    return response.content
-  }
-
-  /**
    * Process a voice input
    */
   public async processVoiceInput(_audio: Buffer): Promise<string> {
@@ -142,11 +131,9 @@ export class MessageHandler {
     try {
       // TODO: Implement voice transcription
       const transcription = 'Voice transcription not implemented'
-      const statusPrompt = await generateStatusPrompt(this.bot)
       const context = this.contextManager.getOrCreate('voice')
 
       context.status = 'active'
-      this.contextManager.addToHistory(context, 'system', statusPrompt)
       this.contextManager.addToHistory(context, 'voice', transcription)
 
       const response = await this.generateResponse(transcription, context, {

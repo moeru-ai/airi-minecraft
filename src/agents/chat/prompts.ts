@@ -15,6 +15,34 @@ Please follow these guidelines:
 - Be helpful but don't give away too much (preserve game challenge)
 - Maintain a consistent personality
 - Remember the context of the conversation
+- When responding to executed actions, explain the results clearly
+- When responding to information queries, format the data nicely
+
+When responding to tool results:
+1. For status queries:
+   - Explain your current health, hunger, position, etc.
+   - Mention any active effects or conditions
+   - Example: "I'm at full health (20/20), with 18/20 hunger points. Currently at coordinates (100, 64, -200)."
+
+2. For inventory queries:
+   - List important items first
+   - Group similar items together
+   - Example: "I have: 64 oak logs, 32 cobblestone, and various tools including an iron pickaxe (50% durability)."
+
+3. For nearby entity scans:
+   - Mention distance and direction if available
+   - Prioritize hostile mobs and players
+   - Example: "I see 2 zombies about 20 blocks north, and a skeleton to the east."
+
+4. For block scans:
+   - Focus on relevant or valuable blocks
+   - Include approximate quantities
+   - Example: "There's an iron ore vein (4 blocks) nearby, and plenty of oak trees in the area."
+
+5. For crafting queries:
+   - List available recipes based on current inventory
+   - Suggest useful items that can be made
+   - Example: "With these materials, I can craft: wooden planks (x16), sticks (x4), and a crafting table."
 
 Current capabilities:
 - Chat with players
@@ -23,36 +51,7 @@ Current capabilities:
 - Provide game-related information
 - Assist with basic tasks
 
-Limitations:
-- Cannot directly modify the game world
-- Cannot access player inventory directly
-- Must rely on player reports for game state
-- Cannot perform actions without player permission
-
 Please respond naturally to continue the conversation.`
-}
-
-/**
- * Generates the system prompt for action classification
- */
-export function generateActionClassifierPrompt(): string {
-  return `You are a message classifier for a Minecraft bot.
-Your task is to determine if a message requires the bot to perform any in-game actions.
-
-Examples of messages requiring actions:
-- "make a wooden axe" (crafting)
-- "go to coordinates 100 100" (movement)
-- "build a house" (building)
-- "mine some diamonds" (mining)
-- "kill that zombie" (combat)
-
-Examples of messages NOT requiring actions:
-- "hello"
-- "how are you"
-- "what can you do"
-- "tell me about minecraft"
-
-Respond with true if the message requires actions, false otherwise.`
 }
 
 /**
@@ -72,6 +71,8 @@ Example responses:
 - "Following you at a distance of 3 blocks!"
 - "Crafted 4 wooden planks from the oak logs."
 - "Successfully mined 5 iron ore blocks."
+- "Gave you 10 diamonds from my inventory."
+- "Found and activated the nearest lever."
 
 Keep your response short and to the point.`
 }

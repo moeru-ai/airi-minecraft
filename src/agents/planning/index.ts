@@ -88,12 +88,11 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
       // Get available actions from action agent
       const availableActions = this.actionAgent?.getAvailableActions() ?? []
 
-      // Check if the goal requires actions
-      const requirements = this.parseGoalRequirements(goal)
-      const requiresAction = this.doesGoalRequireAction(requirements)
+      // Create plan steps based on available actions and goal
+      const steps = await this.generatePlanSteps(goal, availableActions, 'system')
 
-      // If no actions needed, return empty plan
-      if (!requiresAction) {
+      // If no steps are generated, return empty plan
+      if (steps.length === 0) {
         this.logger.log('Goal does not require actions')
         return {
           goal,
@@ -102,9 +101,6 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
           requiresAction: false,
         }
       }
-
-      // Create plan steps based on available actions and goal
-      const steps = await this.generatePlanSteps(goal, availableActions, 'system')
 
       // Create new plan
       const plan: Plan = {
@@ -552,15 +548,6 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     }
   }
 
-  private doesGoalRequireAction(requirements: ReturnType<typeof this.parseGoalRequirements>): boolean {
-    // Check if any requirement indicates need for action
-    return requirements.needsItems
-      || requirements.needsMovement
-      || requirements.needsInteraction
-      || requirements.needsCrafting
-      || requirements.needsCombat
-  }
-
   private async generatePlanSteps(
     goal: string,
     availableActions: Action[],
@@ -570,81 +557,5 @@ export class PlanningAgentImpl extends AbstractAgent implements PlanningAgent {
     // Generate all steps at once
     this.logger.log('Generating plan using LLM')
     return await this.llmHandler.generatePlan(goal, availableActions, sender, feedback)
-  }
-
-  private parseGoalRequirements(goal: string): {
-    needsItems: boolean
-    items?: string[]
-    needsMovement: boolean
-    location?: { x?: number, y?: number, z?: number }
-    needsInteraction: boolean
-    target?: string
-    needsCrafting: boolean
-    needsCombat: boolean
-  } {
-    const requirements = {
-      needsItems: false,
-      items: [] as string[],
-      needsMovement: false,
-      location: undefined as { x?: number, y?: number, z?: number } | undefined,
-      needsInteraction: false,
-      target: undefined as string | undefined,
-      needsCrafting: false,
-      needsCombat: false,
-    }
-
-    const goalLower = goal.toLowerCase()
-
-    // Extract items from goal
-    const itemMatches = goalLower.match(/(collect|get|find|craft|make|build|use|equip) (\w+)/g)
-    if (itemMatches) {
-      requirements.needsItems = true
-      requirements.items = itemMatches.map(match => match.split(' ')[1])
-    }
-
-    // Extract location from goal
-    const locationMatches = goalLower.match(/(go to|move to|at) (\d+)[, ]+(\d+)[, ]+(\d+)/g)
-    if (locationMatches) {
-      requirements.needsMovement = true
-      const [x, y, z] = locationMatches[0].split(/[, ]+/).slice(-3).map(Number)
-      requirements.location = { x, y, z }
-    }
-
-    // Extract target from goal
-    const targetMatches = goalLower.match(/(interact with|use|open|activate) (\w+)/g)
-    if (targetMatches) {
-      requirements.needsInteraction = true
-      requirements.target = targetMatches[0].split(' ').pop()
-    }
-
-    // Check for item-related actions
-    if (goalLower.includes('collect') || goalLower.includes('get') || goalLower.includes('find')) {
-      requirements.needsItems = true
-      requirements.needsMovement = true
-    }
-
-    // Check for movement-related actions
-    if (goalLower.includes('go to') || goalLower.includes('move to') || goalLower.includes('follow')) {
-      requirements.needsMovement = true
-    }
-
-    // Check for interaction-related actions
-    if (goalLower.includes('interact') || goalLower.includes('use') || goalLower.includes('open')) {
-      requirements.needsInteraction = true
-    }
-
-    // Check for crafting-related actions
-    if (goalLower.includes('craft') || goalLower.includes('make') || goalLower.includes('build')) {
-      requirements.needsCrafting = true
-      requirements.needsItems = true
-    }
-
-    // Check for combat-related actions
-    if (goalLower.includes('attack') || goalLower.includes('fight') || goalLower.includes('kill')) {
-      requirements.needsCombat = true
-      requirements.needsMovement = true
-    }
-
-    return requirements
   }
 }
