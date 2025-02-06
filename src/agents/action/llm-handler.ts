@@ -7,7 +7,7 @@ import { useLogg } from '@guiiai/logg'
 import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
 
-import { BaseLLMHandler } from '../../libs/llm/base'
+import { BaseLLMHandler } from '../../libs/llm-agent/handler'
 import { actionsList } from './tools'
 
 export async function createActionNeuriAgent(mineflayer: Mineflayer): Promise<Agent> {

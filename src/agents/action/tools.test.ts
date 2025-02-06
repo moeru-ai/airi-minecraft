@@ -6,7 +6,7 @@ import { botConfig, initEnv, openaiConfig } from '../../composables/config'
 import { createNeuriAgent } from '../../composables/neuri'
 import { sleep } from '../../utils/helper'
 import { initLogger } from '../../utils/logger'
-import { generateActionAgentPrompt } from '../prompt/llm-agent.plugin'
+import { generateActionAgentPrompt } from '../prompt/llm-agent'
 
 describe('actions agent', { timeout: 0 }, () => {
   beforeAll(() => {

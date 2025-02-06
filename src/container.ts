@@ -60,6 +60,8 @@ export function createAppContainer(options: {
           agent: options.neuri,
           model: options.model,
         },
+        maxHistoryLength: 50,
+        idleTimeout: 5 * 60 * 1000, // 5 minutes
       })),
   })
 

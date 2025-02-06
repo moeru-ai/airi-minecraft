@@ -11,8 +11,8 @@ import { plugin as MineflayerTool } from 'mineflayer-tool'
 import { initBot } from './composables/bot'
 import { botConfig, initEnv } from './composables/config'
 import { createNeuriAgent } from './composables/neuri'
+import { LLMAgent } from './libs/llm-agent'
 import { wrapPlugin } from './libs/mineflayer'
-import { LLMAgent } from './plugins/llm-agent'
 import { initLogger } from './utils/logger'
 
 const logger = useLogg('main').useGlobalConfig()

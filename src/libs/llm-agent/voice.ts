@@ -4,7 +4,7 @@ import type { MineflayerWithAgents } from './type'
 
 import { system, user } from 'neuri/openai'
 
-import { generateStatusPrompt } from '../../agents/prompt/llm-agent.plugin'
+import { generateStatusPrompt } from '../../agents/prompt/llm-agent'
 import { toRetriable } from '../../utils/helper'
 import { handleLLMCompletion } from './completion'
 

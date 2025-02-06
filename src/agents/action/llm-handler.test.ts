@@ -5,7 +5,7 @@ import { initBot, useBot } from '../../composables/bot'
 import { botConfig, initEnv, openaiConfig } from '../../composables/config'
 import { createNeuriAgent } from '../../composables/neuri'
 import { initLogger } from '../../utils/logger'
-import { generateSystemBasicPrompt } from '../prompt/llm-agent.plugin'
+import { generateSystemBasicPrompt } from '../prompt/llm-agent'
 
 describe('openAI agent', { timeout: 0 }, () => {
   beforeAll(() => {
