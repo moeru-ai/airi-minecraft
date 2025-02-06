@@ -1,6 +1,5 @@
 import type { Agent } from 'neuri'
 import type { LLMConfig } from '../../libs/llm-agent/types'
-import type { Action } from '../../libs/mineflayer/action'
 
 import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
@@ -8,18 +7,26 @@ import { system, user } from 'neuri/openai'
 import { config } from '../../composables/config'
 import { BaseLLMHandler } from '../../libs/llm-agent/handler'
 
-export async function createPlanningNeuriAgent(): Promise<Agent> {
-  // Planning agent only needs to generate plans, no tools needed
-  return agent('planning').build()
-}
-
+/**
+ * Plan step interface
+ */
 export interface PlanStep {
   description: string
   tool: string
   params: Record<string, unknown>
 }
 
-export class PlanningLLMHandler extends BaseLLMHandler {
+/**
+ * Plan generator interface
+ */
+export interface PlanGenerator {
+  generatePlan: (goal: string, sender: string, feedback?: string) => Promise<PlanStep[]>
+}
+
+/**
+ * LLM-based plan generator implementation
+ */
+export class LLMPlanGenerator extends BaseLLMHandler implements PlanGenerator {
   constructor(llmConfig: LLMConfig) {
     super({
       ...llmConfig,
@@ -29,12 +36,11 @@ export class PlanningLLMHandler extends BaseLLMHandler {
 
   public async generatePlan(
     goal: string,
-    _availableActions: Action[],
     sender: string,
     feedback?: string,
   ): Promise<PlanStep[]> {
-    const systemPrompt = this.generatePlanningAgentSystemPrompt()
-    const userPrompt = this.generatePlanningAgentUserPrompt(goal, sender, feedback)
+    const systemPrompt = this.generateSystemPrompt()
+    const userPrompt = this.generateUserPrompt(goal, sender, feedback)
     const messages = [system(systemPrompt), user(userPrompt)]
 
     const result = await this.config.agent.handleStateless(messages, async (context) => {
@@ -116,7 +122,7 @@ export class PlanningLLMHandler extends BaseLLMHandler {
     })
   }
 
-  private generatePlanningAgentSystemPrompt(): string {
+  private generateSystemPrompt(): string {
     return `You are a Minecraft bot planner. Your task is to analyze player goals and generate executable action steps.
 
 IMPORTANT: ALL imperative sentences (commands) MUST generate action steps, such as:
@@ -190,7 +196,7 @@ Keep your plan:
 - Generate all steps at once`
   }
 
-  private generatePlanningAgentUserPrompt(goal: string, sender: string, feedback?: string): string {
+  private generateUserPrompt(goal: string, sender: string, feedback?: string): string {
     let prompt = `${sender}: ${goal}
 
 First determine if this request requires any game actions.
@@ -203,4 +209,11 @@ Use the sender's name (${sender}) for player-related parameters.`
     }
     return prompt
   }
+}
+
+/**
+ * Create a new planning agent
+ */
+export async function createPlanningNeuriAgent(): Promise<Agent> {
+  return agent('planning').build()
 }
