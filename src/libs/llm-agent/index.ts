@@ -5,9 +5,9 @@ import { useLogg } from '@guiiai/logg'
 import { system } from 'neuri/openai'
 
 import { openaiConfig } from '../../composables/config'
-import { createAppContainer } from '../../container'
 import { ChatMessageHandler } from '../mineflayer'
 import { handleChatMessage } from './chat'
+import { createAgentContainer } from './container'
 import { generateActionAgentPrompt } from './prompt'
 import { handleVoiceInput } from './voice'
 
@@ -17,7 +17,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       const logger = useLogg('LLMAgent').useGlobalConfig()
 
       // Create container and get required services
-      const container = createAppContainer({
+      const container = createAgentContainer({
         neuri: options.agent,
         model: openaiConfig.model,
       })

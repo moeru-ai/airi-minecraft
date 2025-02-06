@@ -3,9 +3,9 @@ import type { Neuri } from 'neuri'
 import { useLogg } from '@guiiai/logg'
 import { asClass, asFunction, createContainer, InjectionMode } from 'awilix'
 
-import { ActionAgentImpl } from './agents/action'
-import { ChatAgentImpl } from './agents/chat'
-import { PlanningAgentImpl } from './agents/planning'
+import { ActionAgentImpl } from '../../agents/action'
+import { ChatAgentImpl } from '../../agents/chat'
+import { PlanningAgentImpl } from '../../agents/planning'
 
 export interface ContainerServices {
   logger: ReturnType<typeof useLogg>
@@ -15,7 +15,7 @@ export interface ContainerServices {
   neuri: Neuri
 }
 
-export function createAppContainer(options: {
+export function createAgentContainer(options: {
   neuri: Neuri
   model?: string
 }) {
