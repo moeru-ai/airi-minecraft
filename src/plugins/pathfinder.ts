@@ -1,15 +1,16 @@
 import type { Context } from '../libs/mineflayer'
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 
-import { useLogg } from '@guiiai/logg'
 import pathfinderModel from 'mineflayer-pathfinder'
+
+import { useLogger } from '../utils/logger'
 
 const { goals, Movements } = pathfinderModel
 
 export function PathFinder(options?: { rangeGoal: number }): MineflayerPlugin {
   return {
     created(bot) {
-      const logger = useLogg('pathfinder').useGlobalConfig()
+      const logger = useLogger()
 
       let defaultMove: any
 

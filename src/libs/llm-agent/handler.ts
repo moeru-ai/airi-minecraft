@@ -2,15 +2,16 @@ import type { NeuriContext } from 'neuri'
 import type { ChatCompletion, Message } from 'neuri/openai'
 import type { LLMConfig, LLMResponse } from './types'
 
-import { useLogg } from '@guiiai/logg'
-
 import { config } from '../../composables/config'
 import { toRetriable } from '../../utils/helper'
+import { type Logger, useLogger } from '../../utils/logger'
 
 export abstract class BaseLLMHandler {
-  protected logger = useLogg('llm-handler').useGlobalConfig()
+  protected logger: Logger
 
-  constructor(protected config: LLMConfig) {}
+  constructor(protected config: LLMConfig) {
+    this.logger = useLogger()
+  }
 
   protected async handleCompletion(
     context: NeuriContext,

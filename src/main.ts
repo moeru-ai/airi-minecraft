@@ -1,5 +1,4 @@
 import process, { exit } from 'node:process'
-import { useLogg } from '@guiiai/logg'
 import { Client } from '@proj-airi/server-sdk'
 import MineflayerArmorManager from 'mineflayer-armor-manager'
 import { loader as MineflayerAutoEat } from 'mineflayer-auto-eat'
@@ -13,9 +12,7 @@ import { config, initEnv } from './composables/config'
 import { createNeuriAgent } from './composables/neuri'
 import { LLMAgent } from './libs/llm-agent'
 import { wrapPlugin } from './libs/mineflayer'
-import { initLogger } from './utils/logger'
-
-const logger = useLogg('main').useGlobalConfig()
+import { initLogger, useLogger } from './utils/logger'
 
 async function main() {
   initLogger() // todo: save logs to file
@@ -50,6 +47,6 @@ async function main() {
 }
 
 main().catch((err: Error) => {
-  logger.errorWithError('Fatal error', err)
+  useLogger().errorWithError('Fatal error', err)
   exit(1)
 })

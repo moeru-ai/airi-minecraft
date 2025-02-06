@@ -1,6 +1,5 @@
 import type { Action } from '../../libs/mineflayer'
 
-import { useLogg } from '@guiiai/logg'
 import { z } from 'zod'
 
 import * as skills from '../../skills'
@@ -8,10 +7,10 @@ import { collectBlock } from '../../skills/actions/collect-block'
 import { discard, equip, putInChest, takeFromChest, viewChest } from '../../skills/actions/inventory'
 import { activateNearestBlock, placeBlock } from '../../skills/actions/world-interactions'
 import * as world from '../../skills/world'
+import { useLogger } from '../../utils/logger'
 
 // Utils
 const pad = (str: string): string => `\n${str}\n`
-const logger = useLogg('actions').useGlobalConfig()
 
 function formatInventoryItem(item: string, count: number): string {
   return count > 0 ? `\n- ${item}: ${count}` : ''
@@ -59,7 +58,7 @@ export const actionsList: Action[] = [
     schema: z.object({}),
     perform: mineflayer => (): string => {
       const blocks = world.getNearbyBlockTypes(mineflayer)
-      logger.withFields({ blocks }).log('nearbyBlocks')
+      useLogger().withFields({ blocks }).log('nearbyBlocks')
       return pad(`NEARBY_BLOCKS${blocks.map((b: string) => `\n- ${b}`).join('') || ': none'}`)
     },
   },

@@ -1,13 +1,13 @@
-import type { useLogg } from '@guiiai/logg'
 import type { NeuriContext } from 'neuri'
 import type { ChatCompletion } from 'neuri/openai'
+import type { Logger } from '../../utils/logger'
 import type { MineflayerWithAgents } from './types'
 
 import { assistant } from 'neuri/openai'
 
 import { config } from '../../composables/config'
 
-export async function handleLLMCompletion(context: NeuriContext, bot: MineflayerWithAgents, logger: ReturnType<typeof useLogg>): Promise<string> {
+export async function handleLLMCompletion(context: NeuriContext, bot: MineflayerWithAgents, logger: Logger): Promise<string> {
   logger.log('rerouting...')
 
   const completion = await context.reroute('action', context.messages, {

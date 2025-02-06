@@ -3,15 +3,15 @@ import type { Message } from 'neuri/openai'
 import type { Mineflayer } from '../../libs/mineflayer'
 import type { PlanStep } from '../planning/adapter'
 
-import { useLogg } from '@guiiai/logg'
 import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
 
 import { BaseLLMHandler } from '../../libs/llm-agent/handler'
+import { useLogger } from '../../utils/logger'
 import { actionsList } from './tools'
 
 export async function createActionNeuriAgent(mineflayer: Mineflayer): Promise<Agent> {
-  const logger = useLogg('action-neuri').useGlobalConfig()
+  const logger = useLogger()
   logger.log('Initializing action agent')
   let actionAgent = agent('action')
 

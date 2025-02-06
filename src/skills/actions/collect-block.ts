@@ -1,15 +1,15 @@
 import type { Block } from 'prismarine-block'
 import type { Mineflayer } from '../../libs/mineflayer'
 
-import { useLogg } from '@guiiai/logg'
 import pathfinder from 'mineflayer-pathfinder'
 
+import { useLogger } from '../../utils/logger'
 import { breakBlockAt } from '../blocks'
 import { getNearestBlocks } from '../world'
 import { ensurePickaxe } from './ensure'
 import { pickupNearbyItems } from './world-interactions'
 
-const logger = useLogg('Action:CollectBlock').useGlobalConfig()
+const logger = useLogger()
 
 function isMessagable(err: unknown): err is { message: string } {
   return (err instanceof Error || (typeof err === 'object' && !!err && 'message' in err && typeof err.message === 'string'))

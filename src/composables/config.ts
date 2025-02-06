@@ -1,9 +1,10 @@
 import type { BotOptions } from 'mineflayer'
 
 import { env } from 'node:process'
-import { useLogg } from '@guiiai/logg'
 
-const logger = useLogg('config').useGlobalConfig()
+import { useLogger } from '../utils/logger'
+
+const logger = useLogger()
 
 // Configuration interfaces
 interface OpenAIConfig {

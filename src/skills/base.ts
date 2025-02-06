@@ -1,8 +1,8 @@
 import type { Mineflayer } from '../libs/mineflayer'
 
-import { useLogg } from '@guiiai/logg'
+import { useLogger } from '../utils/logger'
 
-const logger = useLogg('skills').useGlobalConfig()
+const logger = useLogger()
 
 /**
  * Log a message to the context's output buffer

@@ -1,14 +1,13 @@
 import type { Mineflayer } from '../../libs/mineflayer'
 
-import { useLogg } from '@guiiai/logg'
-
 import { sleep } from '../../utils/helper'
+import { useLogger } from '../../utils/logger'
 import { breakBlockAt } from '../blocks'
 import { goToPosition, moveAway } from '../movement'
 import { getNearestBlocks } from '../world'
 import { pickupNearbyItems } from './world-interactions'
 
-const logger = useLogg('Action:GatherWood').useGlobalConfig()
+const logger = useLogger()
 
 /**
  * Gather wood blocks nearby to collect logs.

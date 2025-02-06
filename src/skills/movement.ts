@@ -1,16 +1,16 @@
 import type { Entity } from 'prismarine-entity'
 import type { Mineflayer } from '../libs/mineflayer'
 
-import { useLogg } from '@guiiai/logg'
 import { randomInt } from 'es-toolkit'
 import pathfinder from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 
 import { sleep } from '../utils/helper'
+import { useLogger } from '../utils/logger'
 import { log } from './base'
 import { getNearestBlock, getNearestEntityWhere } from './world'
 
-const logger = useLogg('Skill:Movement').useGlobalConfig()
+const logger = useLogger()
 const { goals, Movements } = pathfinder
 
 export async function goToPosition(

@@ -2,15 +2,15 @@ import type { Bot } from 'mineflayer'
 import type { Block } from 'prismarine-block'
 import type { Mineflayer } from '../../libs/mineflayer'
 
-import { useLogg } from '@guiiai/logg'
 import pathfinder from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 
 import { sleep } from '../../utils/helper'
+import { useLogger } from '../../utils/logger'
 import { getNearestBlock, makeItem } from '../../utils/mcdata'
 import { goToPosition } from '../movement'
 
-const logger = useLogg('Action:WorldInteractions').useGlobalConfig()
+const logger = useLogger()
 
 export async function placeBlock(
   mineflayer: Mineflayer,

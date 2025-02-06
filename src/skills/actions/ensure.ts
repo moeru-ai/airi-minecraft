@@ -1,7 +1,6 @@
 import type { Mineflayer } from '../../libs/mineflayer'
 
-import { useLogg } from '@guiiai/logg'
-
+import { useLogger } from '../../utils/logger'
 import { getItemId } from '../../utils/mcdata'
 import { craftRecipe } from '../crafting'
 import { moveAway } from '../movement'
@@ -12,8 +11,7 @@ import { getItemCount } from './inventory'
 // Constants for crafting and gathering
 const PLANKS_PER_LOG = 4
 const STICKS_PER_PLANK = 2
-
-const logger = useLogg('Action:Ensure').useGlobalConfig()
+const logger = useLogger()
 
 // Helper function to ensure a crafting table
 export async function ensureCraftingTable(mineflayer: Mineflayer): Promise<boolean> {

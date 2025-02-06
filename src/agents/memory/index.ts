@@ -2,11 +2,8 @@ import type { Message } from 'neuri/openai'
 import type { Action } from '../../libs/mineflayer'
 import type { AgentConfig, MemoryAgent } from '../../libs/mineflayer/base-agent'
 
-import { useLogg } from '@guiiai/logg'
-
 import { Memory } from '../../libs/mineflayer/memory'
-
-const logger = useLogg('memory-agent').useGlobalConfig()
+import { type Logger, useLogger } from '../../utils/logger'
 
 export class MemoryAgentImpl implements MemoryAgent {
   public readonly type = 'memory' as const
@@ -14,12 +11,14 @@ export class MemoryAgentImpl implements MemoryAgent {
   private memory: Map<string, unknown>
   private initialized: boolean
   private memoryInstance: Memory
+  private logger: Logger
 
   constructor(config: AgentConfig) {
     this.id = config.id
     this.memory = new Map()
     this.initialized = false
     this.memoryInstance = new Memory()
+    this.logger = useLogger()
   }
 
   async init(): Promise<void> {
@@ -27,7 +26,7 @@ export class MemoryAgentImpl implements MemoryAgent {
       return
     }
 
-    logger.log('Initializing memory agent')
+    this.logger.log('Initializing memory agent')
     this.initialized = true
   }
 
@@ -41,7 +40,7 @@ export class MemoryAgentImpl implements MemoryAgent {
       throw new Error('Memory agent not initialized')
     }
 
-    logger.withFields({ key, value }).log('Storing memory')
+    this.logger.withFields({ key, value }).log('Storing memory')
     this.memory.set(key, value)
   }
 
@@ -51,7 +50,7 @@ export class MemoryAgentImpl implements MemoryAgent {
     }
 
     const value = this.memory.get(key) as T | undefined
-    logger.withFields({ key, value }).log('Recalling memory')
+    this.logger.withFields({ key, value }).log('Recalling memory')
     return value
   }
 
@@ -60,7 +59,7 @@ export class MemoryAgentImpl implements MemoryAgent {
       throw new Error('Memory agent not initialized')
     }
 
-    logger.withFields({ key }).log('Forgetting memory')
+    this.logger.withFields({ key }).log('Forgetting memory')
     this.memory.delete(key)
   }
 
@@ -78,7 +77,7 @@ export class MemoryAgentImpl implements MemoryAgent {
     }
 
     this.memoryInstance.chatHistory.push(message)
-    logger.withFields({ message }).log('Adding chat message to memory')
+    this.logger.withFields({ message }).log('Adding chat message to memory')
   }
 
   addAction(action: Action): void {
@@ -87,7 +86,7 @@ export class MemoryAgentImpl implements MemoryAgent {
     }
 
     this.memoryInstance.actions.push(action)
-    logger.withFields({ action }).log('Adding action to memory')
+    this.logger.withFields({ action }).log('Adding action to memory')
   }
 
   getChatHistory(): Message[] {

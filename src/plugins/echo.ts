@@ -1,11 +1,10 @@
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 
-import { useLogg } from '@guiiai/logg'
-
 import { ChatMessageHandler } from '../libs/mineflayer/message'
+import { useLogger } from '../utils/logger'
 
 export function Echo(): MineflayerPlugin {
-  const logger = useLogg('Echo').useGlobalConfig()
+  const logger = useLogger()
 
   return {
     spawned(mineflayer) {

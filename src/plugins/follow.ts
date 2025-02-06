@@ -1,10 +1,11 @@
 import type { MineflayerPlugin } from '../libs/mineflayer/plugin'
 
-import { useLogg } from '@guiiai/logg'
 import pathfinderModel from 'mineflayer-pathfinder'
 
+import { useLogger } from '../utils/logger'
+
 export function FollowCommand(options?: { rangeGoal: number }): MineflayerPlugin {
-  const logger = useLogg('follow').useGlobalConfig()
+  const logger = useLogger()
   const { goals, Movements } = pathfinderModel
 
   return {
