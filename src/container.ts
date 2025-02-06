@@ -18,8 +18,6 @@ export interface ContainerServices {
 export function createAppContainer(options: {
   neuri: Neuri
   model?: string
-  maxHistoryLength?: number
-  idleTimeout?: number
 }) {
   const container = createContainer<ContainerServices>({
     injectionMode: InjectionMode.PROXY,
@@ -62,8 +60,6 @@ export function createAppContainer(options: {
           agent: options.neuri,
           model: options.model,
         },
-        maxHistoryLength: options.maxHistoryLength,
-        idleTimeout: options.idleTimeout,
       })),
   })
 

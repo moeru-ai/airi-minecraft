@@ -20,8 +20,6 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       const container = createAppContainer({
         neuri: options.agent,
         model: openaiConfig.model,
-        maxHistoryLength: 50,
-        idleTimeout: 5 * 60 * 1000,
       })
 
       const actionAgent = container.resolve('actionAgent')
