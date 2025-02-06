@@ -1,12 +1,12 @@
 import type { useLogg } from '@guiiai/logg'
 import type { Neuri, NeuriContext } from 'neuri'
-import type { MineflayerWithAgents } from './type'
+import type { MineflayerWithAgents } from './types'
 
 import { system, user } from 'neuri/openai'
 
-import { generateStatusPrompt } from '../../agents/prompt/llm-agent'
 import { toRetriable } from '../../utils/helper'
 import { handleLLMCompletion } from './completion'
+import { generateStatusPrompt } from './prompt'
 
 export async function handleVoiceInput(event: any, bot: MineflayerWithAgents, agent: Neuri, logger: ReturnType<typeof useLogg>): Promise<void> {
   logger

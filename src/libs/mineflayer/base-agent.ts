@@ -1,4 +1,4 @@
-import type { PlanStep } from '../../agents/planning/llm-handler'
+import type { PlanStep } from '../../agents/planning/adapter'
 import type { Action } from './action'
 
 import { useLogg } from '@guiiai/logg'

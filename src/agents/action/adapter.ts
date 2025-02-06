@@ -1,7 +1,7 @@
 import type { Agent } from 'neuri'
 import type { Message } from 'neuri/openai'
 import type { Mineflayer } from '../../libs/mineflayer'
-import type { PlanStep } from '../planning/llm-handler'
+import type { PlanStep } from '../planning/adapter'
 
 import { useLogg } from '@guiiai/logg'
 import { agent } from 'neuri'

@@ -5,7 +5,6 @@ import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
 
 import { BaseLLMHandler } from '../../libs/llm-agent/handler'
-import { generatePlanningAgentSystemPrompt, generatePlanningAgentUserPrompt } from '../prompt/planning'
 
 export async function createPlanningNeuriAgent(): Promise<Agent> {
   return agent('planning').build()
@@ -24,8 +23,8 @@ export class PlanningLLMHandler extends BaseLLMHandler {
     sender: string,
     feedback?: string,
   ): Promise<PlanStep[]> {
-    const systemPrompt = generatePlanningAgentSystemPrompt(availableActions)
-    const userPrompt = generatePlanningAgentUserPrompt(goal, sender, feedback)
+    const systemPrompt = this.generatePlanningAgentSystemPrompt(availableActions)
+    const userPrompt = this.generatePlanningAgentUserPrompt(goal, sender, feedback)
     const messages = [system(systemPrompt), user(userPrompt)]
 
     const result = await this.config.agent.handleStateless(messages, async (context) => {
@@ -97,5 +96,51 @@ export class PlanningLLMHandler extends BaseLLMHandler {
         params,
       }
     })
+  }
+
+  private generatePlanningAgentSystemPrompt(availableActions: Action[]): string {
+    const actionsList = availableActions
+      .map((action) => {
+        const params = Object.keys(action.schema.shape)
+          .map(name => `    - ${name}`)
+          .join('\n')
+        return `- ${action.name}: ${action.description}\n  Parameters:\n${params}`
+      })
+      .join('\n\n')
+
+    return `You are a Minecraft bot planner. Break down goals into simple action steps.
+
+Available tools:
+${actionsList}
+
+Format each step as:
+1. Action description (short, direct command)
+2. Tool name
+3. Required parameters
+
+Example:
+1. Follow player
+   Tool: followPlayer
+   Params:
+     player: luoling8192
+     follow_dist: 3
+
+Keep steps:
+- Short and direct
+- Action-focused
+- Parameters precise
+- Generate all steps at once`
+  }
+
+  private generatePlanningAgentUserPrompt(goal: string, sender: string, feedback?: string): string {
+    let prompt = `${sender}: ${goal}
+
+Generate minimal steps with exact parameters.
+Use the sender's name (${sender}) for player-related parameters.`
+
+    if (feedback) {
+      prompt += `\n\nPrevious attempt failed: ${feedback}`
+    }
+    return prompt
   }
 }

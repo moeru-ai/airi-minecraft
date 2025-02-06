@@ -7,7 +7,7 @@ import { system, user } from 'neuri/openai'
 
 import { openaiConfig } from '../../composables/config'
 import { toRetriable } from '../../utils/helper'
-import { genChatAgentPrompt } from '../prompt/chat'
+import { generateChatAgentPrompt } from './adapter'
 
 const logger = useLogg('chat-llm').useGlobalConfig()
 
@@ -28,7 +28,7 @@ export async function generateChatResponse(
   history: ChatHistory[],
   config: LLMChatConfig,
 ): Promise<string> {
-  const systemPrompt = genChatAgentPrompt()
+  const systemPrompt = generateChatAgentPrompt()
   const chatHistory = formatChatHistory(history, config.maxContextLength ?? 10)
   const userPrompt = message
 
