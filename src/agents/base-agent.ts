@@ -1,6 +1,6 @@
-import type { PlanStep } from '../../agents/planning/adapter'
-import type { Logger } from '../../utils/logger'
-import type { Action } from './action'
+import type { Action } from '../libs/mineflayer/action'
+import type { Logger } from '../utils/logger'
+import type { PlanStep } from './planning/adapter'
 
 import { useLogg } from '@guiiai/logg'
 import EventEmitter3 from 'eventemitter3'

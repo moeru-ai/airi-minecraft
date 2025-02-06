@@ -1,6 +1,6 @@
 import type { Message } from 'neuri/openai'
 import type { Action } from '../../libs/mineflayer'
-import type { AgentConfig, MemoryAgent } from '../../libs/mineflayer/base-agent'
+import type { AgentConfig, MemoryAgent } from '../base-agent'
 
 import { Memory } from '../../libs/mineflayer/memory'
 import { type Logger, useLogger } from '../../utils/logger'
