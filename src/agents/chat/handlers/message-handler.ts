@@ -80,6 +80,14 @@ export class MessageHandler {
       // 1. Generate a plan using the Planning Agent
       const plan = await this.bot.planning.createPlan(message)
 
+      // Replace 'system' with actual player name in plan steps
+      plan.steps = plan.steps.map((step) => {
+        if (step.params && 'player_name' in step.params) {
+          step.params.player_name = context.player
+        }
+        return step
+      })
+
       // 2. Execute the plan using the Planning Agent
       await this.bot.planning.executePlan(plan)
 
