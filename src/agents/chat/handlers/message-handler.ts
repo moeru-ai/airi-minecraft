@@ -1,10 +1,12 @@
 import type { Buffer } from 'node:buffer'
+import type { Plan } from '../../../agents/base-agent'
 import type { LLMGatewayInterface, MineflayerWithAgents } from '../../../libs/llm-agent/types'
 import type { Logger } from '../../../utils/logger'
 import type { ContextManager } from '../core/context-manager'
 import type { ChatContext, ChatOptions } from '../types'
 
 import { system, user } from 'neuri/openai'
+import { z } from 'zod'
 
 import { generateStatusPrompt } from '../../../libs/llm-agent/prompt'
 import { generateChatAgentPrompt } from '../adapter'
@@ -32,6 +34,12 @@ export class MessageHandler {
       this.contextManager.addToHistory(context, sender, message)
       this.contextManager.updateStatus(context)
 
+      // Check if the message requires an action
+      if (await this.requiresAction(message)) {
+        return await this.handleActionRequest(message, context)
+      }
+
+      // If no action is required, generate a normal chat response
       const response = await this.generateResponse(message, context)
       this.contextManager.addToHistory(context, this.botId, response)
       await this.sendResponse(response)
@@ -44,6 +52,103 @@ export class MessageHandler {
       await this.sendErrorResponse(errorMessage)
       throw error
     }
+  }
+
+  /**
+   * Check if the message requires an action
+   */
+  private async requiresAction(message: string): Promise<boolean> {
+    // Use LLM to determine if the message requires an action
+    const result = await this.llmHandler.execute<boolean>(
+      [
+        system(`You are a message classifier for a Minecraft bot.
+Your task is to determine if a message requires the bot to perform any in-game actions.
+
+Examples of messages requiring actions:
+- "make a wooden axe" (crafting)
+- "go to coordinates 100 100" (movement)
+- "build a house" (building)
+- "mine some diamonds" (mining)
+- "kill that zombie" (combat)
+
+Examples of messages NOT requiring actions:
+- "hello"
+- "how are you"
+- "what can you do"
+- "tell me about minecraft"
+
+Respond with true if the message requires actions, false otherwise.`),
+        user(message),
+      ],
+      {
+        route: 'chat',
+        schema: z.boolean(),
+        temperature: 0,
+      },
+    )
+    return result
+  }
+
+  /**
+   * Handle action request
+   */
+  private async handleActionRequest(message: string, context: ChatContext): Promise<string> {
+    try {
+      // 1. Generate a plan using the Planning Agent
+      const plan = await this.bot.planning.createPlan(message)
+
+      // 2. Execute the plan using the Planning Agent
+      await this.bot.planning.executePlan(plan)
+
+      // 3. Record the action to memory
+      this.bot.memory.addAction({
+        type: 'plan',
+        name: message,
+        data: {
+          plan,
+          context: {
+            player: context.player,
+            sessionId: context.startTime.toString(),
+          },
+        },
+        timestamp: Date.now(),
+      })
+
+      // 4. Generate a response to the action execution
+      const response = await this.generateActionResponse(plan)
+      this.contextManager.addToHistory(context, this.botId, response)
+      await this.sendResponse(response)
+
+      return response
+    }
+    catch (error) {
+      this.logger.withError(error).error('Failed to execute action')
+      throw error
+    }
+  }
+
+  /**
+   * Generate a response to the action execution
+   */
+  private async generateActionResponse(plan: Plan): Promise<string> {
+    return await this.llmHandler.execute(
+      [
+        system(`You are a Minecraft bot assistant.
+Your task is to generate a natural, friendly response about the execution of a plan.
+The response should:
+1. Acknowledge what was done
+2. Mention any key steps that were completed
+3. Be helpful and encouraging
+4. Use appropriate Minecraft terminology
+
+Keep the response concise but informative.`),
+        user(`Plan: ${JSON.stringify(plan)}`),
+      ],
+      {
+        route: 'chat',
+        temperature: 0.7,
+      },
+    )
   }
 
   /**
