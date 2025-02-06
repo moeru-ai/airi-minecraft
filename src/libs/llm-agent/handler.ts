@@ -4,7 +4,7 @@ import type { LLMConfig, LLMResponse } from './types'
 
 import { useLogg } from '@guiiai/logg'
 
-import { openaiConfig } from '../../composables/config'
+import { config } from '../../composables/config'
 import { toRetriable } from '../../utils/helper'
 
 export abstract class BaseLLMHandler {
@@ -18,7 +18,7 @@ export abstract class BaseLLMHandler {
     messages: Message[],
   ): Promise<LLMResponse> {
     const completion = await context.reroute(route, messages, {
-      model: this.config.model ?? openaiConfig.model,
+      model: this.config.model ?? config.openai.model,
     }) as ChatCompletion | ChatCompletion & { error: { message: string } }
 
     if (!completion || 'error' in completion) {

@@ -13,13 +13,28 @@ interface OpenAIConfig {
   reasoningModel: string
 }
 
-interface EnvConfig {
+interface AiriConfig {
+  wsBaseUrl: string
+  clientName: string
+}
+
+interface Config {
   openai: OpenAIConfig
   bot: BotOptions
+  airi: AiriConfig
+}
+
+// Helper functions for type-safe environment variable parsing
+function getEnvVar(key: string, defaultValue: string): string {
+  return env[key] || defaultValue
+}
+
+function getEnvNumber(key: string, defaultValue: number): number {
+  return Number.parseInt(env[key] || String(defaultValue))
 }
 
 // Default configurations
-const defaultConfig: EnvConfig = {
+const defaultConfig: Config = {
   openai: {
     apiKey: '',
     baseUrl: '',
@@ -27,41 +42,45 @@ const defaultConfig: EnvConfig = {
     reasoningModel: '',
   },
   bot: {
-    username: '',
-    host: '',
-    port: 0,
+    username: 'airi-bot',
+    host: 'localhost',
+    port: 25565,
     password: '',
     version: '1.20',
   },
+  airi: {
+    wsBaseUrl: 'ws://localhost:6121/ws',
+    clientName: 'minecraft-bot',
+  },
 }
 
-// Exported configurations
-export const botConfig: BotOptions = { ...defaultConfig.bot }
-export const openaiConfig: OpenAIConfig = { ...defaultConfig.openai }
+// Create a singleton config instance
+export const config: Config = { ...defaultConfig }
 
-// Load environment variables into config
+// Initialize environment configuration
 export function initEnv(): void {
   logger.log('Initializing environment variables')
 
-  const config: EnvConfig = {
-    openai: {
-      apiKey: env.OPENAI_API_KEY || defaultConfig.openai.apiKey,
-      baseUrl: env.OPENAI_API_BASEURL || defaultConfig.openai.baseUrl,
-      model: env.OPENAI_MODEL || defaultConfig.openai.model,
-      reasoningModel: env.OPENAI_REASONING_MODEL || defaultConfig.openai.reasoningModel,
-    },
-    bot: {
-      username: env.BOT_USERNAME || defaultConfig.bot.username,
-      host: env.BOT_HOSTNAME || defaultConfig.bot.host,
-      port: Number.parseInt(env.BOT_PORT || '49415'),
-      password: env.BOT_PASSWORD || defaultConfig.bot.password,
-      version: env.BOT_VERSION || defaultConfig.bot.version,
-    },
+  // Update config with environment variables
+  config.openai = {
+    apiKey: getEnvVar('OPENAI_API_KEY', defaultConfig.openai.apiKey),
+    baseUrl: getEnvVar('OPENAI_API_BASEURL', defaultConfig.openai.baseUrl),
+    model: getEnvVar('OPENAI_MODEL', defaultConfig.openai.model),
+    reasoningModel: getEnvVar('OPENAI_REASONING_MODEL', defaultConfig.openai.reasoningModel),
   }
 
-  // Update exported configs
-  Object.assign(openaiConfig, config.openai)
-  Object.assign(botConfig, config.bot)
+  config.bot = {
+    username: getEnvVar('BOT_USERNAME', defaultConfig.bot.username as string),
+    host: getEnvVar('BOT_HOSTNAME', defaultConfig.bot.host as string),
+    port: getEnvNumber('BOT_PORT', defaultConfig.bot.port as number),
+    password: getEnvVar('BOT_PASSWORD', defaultConfig.bot.password as string),
+    version: getEnvVar('BOT_VERSION', defaultConfig.bot.version as string),
+  }
 
-  logger.withFields({ openaiConfig }).log('Environment variables initialized')
+  config.airi = {
+    wsBaseUrl: getEnvVar('AIRI_WS_BASEURL', defaultConfig.airi.wsBaseUrl),
+    clientName: getEnvVar('AIRI_CLIENT_NAME', defaultConfig.airi.clientName),
+  }
+
+  logger.withFields({ config }).log('Environment variables initialized')
 }

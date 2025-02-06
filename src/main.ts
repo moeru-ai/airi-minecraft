@@ -9,7 +9,7 @@ import { plugin as MineflayerPVP } from 'mineflayer-pvp'
 import { plugin as MineflayerTool } from 'mineflayer-tool'
 
 import { initBot } from './composables/bot'
-import { botConfig, initEnv } from './composables/config'
+import { config, initEnv } from './composables/config'
 import { createNeuriAgent } from './composables/neuri'
 import { LLMAgent } from './libs/llm-agent'
 import { wrapPlugin } from './libs/mineflayer'
@@ -22,7 +22,7 @@ async function main() {
   initEnv()
 
   const { bot } = await initBot({
-    botConfig,
+    botConfig: config.bot,
     plugins: [
       wrapPlugin(MineflayerArmorManager),
       wrapPlugin(MineflayerAutoEat),
@@ -33,7 +33,11 @@ async function main() {
     ],
   })
 
-  const airiClient = new Client({ name: 'minecraft-bot', url: 'ws://localhost:6121/ws' })
+  // Connect airi server
+  const airiClient = new Client({
+    name: config.airi.clientName,
+    url: config.airi.wsBaseUrl,
+  })
 
   // Dynamically load LLMAgent after the bot is initialized
   const agent = await createNeuriAgent(bot)

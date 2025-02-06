@@ -5,13 +5,13 @@ import type { MineflayerWithAgents } from './types'
 
 import { assistant } from 'neuri/openai'
 
-import { openaiConfig } from '../../composables/config'
+import { config } from '../../composables/config'
 
 export async function handleLLMCompletion(context: NeuriContext, bot: MineflayerWithAgents, logger: ReturnType<typeof useLogg>): Promise<string> {
   logger.log('rerouting...')
 
   const completion = await context.reroute('action', context.messages, {
-    model: openaiConfig.model,
+    model: config.openai.model,
   }) as ChatCompletion | { error: { message: string } } & ChatCompletion
 
   if (!completion || 'error' in completion) {

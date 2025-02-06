@@ -7,7 +7,7 @@ import { neuri } from 'neuri'
 import { createActionNeuriAgent } from '../agents/action/adapter'
 import { createChatNeuriAgent } from '../agents/chat/llm'
 import { createPlanningNeuriAgent } from '../agents/planning/adapter'
-import { openaiConfig } from './config'
+import { config } from './config'
 
 let neuriAgent: Neuri | undefined
 const agents = new Set<Agent | Promise<Agent>>()
@@ -26,8 +26,8 @@ export async function createNeuriAgent(mineflayer: Mineflayer): Promise<Neuri> {
 
   neuriAgent = await n.build({
     provider: {
-      apiKey: openaiConfig.apiKey,
-      baseURL: openaiConfig.baseUrl,
+      apiKey: config.openai.apiKey,
+      baseURL: config.openai.baseUrl,
     },
   })
 

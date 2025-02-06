@@ -5,7 +5,7 @@ import { useLogg } from '@guiiai/logg'
 import { agent } from 'neuri'
 import { system, user } from 'neuri/openai'
 
-import { openaiConfig } from '../../composables/config'
+import { config as appConfig } from '../../composables/config'
 import { toRetriable } from '../../utils/helper'
 import { generateChatAgentPrompt } from './adapter'
 
@@ -43,7 +43,7 @@ export async function generateChatResponse(
 
     const handleCompletion = async (c: any): Promise<string> => {
       const completion = await c.reroute('chat', c.messages, {
-        model: config.model ?? openaiConfig.model,
+        model: config.model ?? appConfig.openai.model,
       })
 
       if (!completion || 'error' in completion) {

@@ -2,17 +2,17 @@ import { messages, system, user } from 'neuri/openai'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { initBot, useBot } from '../../composables/bot'
-import { botConfig, initEnv, openaiConfig } from '../../composables/config'
+import { config, initEnv } from '../../composables/config'
 import { createNeuriAgent } from '../../composables/neuri'
+import { generateActionAgentPrompt } from '../../libs/llm-agent/prompt'
 import { sleep } from '../../utils/helper'
 import { initLogger } from '../../utils/logger'
-import { generateActionAgentPrompt } from '../prompt/llm-agent'
 
 describe('actions agent', { timeout: 0 }, () => {
   beforeAll(() => {
     initLogger()
     initEnv()
-    initBot({ botConfig })
+    initBot({ botConfig: config.bot })
   })
 
   it('should choose right query command', async () => {
@@ -25,7 +25,7 @@ describe('actions agent', { timeout: 0 }, () => {
           system(generateActionAgentPrompt(bot)),
           user('What\'s your status?'),
         ), async (c) => {
-          const completion = await c.reroute('query', c.messages, { model: openaiConfig.model })
+          const completion = await c.reroute('query', c.messages, { model: config.openai.model })
           return await completion?.firstContent()
         })
 
@@ -46,7 +46,7 @@ describe('actions agent', { timeout: 0 }, () => {
           system(generateActionAgentPrompt(bot)),
           user('goToPlayer: luoling8192'),
         ), async (c) => {
-          const completion = await c.reroute('action', c.messages, { model: openaiConfig.model })
+          const completion = await c.reroute('action', c.messages, { model: config.openai.model })
 
           return await completion?.firstContent()
         })
