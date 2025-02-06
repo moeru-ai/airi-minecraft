@@ -27,6 +27,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       const actionAgent = container.resolve('actionAgent')
       const planningAgent = container.resolve('planningAgent')
       const chatAgent = container.resolve('chatAgent')
+      const llmGateway = container.resolve('llmGateway')
 
       // Initialize agents
       await actionAgent.init()
@@ -38,6 +39,7 @@ export function LLMAgent(options: LLMAgentOptions): MineflayerPlugin {
       botWithAgents.action = actionAgent
       botWithAgents.planning = planningAgent
       botWithAgents.chat = chatAgent
+      botWithAgents.llm = llmGateway
 
       // Initialize system prompt
       bot.memory.chatHistory.push(system(generateActionAgentPrompt(bot)))

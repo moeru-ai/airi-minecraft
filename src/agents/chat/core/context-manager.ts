@@ -1,6 +1,8 @@
 import type { Logger } from '../../../utils/logger'
 import type { ChatContext, ChatHistory, ChatSessionStatus } from '../types'
 
+import { assistant, user } from 'neuri/openai'
+
 /**
  * Manages chat contexts and their lifecycle
  * Handles context creation, updates, and cleanup
@@ -99,13 +101,15 @@ export class ContextManager {
   /**
    * Format chat history for LLM input
    */
-  public formatHistory(history: ChatHistory[], botId: string): Array<{ role: 'assistant' | 'user', content: string }> {
+  public formatHistory(history: ChatHistory[], botId: string) {
     return history
       .slice(-this.maxHistoryLength)
-      .map(entry => ({
-        role: entry.sender === botId ? 'assistant' : 'user',
-        content: `${entry.sender}: ${entry.message}`,
-      }))
+      .map((entry) => {
+        const content = `${entry.sender}: ${entry.message}`
+        return entry.sender === botId
+          ? assistant(content)
+          : user(content)
+      })
   }
 
   /**

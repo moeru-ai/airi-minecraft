@@ -4,7 +4,7 @@ import type { Mineflayer } from '../libs/mineflayer'
 import { neuri } from 'neuri'
 
 import { createActionNeuriAgent } from '../agents/action/adapter'
-import { createChatNeuriAgent } from '../agents/chat/llm'
+import { createChatNeuriAgent } from '../agents/chat/neuri'
 import { createPlanningNeuriAgent } from '../agents/planning/adapter'
 import { useLogger } from '../utils/logger'
 import { config } from './config'

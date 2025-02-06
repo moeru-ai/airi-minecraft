@@ -26,16 +26,20 @@ export class LLMGateway extends BaseLLMHandler implements LLMGatewayInterface {
       options?.schema,
     )
 
-    return options?.schema
-      ? (response as z.infer<typeof options.schema>)
-      : (response as LLMResponse).content as T
+    if (options?.schema) {
+      return response as z.infer<typeof options.schema>
+    }
+
+    // Always return LLMResponse for non-schema responses
+    return response as T
   }
 
   async generateText(
     prompt: string,
     options?: Omit<LLMOptions, 'schema'>,
   ): Promise<string> {
-    return this.execute([{ role: 'user', content: prompt }], options)
+    const response = await this.execute<LLMResponse>([{ role: 'user', content: prompt }], options)
+    return response.content
   }
 
   async generateStructured<T extends z.ZodTypeAny>(
@@ -47,6 +51,13 @@ export class LLMGateway extends BaseLLMHandler implements LLMGatewayInterface {
       [{ role: 'user', content: prompt }],
       { ...options, schema },
     )
+  }
+
+  async chat(options: { route: string, messages: Message[], temperature?: number }): Promise<LLMResponse> {
+    return this.execute(options.messages, {
+      route: options.route,
+      temperature: options.temperature,
+    })
   }
 
   private createContext(messages: Message[], _options?: LLMOptions): NeuriContext {

@@ -26,6 +26,7 @@ export interface MineflayerWithAgents extends Mineflayer {
   planning: PlanningAgent
   action: ActionAgent
   chat: ChatAgent
+  llm: LLMGatewayInterface
 }
 
 export interface LLMAgentOptions {
@@ -45,4 +46,5 @@ export interface LLMGatewayInterface {
   execute: <T = string>(messages: Message[], options?: LLMOptions) => Promise<T>
   generateText: (prompt: string, options?: Omit<LLMOptions, 'schema'>) => Promise<string>
   generateStructured: <T extends z.ZodTypeAny>(schema: T, prompt: string, options?: Omit<LLMOptions, 'schema'>) => Promise<z.infer<T>>
+  chat: (options: { route: string, messages: Message[], temperature?: number }) => Promise<LLMResponse>
 }

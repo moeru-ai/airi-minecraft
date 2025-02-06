@@ -1,7 +1,8 @@
 import type { NeuriContext } from 'neuri'
 import type { ChatCompletion, Message } from 'neuri/openai'
-import type * as z from 'zod'
 import type { LLMConfig, LLMResponse } from './types'
+
+import { z } from 'zod'
 
 import { config } from '../../composables/config'
 import { toRetriable } from '../../utils/helper'
@@ -40,6 +41,13 @@ export abstract class BaseLLMHandler {
 
     if (schema) {
       try {
+        // Special handling for boolean schema
+        if (schema instanceof z.ZodBoolean) {
+          const boolValue = content.toLowerCase().includes('true')
+          return boolValue as z.infer<T>
+        }
+
+        // Normal JSON parsing for other schemas
         const parsed = schema.safeParse(JSON.parse(content))
         if (!parsed.success) {
           throw new LLMValidationError('Invalid response format', parsed.error)

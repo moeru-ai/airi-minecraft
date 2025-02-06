@@ -9,7 +9,7 @@ import { system, user } from 'neuri/openai'
 import { z } from 'zod'
 
 import { generateStatusPrompt } from '../../../libs/llm-agent/prompt'
-import { generateChatAgentPrompt } from '../adapter'
+import { generateActionClassifierPrompt, generateActionResponsePrompt, generateChatAgentPrompt } from '../prompts'
 
 /**
  * Handles all message processing logic for the chat agent
@@ -58,35 +58,18 @@ export class MessageHandler {
    * Check if the message requires an action
    */
   private async requiresAction(message: string): Promise<boolean> {
-    // Use LLM to determine if the message requires an action
-    const result = await this.llmHandler.execute<boolean>(
+    const response = await this.bot.llm.execute<boolean>(
       [
-        system(`You are a message classifier for a Minecraft bot.
-Your task is to determine if a message requires the bot to perform any in-game actions.
-
-Examples of messages requiring actions:
-- "make a wooden axe" (crafting)
-- "go to coordinates 100 100" (movement)
-- "build a house" (building)
-- "mine some diamonds" (mining)
-- "kill that zombie" (combat)
-
-Examples of messages NOT requiring actions:
-- "hello"
-- "how are you"
-- "what can you do"
-- "tell me about minecraft"
-
-Respond with true if the message requires actions, false otherwise.`),
-        user(message),
+        { role: 'system', content: generateActionClassifierPrompt() },
+        { role: 'user', content: message },
       ],
       {
         route: 'chat',
-        schema: z.boolean(),
         temperature: 0,
+        schema: z.boolean(),
       },
     )
-    return result
+    return response
   }
 
   /**
@@ -131,24 +114,15 @@ Respond with true if the message requires actions, false otherwise.`),
    * Generate a response to the action execution
    */
   private async generateActionResponse(plan: Plan): Promise<string> {
-    return await this.llmHandler.execute(
-      [
-        system(`You are a Minecraft bot assistant.
-Your task is to generate a natural, friendly response about the execution of a plan.
-The response should:
-1. Acknowledge what was done
-2. Mention any key steps that were completed
-3. Be helpful and encouraging
-4. Use appropriate Minecraft terminology
-
-Keep the response concise but informative.`),
-        user(`Plan: ${JSON.stringify(plan)}`),
+    const response = await this.bot.llm.chat({
+      route: 'chat',
+      messages: [
+        { role: 'system', content: generateActionResponsePrompt() },
+        { role: 'user', content: JSON.stringify(plan) },
       ],
-      {
-        route: 'chat',
-        temperature: 0.7,
-      },
-    )
+      temperature: 0.7,
+    })
+    return response.content
   }
 
   /**
@@ -209,15 +183,13 @@ Keep the response concise but informative.`),
       user(message),
     ]
 
-    return await this.llmHandler.execute(messages, {
+    const response = await this.llmHandler.chat({
       route: options?.route ?? 'chat',
+      messages,
       temperature: options?.temperature,
-      metadata: {
-        ...options?.metadata,
-        sessionStatus: context.status,
-        sessionDuration: Date.now() - context.startTime,
-      },
     })
+
+    return response.content
   }
 
   private async sendResponse(response: string): Promise<void> {
