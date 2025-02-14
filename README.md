@@ -8,7 +8,7 @@ An intelligent Minecraft bot powered by LLM. AIRI can understand natural languag
 
 ## 🎥 Preview
 
-![AIRI-MC](./docs/preview.png)
+![demo](./docs/preview.png)
 
 ## ✨ Features
 
@@ -25,7 +25,7 @@ An intelligent Minecraft bot powered by LLM. AIRI can understand natural languag
 
 ### 📋 Prerequisites
 
-- 📦 Node.js 20+
+- 📦 Node.js 22+
 - 🔧 pnpm
 - 🎮 A Minecraft server (1.20+)
 
@@ -34,7 +34,7 @@ An intelligent Minecraft bot powered by LLM. AIRI can understand natural languag
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/luoling8192/airi-mc.git
+git clone https://github.com/moeru-ai/airi-minecraft.git
 cd airi-mc
 ```
 
@@ -105,6 +105,9 @@ src/
 - `pnpm typecheck` - Run TypeScript type checking
 - `pnpm test` - Run tests
 
+## 🙏 Acknowledgements
+
+- https://github.com/kolbytn/mindcraft
 
 ## 🤝 Contributing
 
