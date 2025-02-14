@@ -1,6 +1,7 @@
-import type { PlanStep } from '../../agents/planning/adapter'
-import type { Logger } from '../../utils/logger'
-import type { Action } from './action'
+import type { Action } from '../libs/mineflayer/action'
+import type { Logger } from '../utils/logger'
+import type { MemoryAction } from './memory'
+import type { PlanStep } from './planning/adapter'
 
 import { useLogg } from '@guiiai/logg'
 import EventEmitter3 from 'eventemitter3'
@@ -31,6 +32,8 @@ export interface MemoryAgent extends BaseAgent {
   recall: <T>(key: string) => T | undefined
   forget: (key: string) => void
   getMemorySnapshot: () => Record<string, unknown>
+  addAction: (action: MemoryAction) => void
+  getActions: () => MemoryAction[]
 }
 
 export interface Plan {

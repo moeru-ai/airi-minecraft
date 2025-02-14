@@ -7,6 +7,8 @@ import { asClass, asFunction, createContainer, InjectionMode } from 'awilix'
 import { ActionAgentImpl } from '../../agents/action'
 import { ChatAgentImpl } from '../../agents/chat'
 import { PlanningAgentImpl } from '../../agents/planning'
+import { config } from '../../composables/config'
+import { LLMGateway } from './gateway'
 
 export interface ContainerServices {
   logger: Logger
@@ -14,6 +16,7 @@ export interface ContainerServices {
   planningAgent: PlanningAgentImpl
   chatAgent: ChatAgentImpl
   neuri: Neuri
+  llmGateway: LLMGateway
 }
 
 export function createAgentContainer(options: {
@@ -33,6 +36,17 @@ export function createAgentContainer(options: {
     // Register neuri client
     neuri: asFunction(() => options.neuri).singleton(),
 
+    // Register LLM Gateway
+    llmGateway: asClass(LLMGateway)
+      .singleton()
+      .inject(() => ({
+        agent: options.neuri,
+        model: options.model ?? config.openai.model,
+        retryLimit: 3,
+        delayInterval: 1000,
+        maxContextLength: 2000,
+      })),
+
     // Register agents
     actionAgent: asClass(ActionAgentImpl)
       .singleton()
@@ -48,7 +62,7 @@ export function createAgentContainer(options: {
         type: 'planning' as const,
         llm: {
           agent: options.neuri,
-          model: options.model,
+          model: options.model ?? config.openai.model,
         },
       })),
 
@@ -57,12 +71,10 @@ export function createAgentContainer(options: {
       .inject(() => ({
         id: 'chat',
         type: 'chat' as const,
-        llm: {
-          agent: options.neuri,
-          model: options.model,
-        },
+        llmHandler: container.resolve('llmGateway'),
         maxHistoryLength: 50,
-        idleTimeout: 5 * 60 * 1000, // 5 minutes
+        idleTimeout: 5 * 60 * 1000,
+        idleThreshold: 2 * 60 * 1000,
       })),
   })
 

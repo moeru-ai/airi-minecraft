@@ -1,9 +1,14 @@
-import type { Message } from 'neuri/openai'
-import type { Action } from '../../libs/mineflayer'
-import type { AgentConfig, MemoryAgent } from '../../libs/mineflayer/base-agent'
+import type { AgentConfig, MemoryAgent } from '../base-agent'
 
 import { Memory } from '../../libs/mineflayer/memory'
 import { type Logger, useLogger } from '../../utils/logger'
+
+export interface MemoryAction {
+  type: string
+  name: string
+  data: Record<string, unknown>
+  timestamp: number
+}
 
 export class MemoryAgentImpl implements MemoryAgent {
   public readonly type = 'memory' as const
@@ -49,9 +54,7 @@ export class MemoryAgentImpl implements MemoryAgent {
       throw new Error('Memory agent not initialized')
     }
 
-    const value = this.memory.get(key) as T | undefined
-    this.logger.withFields({ key, value }).log('Recalling memory')
-    return value
+    return this.memory.get(key) as T
   }
 
   forget(key: string): void {
@@ -59,7 +62,6 @@ export class MemoryAgentImpl implements MemoryAgent {
       throw new Error('Memory agent not initialized')
     }
 
-    this.logger.withFields({ key }).log('Forgetting memory')
     this.memory.delete(key)
   }
 
@@ -71,37 +73,20 @@ export class MemoryAgentImpl implements MemoryAgent {
     return Object.fromEntries(this.memory.entries())
   }
 
-  addChatMessage(message: Message): void {
+  addAction(action: MemoryAction): void {
     if (!this.initialized) {
       throw new Error('Memory agent not initialized')
     }
 
-    this.memoryInstance.chatHistory.push(message)
-    this.logger.withFields({ message }).log('Adding chat message to memory')
+    this.memoryInstance.addAction(action)
+    this.logger.withFields({ action }).log('Action recorded')
   }
 
-  addAction(action: Action): void {
+  getActions(): MemoryAction[] {
     if (!this.initialized) {
       throw new Error('Memory agent not initialized')
     }
 
-    this.memoryInstance.actions.push(action)
-    this.logger.withFields({ action }).log('Adding action to memory')
-  }
-
-  getChatHistory(): Message[] {
-    if (!this.initialized) {
-      throw new Error('Memory agent not initialized')
-    }
-
-    return this.memoryInstance.chatHistory
-  }
-
-  getActions(): Action[] {
-    if (!this.initialized) {
-      throw new Error('Memory agent not initialized')
-    }
-
-    return this.memoryInstance.actions
+    return this.memoryInstance.getActions()
   }
 }

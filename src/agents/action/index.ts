@@ -1,10 +1,10 @@
 import type { Mineflayer } from '../../libs/mineflayer'
 import type { Action } from '../../libs/mineflayer/action'
-import type { ActionAgent, AgentConfig } from '../../libs/mineflayer/base-agent'
+import type { ActionAgent, AgentConfig } from '../base-agent'
 import type { PlanStep } from '../planning/adapter'
 
 import { useBot } from '../../composables/bot'
-import { AbstractAgent } from '../../libs/mineflayer/base-agent'
+import { AbstractAgent } from '../base-agent'
 import { actionsList } from './tools'
 
 interface ActionState {
