@@ -1,5 +1,13 @@
 # ⛏️ Minecraft agent player for [アイリ (Airi)](https://airi.moeru.ai)
 
+> [!WARNING]
+>
+> As the PoC and initial implementation has been achieved, as well as since all the [`airi-minecraft`](https://github.com/moeru-ai/airi-minecraft) history of changes has been merged in to the meta repo of [`airi`](https://github.com/moeru-ai/airi) under [`services/minecraft`](https://github.com/moeru-ai/airi/tree/main/services/minecraft) directory with [`219407a`](https://github.com/moeru-ai/airi/commit/219407aacaaa8d371d7b916f040667fc4f77f474) commit, this repository will be archived and no longer maintained.
+>
+> If you wish to take a closer look on how we implemented it, please go to: [`services/minecraft`](https://github.com/moeru-ai/airi/tree/main/services/minecraft).
+>
+> This doesn't mean [アイリ (Airi)](https://airi.moeru.ai) was discontinued, we are still actively maintain and developing it to achieve out roadmap. As always, you are welcome to join us and contribute to [`airi`](https://github.com/moeru-ai/airi).
+
 > [!NOTE]
 >
 > This project is part of the [Project アイリ (Airi)](https://github.com/moeru-ai/airi), we aim to build a LLM-driven VTuber like [Neuro-sama](https://www.youtube.com/@Neurosama) (subscribe if you didn't!) if you are interested in, please do give it a try on [live demo](https://airi.moeru.ai).
@@ -8,7 +16,7 @@ An intelligent Minecraft bot powered by LLM. AIRI can understand natural languag
 
 ## 🎥 Preview
 
-![AIRI-MC](./docs/preview.png)
+![demo](./docs/preview.png)
 
 ## ✨ Features
 
@@ -25,7 +33,7 @@ An intelligent Minecraft bot powered by LLM. AIRI can understand natural languag
 
 ### 📋 Prerequisites
 
-- 📦 Node.js 20+
+- 📦 Node.js 22+
 - 🔧 pnpm
 - 🎮 A Minecraft server (1.20+)
 
@@ -34,7 +42,7 @@ An intelligent Minecraft bot powered by LLM. AIRI can understand natural languag
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/luoling8192/airi-mc.git
+git clone https://github.com/moeru-ai/airi-minecraft.git
 cd airi-mc
 ```
 
@@ -105,6 +113,9 @@ src/
 - `pnpm typecheck` - Run TypeScript type checking
 - `pnpm test` - Run tests
 
+## 🙏 Acknowledgements
+
+- https://github.com/kolbytn/mindcraft
 
 ## 🤝 Contributing
 
